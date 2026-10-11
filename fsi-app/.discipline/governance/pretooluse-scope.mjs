@@ -68,7 +68,7 @@ export function commandDirsHoldFsiApp(command, cwd, exists = existsSync) {
  *  Claude Code hooks. The user-level ~/.claude/hooks is not the repo's and is not matched. */
 function isRepoRootGoverned(path) {
   const p = String(path ?? "").replaceAll("\\", "/").toLowerCase();
-  if (p.endsWith("/.github/workflows/discipline.yml")) return true;
+  if (p.endsWith("/.github/workflows/ci.yml")) return true;
   return p.includes("/.claude/hooks/") && (p.includes("/.claude/worktrees/") || p.includes("/dotfiles/"));
 }
 

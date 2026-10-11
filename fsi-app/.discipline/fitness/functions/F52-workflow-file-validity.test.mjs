@@ -13,8 +13,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { _clearRepoRootCache } from '../../lib/context.mjs';
-import { _clearCache } from '../lib/file-content.mjs';
+import { _clearRepoRootCache, getRepoRoot } from '../../lib/context.mjs';
+import { _clearCache, readFile } from '../lib/file-content.mjs';
 import {
   fitnessFunction,
   listWorkflowAndActionFiles,
@@ -32,9 +32,7 @@ import {
   listUploadWorkflowFiles,
   checkActionsArtifactBudget,
 } from './F52-workflow-file-validity.mjs';
-import { SCOPED, SCOPED_KEYS } from '../../governance/job-inputs.mjs';
-import { readFile } from '../lib/file-content.mjs';
-import { getRepoRoot } from '../../lib/context.mjs';
+import { ALWAYS_ON, SCOPED, SCOPED_KEYS } from '../../governance/job-inputs.mjs';
 
 // ── fixture harness: a temp repo root with .github/workflows and/or .github/actions files ──────────
 
@@ -609,34 +607,34 @@ test('LIVE: checkWorkflowFileValidity() over the real committed tree returns zer
 test('enumerate() leads with the one sentinel path for the tree-wide facets, then lists each workflow file for facet B', () => {
   const files = fitnessFunction.enumerate();
   assert.equal(files[0], 'fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.mjs');
-  assert.ok(files.slice(1).every((f) => /^\.github\/workflows\/[^/]+\.yml$/.test(f)));
+  assert.ok(files.slice(1).every((f) => /^[.]github[/]workflows[/][^/]+[.]yml$/.test(f)));
 });
 
-// ── GATE-4 (lane gate4-ci): the shape of the real discipline.yml, asserted as workflow-validity facts ──
+// ── GATE-4 / GATE-6 / GATE-9 / CI-FIX-1 / CI-MIN-1, rewritten by lane PIPE-1 (2026-10-11) against the ONE workflow ────────
 //
-// These read the committed .github/workflows/discipline.yml and assert the job set and posture the gate
-// plan fixed: (1) a push to master runs Validate commits and the Consistency layer only, the unit-test,
-// fitness and rendering jobs run on the pull_request head; (2) the rendering guard is a REQUIRED job (no
-// continue-on-error) on a depth-1 checkout; (3) actionlint's pinned tarball is cached by version;
-// (4) each job that produces gate firings uploads them as a gate-firings artifact on every run;
-// (5) the explicit-test runner runs files concurrently. They are workflow-shape assertions, not a run of
-// any fitness function against the live tree.
+// The eight PR workflows (discipline, bug-class-guard, build-proof, design-audit, migration-proof, rls-persona-matrix,
+// route-and-view-attacks, gate-step-attacks) became .github/workflows/ci.yml: five jobs, inputs, static, schema, app and
+// master. Everything these tests asserted about discipline.yml (the GATE-4 job set and push posture, the GATE-6 Playwright
+// container, the GATE-9 honest forms, the CI-FIX-1 required contexts, the CI-MIN-1 scoped-job skip) is asserted here
+// about ci.yml, and each attack of the old file has its counterpart below (the coverage table of the lane's session log
+// maps every case). They read the committed .github/workflows/ci.yml and assert workflow-validity facts, not a run of any
+// fitness function against the live tree.
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const REPO = join(HERE, '..', '..', '..', '..');
-const DISCIPLINE_YML = readFileSync(join(REPO, '.github', 'workflows', 'discipline.yml'), 'utf8');
-const DISCIPLINE_LINES = DISCIPLINE_YML.split(/\r?\n/);
-const JOBS = extractJobs(DISCIPLINE_LINES);
+const CI_YML = readFileSync(join(REPO, '.github', 'workflows', 'ci.yml'), 'utf8');
+const CI_LINES = CI_YML.split(/\r?\n/);
+const JOBS = extractJobs(CI_LINES);
 
 function jobById(id) {
   const job = JOBS.find((j) => j.id === id);
-  assert.ok(job, `discipline.yml has no job "${id}"`);
+  assert.ok(job, `ci.yml has no job "${id}"`);
   return job;
 }
 
 function jobText(id) {
   const job = jobById(id);
-  return DISCIPLINE_LINES.slice(job.startLine, job.endLine + 1).join('\n');
+  return CI_LINES.slice(job.startLine, job.endLine + 1).join('\n');
 }
 
 /** The step blocks of a job: a step starts at a column-6 dash and runs to the next column-6 dash. */
@@ -644,8 +642,8 @@ function stepsOf(id) {
   const job = jobById(id);
   const steps = [];
   for (let i = job.startLine; i <= job.endLine; i++) {
-    if (/^ {6}- /.test(DISCIPLINE_LINES[i])) steps.push([]);
-    if (steps.length) steps[steps.length - 1].push(DISCIPLINE_LINES[i]);
+    if (/^ {6}- /.test(CI_LINES[i])) steps.push([]);
+    if (steps.length) steps[steps.length - 1].push(CI_LINES[i]);
   }
   return steps.map((lines) => lines.join('\n'));
 }
@@ -660,62 +658,124 @@ function stepNamed(id, fragment) {
   return found;
 }
 
-test('GATE-4: the workflow has exactly the six jobs (the CI-MIN-1 inputs job plus the five), so a new push-time job is a deliberate edit', () => {
-  assert.deepEqual(
-    JOBS.map((j) => j.id),
-    ['inputs', 'validate-commits', 'test-discipline-engine', 'consistency-backstop', 'fitness-check', 'rendering-guard'],
-  );
+const headerOf = (lines) => lines.slice(0, lines.findIndex((l) => /^jobs:\s*$/.test(l))).join('\n');
+
+const IF_PR = "github.event_name == 'pull_request'";
+const IF_PUSH = "github.event_name == 'push'";
+const IF_CODE = "needs.inputs.outputs.code == 'true'";
+const IF_NOT_CANCELLED = '${{ !cancelled() }}';
+
+/** The job-level condition of each job of ci.yml (null = none). A job given another condition is a finding (JIF). */
+const JOB_IF = {
+  inputs: null,
+  static: IF_PR,
+  schema: `${IF_PR} && needs.inputs.outputs.schema == 'true'`,
+  app: `(${IF_PR} && needs.inputs.outputs.app == 'true') || github.event_name == 'workflow_dispatch'`,
+  master: IF_PUSH,
+};
+
+/** Every verdict step of ci.yml, with the ONLY if it may carry (null = none). A step missing, renamed or given another
+ *  condition is a finding. The code-gated steps carry the classifier's code verdict and nothing else. */
+const VERDICT_STEPS = {
+  inputs: [['Classify the change', null]],
+  static: [
+    ['Run discipline engine (pull request)', null],
+    ['Memory gate', 'always()'],
+    ['Consistency runner (pull request)', null],
+    ['Audit finding status gate', null],
+    ['Run discipline test suite', IF_CODE],
+    ['Test discovery', IF_CODE],
+    ['Invariant-coverage meta-gate', IF_CODE],
+    ['Closure gate', IF_CODE],
+    ['Skill-contract drift', IF_CODE],
+    ['ESLint (max-warnings 0)', IF_CODE],
+    ['Run fitness functions', IF_CODE],
+    ['actionlint (pinned', IF_CODE],
+    ['App unit tests requiring npm deps', IF_CODE],
+    ['Behavioral goldens', IF_CODE],
+    ['HARD - detector discrimination', IF_CODE],
+    ['DS23 attacks', IF_CODE],
+    ['DS24 control and attacks', IF_CODE],
+    ['F9 on the real app', IF_CODE],
+  ],
+  schema: [
+    ['Replay the applied migration files', null],
+    ['Apply every pending migration', null],
+    ['Run the RLS persona matrix', null],
+    ['Attack the views and the system-only functions', null],
+    ['Attack every route method', null],
+  ],
+  app: [
+    ['next build', null],
+    ['Run rendering guard', null],
+    ['Run the design audit', IF_NOT_CANCELLED],
+    ['Attack the D-M4 forbid rows', null],
+  ],
+  master: [
+    ['Run discipline engine (push to master)', null],
+    ['Memory gate', 'always()'],
+    ['Consistency runner (push to master)', null],
+    ['HARD - detector discrimination', null],
+    ['next build', "needs.inputs.outputs.master_build == 'true'"],
+  ],
+};
+
+/** The jobs whose multi-command steps must start with a pipefail line (VC-5): the schema job's steps use the plain
+ *  `set -o pipefail` form before a tee, checked separately (VC-6). */
+const PIPEFAIL_FIRST = /^set (-euo|-uo|-o) pipefail$/;
+
+test('GATE-4: the workflow has exactly the five jobs, so a new job is a deliberate edit', () => {
+  assert.deepEqual(JOBS.map((j) => j.id), ['inputs', 'static', 'schema', 'app', 'master']);
 });
 
-test('GATE-4: a push to master runs Validate commits and the Consistency layer only', () => {
-  for (const id of ['validate-commits', 'consistency-backstop']) {
-    const props = jobPropertyLines(jobById(id), DISCIPLINE_LINES);
-    assert.equal(props.find((p) => p.key === 'if'), undefined, `${id} must run on every event (push and pull_request)`);
+test('GATE-4: static runs on a pull request only, master on a push only, inputs on every event, and schema and app are scoped by the classifier', () => {
+  for (const [id, want] of Object.entries(JOB_IF)) {
+    const ifProp = jobPropertyLines(jobById(id), CI_LINES).find((p) => p.key === 'if');
+    assert.equal(ifProp ? ifProp.valueInline.trim() : null, want, `job ${id}`);
   }
-  for (const id of ['inputs', 'test-discipline-engine', 'fitness-check', 'rendering-guard']) {
-    const ifProp = jobPropertyLines(jobById(id), DISCIPLINE_LINES).find((p) => p.key === 'if');
-    assert.ok(ifProp, `${id} must carry a job-level if so a push to master skips it`);
-    assert.match(ifProp.valueInline, /github\.event_name\s*==\s*'pull_request'/, `${id}'s if must select pull_request only`);
-  }
 });
 
-test('GATE-4: the workflow header states the push-to-master posture and the measured 38 percent', () => {
-  const header = DISCIPLINE_LINES.slice(0, DISCIPLINE_LINES.findIndex((l) => /^jobs:\s*$/.test(l))).join('\n');
-  assert.match(header, /38 percent/);
-  assert.match(header, /push to master[^\n]*(Validate commits|validate-commits)/i);
+test('GATE-4: the workflow header states the five jobs, that all five are the required contexts, and where the route attacks run', () => {
+  const header = headerOf(CI_LINES);
+  assert.match(header, /FIVE jobs/);
+  assert.match(header, /ALL FIVE are the required status contexts/);
+  assert.match(header, /master {3}a push to master only/);
+  assert.match(header, /WHERE THE ROUTE ATTACKS RUN, AND WHY/);
 });
 
-test('GATE-4: the rendering guard is a required job: no continue-on-error, depth-1 checkout, 15 minute timeout (GATE-6)', () => {
-  const block = jobText('rendering-guard');
-  assert.doesNotMatch(block, /^\s*continue-on-error:\s*true/m, 'rendering-guard must be able to fail the workflow');
-  assert.match(block, /^ {4}timeout-minutes:\s*15\s*$/m);
-  const checkout = stepNamed('rendering-guard', 'Checkout repository');
-  assert.match(checkout, /fetch-depth:\s*1\s*$/m, 'the rendering guard checks out depth 1');
+test('GATE-4: the app job is a required job: no continue-on-error, depth-1 checkout, 25 minute timeout (GATE-6)', () => {
+  const block = jobText('app');
+  assert.doesNotMatch(block, /^\s*continue-on-error:\s*true/m, 'app must be able to fail the workflow');
+  assert.match(block, /^ {4}timeout-minutes:\s*25\s*$/m);
+  const checkout = stepNamed('app', 'Checkout repository');
+  assert.match(checkout, /fetch-depth:\s*1\s*$/m, 'the app job checks out depth 1');
   assert.doesNotMatch(checkout, /fetch-depth:\s*0/);
   assert.doesNotMatch(checkout, /git fetch/, 'no extra ref fetch');
 });
 
 test('GATE-4: actionlint restores a version-keyed cache of its pinned tarball and still verifies the checksum', () => {
-  const cache = stepNamed('fitness-check', 'actionlint tarball');
+  const cache = stepNamed('static', 'actionlint tarball');
   assert.match(cache, /uses:\s*actions\/cache@v4/);
   assert.match(cache, /key:\s*actionlint-v1\.7\.12-linux-amd64\s*$/m);
-  const lint = stepNamed('fitness-check', 'actionlint (pinned');
+  const lint = stepNamed('static', 'actionlint (pinned');
   assert.match(lint, /sha256sum -c/, 'the checksum is verified on every run, cache hit or miss');
   assert.match(lint, /--retry/, 'a download on a cache miss retries a network reset');
 });
 
 test('GATE-4: every job that produces gate firings uploads a gate-firings artifact on every run, never failing on absence', () => {
-  for (const id of ['validate-commits', 'fitness-check']) {
-    const upload = stepNamed(id, 'Upload gate firings');
-    assert.match(upload, /uses:\s*actions\/upload-artifact@v4/);
-    assert.match(upload, /^ {8}if:\s*always\(\)\s*$/m, `${id}: upload on pass and on fail`);
-    assert.match(upload, /name:\s*gate-firings-/);
-    assert.match(upload, /if-no-files-found:\s*ignore/, `${id}: an absent file uploads nothing and does not fail`);
-    const retention = upload.match(/retention-days:\s*(\d+)/);
-    assert.ok(retention && Number(retention[1]) <= 7, `${id}: retention within the F68 budget`);
+  for (const id of ['static', 'master']) {
+    const uploads = stepsOf(id).filter((s) => /uses:\s*actions\/upload-artifact@v4/.test(s));
+    assert.ok(uploads.length >= 2, `${id}: uploads its firings`);
+    for (const upload of uploads) {
+      assert.match(upload, /^ {8}if:\s*always\(\)\s*$/m, `${id}: upload on pass and on fail`);
+      assert.match(upload, /name:\s*gate-firings-/);
+      assert.match(upload, /if-no-files-found:\s*ignore/, `${id}: an absent file uploads nothing and does not fail`);
+      const retention = upload.match(/retention-days:\s*(\d+)/);
+      assert.ok(retention && Number(retention[1]) <= 7, `${id}: retention within the F68 budget`);
+    }
   }
-  assert.match(stepNamed('fitness-check', 'Upload gate firings'), /fsi-app\/\.discipline\/out\/fitness-firings\.json/);
-  assert.match(stepNamed('validate-commits', 'Upload gate firings'), /fsi-app\/\.discipline\/out\/rules-ci-firings\.log/);
+  assert.match(stepNamed('static', 'Upload gate firings (fitness functions)'), /fsi-app\/\.discipline\/out\/fitness-firings\.json/);
+  assert.match(stepNamed('static', 'Upload gate firings (rule engine output)'), /fsi-app\/\.discipline\/out\/rules-ci-firings\.log/);
 });
 
 test('GATE-4: the explicit-test runner runs its files concurrently (the programmatic run() defaults to serial)', () => {
@@ -724,20 +784,28 @@ test('GATE-4: the explicit-test runner runs its files concurrently (the programm
   assert.match(code, /run\(\{[^}]*\bconcurrency\b[^}]*\}\)/, 'run({ files, execArgv, concurrency }) must pass a concurrency option');
 });
 
+test('PIPE-1: the static job timeout is set from measurement and the comment records the numbers', () => {
+  const block = jobText('static');
+  assert.match(block, /^ {4}timeout-minutes:\s*19\s*$/m);
+  assert.match(block, /FROM MEASUREMENT/);
+  assert.match(block, /739 s/);
+  assert.match(block, /REG-1 \(in flight\) shrinks the suite/);
+});
+
 // ── GATE-6 (lane gate6-guard-container): every Playwright job runs in the pinned official image ──────
 //
-// Four Rendering guard runs were cancelled at the job timeout because `playwright install --with-deps`
-// stalled on apt downloads. The jobs now run in mcr.microsoft.com/playwright:v<version>-noble, which has
-// chromium and its OS libraries, and install only the npm package, whose version is READ BACK OUT OF THE
-// IMAGE TAG in the same workflow file (the job context has no container image property, so the file is the
-// one place the version is written). These assertions fail if a browser install returns, if the image tag
-// and the npm version could differ, or if the guard stops printing its own runtime.
+// Four Rendering guard runs were cancelled at the job timeout because `playwright install --with-deps` stalled on apt
+// downloads. The jobs run in mcr.microsoft.com/playwright:v<version>-noble, which has chromium and its OS libraries, and
+// install only the npm package, whose version is READ BACK OUT OF THE IMAGE TAG in the same workflow file (the job
+// context has no container image property, so the file is the one place the version is written). These assertions fail
+// if a browser install returns, if the image tag and the npm version could differ, or if the guard stops printing its
+// own runtime.
 
 const PLAYWRIGHT_IMAGE = /^ {6}image:\s*mcr\.microsoft\.com\/playwright:v(\d+\.\d+\.\d+)-noble\s*$/m;
 
 function playwrightJobs() {
   return [
-    { file: 'discipline.yml', job: 'rendering-guard' },
+    { file: 'ci.yml', job: 'app' },
     { file: 'layout-baseline-renewal.yml', job: 'renew' },
     { file: 'live-smoke.yml', job: 'live-smoke' },
   ].map(({ file, job }) => {
@@ -759,6 +827,7 @@ test('GATE-6: each Playwright job runs in the official Playwright image, one ima
     versions.add(block.match(PLAYWRIGHT_IMAGE)[1]);
   }
   assert.equal(versions.size, 1, `all Playwright jobs use one version, got ${[...versions].join(', ')}`);
+  assert.equal(CI_YML.match(/^ *image:/gm).length, 1, 'ci.yml carries ONE image line: the rendering guard and the design audit share the app job');
 });
 
 test('GATE-6: no Playwright job installs a browser, and the npm package version is read from the image tag in its own file', () => {
@@ -780,7 +849,7 @@ test('GATE-6: no Playwright job installs a browser, and the npm package version 
 });
 
 test('GATE-6: the rendering guard prints its own runtime to the step summary with no pipe and keeps the guard exit status', () => {
-  const step = stepNamed('rendering-guard', 'Run rendering guard');
+  const step = stepNamed('app', 'Run rendering guard');
   assert.match(step, /run-rendering-guard\.mjs \|\| status=\$\?/, 'the guard exit status is captured, not lost');
   assert.match(step, /line="guard run: \$\(\( \$\(date \+%s\) - start \)\) s"/);
   assert.match(step, /echo "\$line" >> "\$GITHUB_STEP_SUMMARY"/);
@@ -797,30 +866,29 @@ test('GATE-6: every Playwright job trusts the workspace for git before anything 
   }
 });
 
-test('GATE-6: the workflow header describes the container form and the 15 minute limit, not an install and 10 minutes', () => {
-  const header = DISCIPLINE_LINES.slice(0, DISCIPLINE_LINES.findIndex((l) => /^jobs:\s*$/.test(l))).join('\n');
-  assert.doesNotMatch(header, /installs\s+Playwright chromium/);
-  assert.doesNotMatch(header, /10-minute timeout/);
-  assert.match(header, /Playwright container image/);
-  assert.match(header, /15-minute timeout/);
+test('GATE-6: the app job describes the container form and the 25 minute limit, not an install and 10 minutes', () => {
+  const block = jobText('app');
+  assert.doesNotMatch(block, /installs\s+Playwright chromium/);
+  assert.doesNotMatch(block, /10-minute timeout/);
+  assert.match(block, /CONTAINER, NOT AN INSTALL/);
+  assert.match(block, /TIMEOUT 25 MINUTES/);
 });
 
-test('GATE-6: the rendering guard timeout is 15 minutes and the comment records the measured reasoning', () => {
-  const block = jobText('rendering-guard');
-  assert.match(block, /^ {4}timeout-minutes:\s*15\s*$/m);
+test('GATE-6: the app job timeout is 25 minutes and the comment records the measured reasoning', () => {
+  const block = jobText('app');
+  assert.match(block, /^ {4}timeout-minutes:\s*25\s*$/m);
   assert.match(block, /p90 433 s/);
   assert.match(block, /max 604 s/);
 });
 
-// ── GATE-9 (lane gate9-ci-honest-forms, 2026-10-08): the shape of the CI workflows, asserted as facts ─────────
+// ── GATE-9 (lane gate9-ci-honest-forms, 2026-10-08): the shape of the CI workflow, asserted as facts ─────────
 //
-// AUD-AT-5 edited discipline.yml and chain-proof.yml 218 ways (continue-on-error, if: false, a step removed,
-// the script forced to exit 0) and the repo's own gates refused 69 of the 148 edits that reach a verdict. The
-// rest were accepted because every test asserted what the file SAYS TODAY about one step, not what a verdict
-// step may never become. These tests state the second thing: for every job and every verdict step, which
-// conditions are allowed, and that nothing can make it unable to fail. Each attack is a mutation of the real file
-// text run through the same checker, so a check that stops detecting its attack fails here. The attack ids are
-// the register's (VC-*, DS*, TR-*, RG-*, DO-6, AH6).
+// AUD-AT-5 edited discipline.yml and chain-proof.yml 218 ways (continue-on-error, if: false, a step removed, the script
+// forced to exit 0) and the repo's own gates refused 69 of the 148 edits that reach a verdict. The rest were accepted
+// because every test asserted what the file SAYS TODAY about one step, not what a verdict step may never become. These
+// tests state the second thing: for every job and every verdict step, which conditions are allowed, and that nothing can
+// make it unable to fail. Each attack is a mutation of the real file text run through the same checker, so a check that
+// stops detecting its attack fails here. The attack ids are the register's (VC-*, DS*, TR-*, RG-*, DO-6, AH6).
 
 function codeLines(text) {
   return text.split(/\r?\n/).map((l, i) => ({ l, n: i + 1 })).filter(({ l }) => !/^\s*#/.test(l));
@@ -844,72 +912,39 @@ function stepsOfJob(text, jobId) {
   });
 }
 
-const IF_PR = "github.event_name == 'pull_request'";
-const IF_PUSH = "github.event_name == 'push'";
-const IF_DOCS = "steps.docs_only.outputs.docs_only != 'true'";
-const IF_RENDERING = `${IF_PR} && needs.inputs.outputs.rendering_guard == 'true'`;
-
-/** Every verdict step of discipline.yml, with the ONLY if it may carry (null = none). A step missing, renamed
- *  or given another condition is a finding. */
-const DISCIPLINE_VERDICT_STEPS = {
-  'validate-commits': [
-    ['Run discipline engine (push to master)', IF_PUSH],
-    ['Run discipline engine (pull request)', IF_PR],
-    ['Memory gate', 'always()'],
-  ],
-  'test-discipline-engine': [
-    ['Run discipline test suite', IF_DOCS],
-    ['Test discovery', IF_DOCS],
-    ['Invariant-coverage meta-gate', IF_DOCS],
-    ['Closure gate', IF_DOCS],
-    ['Skill-contract drift', IF_DOCS],
-  ],
-  'consistency-backstop': [
-    ['Consistency runner (push to master)', IF_PUSH],
-    ['Consistency runner (pull request)', IF_PR],
-  ],
-  'fitness-check': [
-    ['ESLint', IF_DOCS],
-    ['Run fitness functions', IF_DOCS],
-    ['actionlint (pinned', IF_DOCS],
-    ['App unit tests requiring npm deps', IF_DOCS],
-    ['Behavioral goldens', IF_DOCS],
-  ],
-  'rendering-guard': [['Run rendering guard', null]],
-};
-const JOB_IF = {
-  inputs: IF_PR,
-  'validate-commits': null,
-  'test-discipline-engine': IF_PR,
-  'consistency-backstop': null,
-  'fitness-check': IF_PR,
-  'rendering-guard': IF_RENDERING,
-};
-
-/** The non-comment run-block commands of a step body (one entry per non-blank, non-comment line). */
+/** The non-comment run-block commands of a step body (one entry per command; a backslash continuation joins its lines). */
 function runCommandLines(step) {
   const out = [];
   let inBlock = false;
+  let carry = '';
+  const push = (raw) => {
+    const piece = raw.trim();
+    if (piece === '' || /^#/.test(piece)) return;
+    if (piece.endsWith('\\')) { carry += `${piece.slice(0, -1).trim()} `; return; }
+    out.push(`${carry}${piece}`);
+    carry = '';
+  };
   for (const l of step.body.split('\n')) {
     if (/^ {8}run:\s*[|>][-+]?\s*$/.test(l)) { inBlock = true; continue; }
     if (/^ {8}run:\s*\S/.test(l)) return [l.replace(/^ {8}run:\s*/, '')];
     if (inBlock) {
-      if (/^ {10}\S/.test(l) || l.trim() === '') { if (l.trim() !== '' && !/^\s*#/.test(l)) out.push(l.trim()); continue; }
+      if (/^ {10,}\S/.test(l) || l.trim() === '') { push(l); continue; }
       inBlock = false;
     }
   }
   return out;
 }
 
-/** Problems with a discipline.yml text. [] = the shape holds. */
-function disciplineShapeProblems(text) {
+/** Problems with a ci.yml text. [] = the shape holds. */
+function ciShapeProblems(text) {
   const problems = [];
   const code = codeLines(text).map(({ l }) => l).join('\n');
   // triggers
   if (/^\s*paths(-ignore)?:/m.test(code)) problems.push('a paths/paths-ignore filter is present (TR-2: a skipped required check blocks the merge)');
-  const on = text.slice(text.indexOf('\non:'), text.indexOf('\nconcurrency:'));
+  const on = text.slice(text.indexOf('\non:'), text.indexOf('\npermissions:'));
   if (!/^ {2}pull_request:\n {4}branches:\n {6}- master\n/m.test(on)) problems.push('pull_request must trigger on branches: [master] only (TR-1)');
   if (!/^ {2}push:\n {4}branches:\n {6}- master\n/m.test(on)) problems.push('push must trigger on branches: [master] only (TR-1)');
+  if (/^ {2}(schedule|workflow_run|pull_request_target):/m.test(on)) problems.push('a schedule, workflow_run or pull_request_target trigger is present (TR-5)');
   if (!/cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/.test(code)) problems.push('cancel-in-progress must be true for pull_request only (TR-4)');
   // nothing may be unable to fail
   if (/continue-on-error/.test(code)) problems.push('continue-on-error appears (JCOE, step COE): a job or step that cannot fail gates nothing');
@@ -929,7 +964,7 @@ function disciplineShapeProblems(text) {
     }
   }
   // verdict steps present, with only their allowed condition, and not neutered
-  for (const [jobId, list] of Object.entries(DISCIPLINE_VERDICT_STEPS)) {
+  for (const [jobId, list] of Object.entries(VERDICT_STEPS)) {
     const steps = stepsOfJob(text, jobId);
     for (const [fragment, allowedIf] of list) {
       const hits = steps.filter((s) => s.name.includes(fragment));
@@ -937,7 +972,7 @@ function disciplineShapeProblems(text) {
       const step = hits[0];
       if (step.ifExpr !== allowedIf) problems.push(`job ${jobId}: step "${fragment}" has if ${JSON.stringify(step.ifExpr)}, only ${JSON.stringify(allowedIf)} is allowed (IFF)`);
       const cmds = runCommandLines(step);
-      if (cmds.length === 0) problems.push(`job ${jobId}: step "${fragment}" has no run script`);
+      if (cmds.length === 0 && !/^ {8}uses:/m.test(step.body)) problems.push(`job ${jobId}: step "${fragment}" has no run script`);
       for (const c of cmds) {
         if (/\bset \+e\b|\|\|\s*(true|:)\s*$|;\s*(true|:)\s*$|\bexit 0\b/.test(c) && !/^git fetch --no-tags origin "\$BASE_REF" \|\| true$/.test(c)) {
           problems.push(`job ${jobId}: step "${fragment}" runs "${c}", a form that forces success (TRUE)`);
@@ -945,36 +980,40 @@ function disciplineShapeProblems(text) {
       }
     }
   }
-  // every multi-command run block starts with set -euo pipefail
+  // every multi-command run block starts with a pipefail line (the schema job's stack steps use the plain form before a tee)
   for (const job of jobs) {
     for (const step of stepsOfJob(text, job.id)) {
       const cmds = runCommandLines(step);
-      if (cmds.length > 1 && cmds[0] !== 'set -euo pipefail') problems.push(`job ${job.id}: step "${step.name}" has ${cmds.length} commands and does not start with set -euo pipefail (VC-5)`);
-      if (cmds.some((c) => /\|\s*tee\b/.test(c)) && cmds[0] !== 'set -euo pipefail') problems.push(`job ${job.id}: step "${step.name}" pipes into tee without set -euo pipefail (VC-6)`);
+      const skip = job.id === 'schema' || /^(Note the stack|Start the app|Stop the app|Remove the attack files|Land the design-audit)/.test(step.name);
+      if (cmds.length > 1 && !skip && !PIPEFAIL_FIRST.test(cmds[0])) problems.push(`job ${job.id}: step "${step.name}" has ${cmds.length} commands and does not start with set -euo pipefail (VC-5)`);
+      if (cmds.some((c) => /\|\s*tee\b/.test(c)) && !PIPEFAIL_FIRST.test(cmds[0])) problems.push(`job ${job.id}: step "${step.name}" pipes into tee without pipefail (VC-6)`);
     }
   }
   // the exact lines the verdicts depend on
-  const dv = stepsOfJob(text, 'validate-commits');
-  const pr = dv.find((s) => s.name.includes('(pull request)'));
+  const dv = stepsOfJob(text, 'static');
+  const pr = dv.find((s) => s.name.includes('(pull request)') && s.name.includes('Run discipline engine'));
   if (pr) {
     if (!/^ {10}PR_HEAD: \$\{\{ github\.event\.pull_request\.head\.sha \}\}$/m.test(pr.body)) problems.push('PR engine step: PR_HEAD must be the pull request head sha (VC-7)');
     if (!/\n {10}node fsi-app\/\.discipline\/runner\.mjs \\\n {12}--mode=ci 2>&1 \| tee -a fsi-app\/\.discipline\/out\/rules-ci-firings\.log/.test(pr.body)) problems.push('PR engine step: must run runner.mjs --mode=ci with no range override (VC-7)');
   }
-  const push = dv.find((s) => s.name.includes('(push to master)'));
+  const push = stepsOfJob(text, 'master').find((s) => s.name.includes('(push to master)') && s.name.includes('Run discipline engine'));
   if (push && !/--range="\$\{PUSH_BEFORE\}\.\.\$\{COMMIT_SHA\}"/.test(push.body)) problems.push('push engine step must validate before..after, every commit in the push (VC-2)');
   const mem = dv.find((s) => s.name.includes('Memory gate'));
   if (mem) {
-    if (/--warn-only/.test(mem.body)) problems.push('memory gate must fail, not warn, on a push (VC-3)');
-    if (!/^ {12}RANGE="origin\/\$\{BASE_REF\}\.\.\.\$\{PR_HEAD\}"$/m.test(mem.body)) problems.push('memory gate: the pull request range must be origin/BASE...PR_HEAD (VC-8)');
+    if (/--warn-only/.test(mem.body)) problems.push('memory gate must fail, not warn, on a pull request (VC-3)');
+    if (!/^ {10}RANGE="origin\/\$\{BASE_REF\}\.\.\.\$\{PR_HEAD\}"$/m.test(mem.body)) problems.push('memory gate: the pull request range must be origin/BASE...PR_HEAD (VC-8)');
   }
-  for (const jobId of ['test-discipline-engine', 'fitness-check']) {
-    const s = stepsOfJob(text, jobId).find((x) => x.name.includes('Resolve docs-only fast path'));
-    if (!s) { problems.push(`job ${jobId}: no docs-only step (DO-6)`); continue; }
-    if (!/^ {10}if node fsi-app\/\.discipline\/governance\/docs-only-range\.mjs --range="\$RANGE"; then$/m.test(s.body)) problems.push(`job ${jobId}: the docs-only condition must be the docs-only-range.mjs exit status (DO-6)`);
-    if (!/^ {12}RANGE="origin\/\$\{BASE_REF\}\.\.\.\$\{PR_HEAD\}"$/m.test(s.body)) problems.push(`job ${jobId}: the docs-only pull request range must be origin/BASE...PR_HEAD (DO-6)`);
+  const memPush = stepsOfJob(text, 'master').find((s) => s.name.includes('Memory gate'));
+  if (memPush && /--warn-only/.test(memPush.body)) problems.push('memory gate must fail, not warn, on a push (VC-3)');
+  // the classifier: the inputs job must run it for each event, and the code verdict is its output
+  const classify = stepsOfJob(text, 'inputs').find((s) => s.name.includes('Classify the change'));
+  if (classify) {
+    if (!/node "\$CLASSIFIER" --pr-merge --github-output/.test(classify.body)) problems.push('the inputs job must classify a pull request over the merge commit (DO-6)');
+    if (!/--range="\$\{PUSH_BEFORE\}\.\.\$\{PUSH_SHA\}" --github-output/.test(classify.body)) problems.push('the inputs job must classify a push over before..after (DO-6)');
+    if (!/node "\$CLASSIFIER" --all --github-output/.test(classify.body)) problems.push('the inputs job must fall back to every job true (DO-6)');
   }
   // the rendering guard step: exact shape, one status capture, the guard's own exit status
-  const guard = stepsOfJob(text, 'rendering-guard').find((s) => s.name.includes('Run rendering guard'));
+  const guard = stepsOfJob(text, 'app').find((s) => s.name.includes('Run rendering guard'));
   if (guard) {
     const want = [
       'set -euo pipefail',
@@ -990,18 +1029,24 @@ function disciplineShapeProblems(text) {
     if (JSON.stringify(cmds) !== JSON.stringify(want)) problems.push(`the rendering guard step must be exactly ${JSON.stringify(want)}, got ${JSON.stringify(cmds)} (RG-1, RG-2)`);
   }
   // firings uploads exist, every run, within the F68 budget
-  for (const [jobId, nm] of [['validate-commits', 'gate-firings-validate-commits'], ['validate-commits', 'gate-firings-governance-validate-commits'], ['test-discipline-engine', 'gate-firings-governance-test-discipline-engine'], ['fitness-check', 'gate-firings-fitness-check']]) {
+  for (const [jobId, nm] of [['static', 'gate-firings-validate-commits'], ['static', 'gate-firings-governance-static'], ['static', 'gate-firings-fitness-check'], ['master', 'gate-firings-validate-commits'], ['master', 'gate-firings-governance-master']]) {
     const u = stepsOfJob(text, jobId).find((s) => s.body.includes(`name: ${nm}`));
     if (!u) { problems.push(`job ${jobId}: no upload of ${nm}`); continue; }
     if (u.ifExpr !== 'always()') problems.push(`upload ${nm}: must run on every run (if: always())`);
     const days = u.body.match(/retention-days:\s*(\d+)/);
     if (!days || Number(days[1]) > 7) problems.push(`upload ${nm}: retention within the F68 budget`);
   }
+  // the one write permission and the one place a secret is named (the app job's dispatch-only steps)
+  if (!/^permissions:\n {2}contents: read\n/m.test(text)) problems.push('the workflow permissions must be contents: read (PERM-1)');
+  const writes = [...code.matchAll(/^\s*([a-z-]+): write$/gm)].map((m) => m[1]);
+  if (JSON.stringify(writes) !== JSON.stringify(['contents'])) problems.push(`the only write permission allowed is the app job's contents: write, found ${JSON.stringify(writes)} (PERM-1)`);
+  const secretJobs = jobs.filter((j) => /secrets\./.test(codeLines(lines.slice(j.startLine, j.endLine + 1).join('\n')).map(({ l }) => l).join('\n'))).map((j) => j.id);
+  if (JSON.stringify(secretJobs) !== JSON.stringify(['app'])) problems.push(`secrets may be named only in the app job's dispatch-only step, found in ${JSON.stringify(secretJobs)} (PERM-2)`);
   return problems;
 }
 
 const expectCaught = (id, text, pattern) => {
-  const problems = disciplineShapeProblems(text);
+  const problems = ciShapeProblems(text);
   assert.ok(problems.some((p) => pattern.test(p)), `${id}: not caught by the shape check. problems: ${JSON.stringify(problems)}`);
 };
 /** Apply `fn(stepText)` to the one step of `jobId` whose name or body contains `fragment`; returns the new file text. */
@@ -1018,85 +1063,113 @@ const replaceStep = (yml, jobId, fragment, fn) => {
   }
   throw new Error(`attack fixture: no step "${fragment}" in ${jobId}`);
 };
-const stepText = (yml, jobId, fragment) => stepsOfJob(yml, jobId).find((s) => s.name.includes(fragment)).body;
 const mutate = (yml, from, to) => {
   assert.ok(yml.includes(from), `attack fixture text is present in the workflow: ${from.slice(0, 70)}`);
   return yml.replace(from, () => to);
 };
 
-test('GATE-9: the committed discipline.yml has the shape every verdict step needs (control: zero problems)', () => {
-  assert.deepEqual(disciplineShapeProblems(DISCIPLINE_YML), []);
+test('GATE-9: the committed ci.yml has the shape every verdict step needs (control: zero problems)', () => {
+  assert.deepEqual(ciShapeProblems(CI_YML), []);
 });
 
 test('VC-5, VC-6: +o pipefail and |& are caught anywhere, and a multi-command step must start with set -euo pipefail', () => {
-  expectCaught('VC-5', replaceStep(DISCIPLINE_YML, 'validate-commits', 'Run discipline engine (pull request)', (t) => t.replace('set -euo pipefail', 'set -u +o pipefail')), /\+o pipefail|does not start with set -euo pipefail/);
-  expectCaught('VC-6', mutate(DISCIPLINE_YML, '--mode=ci 2>&1 | tee -a fsi-app/.discipline/out/rules-ci-firings.log\n\n      # ──', '--mode=ci 2>&1 |& tee -a fsi-app/.discipline/out/rules-ci-firings.log\n\n      # ──'), /\|&/);
-  expectCaught('VC-5 removed', replaceStep(DISCIPLINE_YML, 'validate-commits', 'Run discipline engine (pull request)', (t) => t.replace('          set -euo pipefail\n', '')), /does not start with set -euo pipefail|pipes into tee/);
+  expectCaught('VC-5', replaceStep(CI_YML, 'static', 'Run discipline engine (pull request)', (t) => t.replace('set -euo pipefail', 'set -u +o pipefail')), /\+o pipefail|does not start with set -euo pipefail/);
+  expectCaught('VC-6', mutate(CI_YML, '--mode=ci 2>&1 | tee -a fsi-app/.discipline/out/rules-ci-firings.log\n\n      # Memory gate', '--mode=ci 2>&1 |& tee -a fsi-app/.discipline/out/rules-ci-firings.log\n\n      # Memory gate'), /\|&/);
+  expectCaught('VC-5 removed', replaceStep(CI_YML, 'static', 'Run discipline engine (pull request)', (t) => t.replace('          set -euo pipefail\n', '')), /does not start with set -euo pipefail|pipes into tee/);
 });
 
 test('VC-2: the push step must validate before..after; a head-only run is caught', () => {
-  expectCaught('VC-2', replaceStep(DISCIPLINE_YML, 'validate-commits', 'Run discipline engine (push to master)', (t) => t.replace('--range="${PUSH_BEFORE}..${COMMIT_SHA}"', '--commit="$COMMIT_SHA"')), /before\.\.after/);
+  expectCaught('VC-2', replaceStep(CI_YML, 'master', 'Run discipline engine (push to master)', (t) => t.replace('--range="${PUSH_BEFORE}..${COMMIT_SHA}"', '--commit="$COMMIT_SHA"')), /before\.\.after/);
 });
 
-test('VC-3: a --warn-only memory gate on push is caught', () => {
-  expectCaught('VC-3', mutate(DISCIPLINE_YML, 'memory-gate.mjs --range="$RANGE"\n          else', 'memory-gate.mjs --range="$RANGE" --warn-only\n          else'), /fail, not warn/);
+test('VC-3: a --warn-only memory gate, on a pull request or on a push, is caught', () => {
+  expectCaught('VC-3 pull request', mutate(CI_YML, 'memory-gate.mjs --range="$RANGE"\n\n      # The always-on C3/C4/C5', 'memory-gate.mjs --range="$RANGE" --warn-only\n\n      # The always-on C3/C4/C5'), /fail, not warn/);
+  expectCaught('VC-3 push', replaceStep(CI_YML, 'master', 'Memory gate', (t) => t.replace('memory-gate.mjs --range="$RANGE"', 'memory-gate.mjs --range="$RANGE" --warn-only')), /fail, not warn/);
 });
 
 test('VC-7, VC-8: pointing the engine or the memory gate at an empty range is caught', () => {
-  expectCaught('VC-7', replaceStep(DISCIPLINE_YML, 'validate-commits', 'Run discipline engine (pull request)', (t) => t.replace('PR_HEAD: ${{ github.event.pull_request.head.sha }}', 'PR_HEAD: ${{ github.event.pull_request.base.sha }}')), /PR_HEAD must be the pull request head sha/);
-  expectCaught('VC-8', replaceStep(DISCIPLINE_YML, 'validate-commits', 'Memory gate', (t) => t.replace('RANGE="origin/${BASE_REF}...${PR_HEAD}"', 'RANGE="origin/${BASE_REF}...origin/${BASE_REF}"')), /memory gate: the pull request range/);
+  expectCaught('VC-7', replaceStep(CI_YML, 'static', 'Run discipline engine (pull request)', (t) => t.replace('PR_HEAD: ${{ github.event.pull_request.head.sha }}', 'PR_HEAD: ${{ github.event.pull_request.base.sha }}')), /PR_HEAD must be the pull request head sha/);
+  expectCaught('VC-8', replaceStep(CI_YML, 'static', 'Memory gate', (t) => t.replace('RANGE="origin/${BASE_REF}...${PR_HEAD}"', 'RANGE="origin/${BASE_REF}...origin/${BASE_REF}"')), /memory gate: the pull request range/);
 });
 
-test('DO-6: replacing the docs-only condition with a constant is caught, in both jobs', () => {
-  for (const jobId of ['test-discipline-engine', 'fitness-check']) {
-    expectCaught(`DO-6 ${jobId}`, replaceStep(DISCIPLINE_YML, jobId, 'Resolve docs-only fast path', (t) => t.replace(/if node fsi-app\/\.discipline\/governance\/docs-only-range\.mjs --range="\$RANGE"; then/, 'if true; then')), /docs-only condition must be the docs-only-range\.mjs exit status/);
-  }
+test('DO-6: replacing the classifier call with a constant, or dropping one of its three shapes, is caught', () => {
+  expectCaught('DO-6 pull request', replaceStep(CI_YML, 'inputs', 'Classify the change', (t) => t.replace('node "$CLASSIFIER" --pr-merge --github-output', 'echo code=false >> "$GITHUB_OUTPUT"')), /classify a pull request over the merge commit/);
+  expectCaught('DO-6 push', replaceStep(CI_YML, 'inputs', 'Classify the change', (t) => t.replace('--range="${PUSH_BEFORE}..${PUSH_SHA}" --github-output', '--all --github-output')), /classify a push over before\.\.after/);
+  expectCaught('DO-6 fallback', replaceStep(CI_YML, 'inputs', 'Classify the change', (t) => t.replace('node "$CLASSIFIER" --all --github-output', 'node "$CLASSIFIER" --range=HEAD..HEAD --github-output')), /fall back to every job true/);
 });
 
-test('TR-1, TR-2, TR-4: a changed branches list, a paths-ignore filter and a blanket cancel-in-progress are caught', () => {
-  expectCaught('TR-1', mutate(DISCIPLINE_YML, '  pull_request:\n    branches:\n      - master', '  pull_request:\n    branches:\n      - main'), /pull_request must trigger on branches/);
-  expectCaught('TR-2', mutate(DISCIPLINE_YML, '  pull_request:\n    branches:\n      - master', '  pull_request:\n    paths-ignore: ["**"]\n    branches:\n      - master'), /paths\/paths-ignore filter/);
-  expectCaught('TR-4', mutate(DISCIPLINE_YML, "cancel-in-progress: ${{ github.event_name == 'pull_request' }}", 'cancel-in-progress: true'), /cancel-in-progress/);
+test('TR-1, TR-2, TR-4, TR-5: a changed branches list, a paths-ignore filter, a blanket cancel-in-progress and a schedule trigger are caught', () => {
+  expectCaught('TR-1', mutate(CI_YML, '  pull_request:\n    branches:\n      - master', '  pull_request:\n    branches:\n      - main'), /pull_request must trigger on branches/);
+  expectCaught('TR-2', mutate(CI_YML, '  pull_request:\n    branches:\n      - master', '  pull_request:\n    paths-ignore: ["**"]\n    branches:\n      - master'), /paths\/paths-ignore filter/);
+  expectCaught('TR-4', mutate(CI_YML, "cancel-in-progress: ${{ github.event_name == 'pull_request' }}", 'cancel-in-progress: true'), /cancel-in-progress/);
+  expectCaught('TR-5', mutate(CI_YML, '  workflow_dispatch:\n', "  workflow_dispatch:\n  schedule:\n    - cron: '0 3 * * *'\n"), /schedule, workflow_run or pull_request_target/);
 });
 
-test('TR-3: a job if that excludes fork pull requests is caught, and so is any job if that is not the pull_request-only form', () => {
-  expectCaught('TR-3', mutate(DISCIPLINE_YML, "    name: Discipline engine unit tests\n    # PR head only (lane GATE-4): a push to master skips this job, see the header's slim job set note.\n    if: github.event_name == 'pull_request'", "    name: Discipline engine unit tests\n    # PR head only (lane GATE-4): a push to master skips this job, see the header's slim job set note.\n    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false"), /job test-discipline-engine: if is/);
-  expectCaught('JIF', mutate(DISCIPLINE_YML, '    name: Validate commits against discipline rules\n', '    name: Validate commits against discipline rules\n    if: false\n'), /job validate-commits: if is/);
+test('TR-3: a job if that excludes fork pull requests is caught, and so is any job if that is not the expected form', () => {
+  expectCaught('TR-3', mutate(CI_YML, "  static:\n    name: static\n    needs: inputs\n    if: github.event_name == 'pull_request'\n", "  static:\n    name: static\n    needs: inputs\n    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false\n"), /job static: if is/);
+  expectCaught('JIF', mutate(CI_YML, '  inputs:\n    name: inputs\n', '  inputs:\n    name: inputs\n    if: false\n'), /job inputs: if is/);
+  expectCaught('JIF app', mutate(CI_YML, "    if: (github.event_name == 'pull_request' && needs.inputs.outputs.app == 'true') || github.event_name == 'workflow_dispatch'\n", "    if: github.event_name == 'pull_request'\n"), /job app: if is/);
 });
 
 test('JCOE, COE: continue-on-error on any job or step is caught', () => {
-  expectCaught('JCOE', mutate(DISCIPLINE_YML, '    name: Fitness functions (application-layer enforcement)\n', '    name: Fitness functions (application-layer enforcement)\n    continue-on-error: true\n'), /continue-on-error/);
-  expectCaught('COE', replaceStep(DISCIPLINE_YML, 'test-discipline-engine', 'Closure gate', (t) => t.replace('        run: node', '        continue-on-error: true\n        run: node')), /continue-on-error/);
+  expectCaught('JCOE', mutate(CI_YML, '  static:\n    name: static\n', '  static:\n    name: static\n    continue-on-error: true\n'), /continue-on-error/);
+  expectCaught('COE', replaceStep(CI_YML, 'static', 'Closure gate', (t) => t.replace('        run: node', '        continue-on-error: true\n        run: node')), /continue-on-error/);
 });
 
 test('IFF, DEL, JDEL: a verdict step made conditional on false, removed, or a job removed, is caught', () => {
-  expectCaught('IFF', replaceStep(DISCIPLINE_YML, 'fitness-check', 'Run fitness functions', (t) => t.replace(IF_DOCS, 'false')), /is allowed/);
-  expectCaught('IFF memory gate', replaceStep(DISCIPLINE_YML, 'validate-commits', 'Memory gate', (t) => t.replace('if: always()', 'if: false')), /is allowed/);
-  expectCaught('DEL', replaceStep(DISCIPLINE_YML, 'test-discipline-engine', 'Invariant-coverage meta-gate', () => ''), /expected exactly one step named like "Invariant-coverage meta-gate"/);
-  expectCaught('JDEL', DISCIPLINE_YML.slice(0, DISCIPLINE_YML.indexOf('  consistency-backstop:')) + DISCIPLINE_YML.slice(DISCIPLINE_YML.indexOf('  fitness-check:')), /the job set is/);
+  expectCaught('IFF', replaceStep(CI_YML, 'static', 'Run fitness functions', (t) => t.replace(IF_CODE, 'false')), /is allowed/);
+  expectCaught('IFF memory gate', replaceStep(CI_YML, 'static', 'Memory gate', (t) => t.replace('if: always()', 'if: false')), /is allowed/);
+  expectCaught('IFF master build', replaceStep(CI_YML, 'master', 'next build', (t) => t.replace("needs.inputs.outputs.master_build == 'true'", 'false')), /is allowed/);
+  expectCaught('DEL', replaceStep(CI_YML, 'static', 'Invariant-coverage meta-gate', () => ''), /expected exactly one step named like "Invariant-coverage meta-gate"/);
+  expectCaught('JDEL', CI_YML.slice(0, CI_YML.indexOf(String.fromCharCode(10) + '  schema:' + String.fromCharCode(10))) + CI_YML.slice(CI_YML.indexOf(String.fromCharCode(10) + '  app:' + String.fromCharCode(10))), /the job set is/);
 });
 
 test('TRUE: a verdict step forced to success (set +e, || true, exit 0) is caught', () => {
-  expectCaught('TRUE set +e', replaceStep(DISCIPLINE_YML, 'test-discipline-engine', 'Closure gate', (t) => t.replace('        run: node fsi-app/.discipline/governance/closure-gate.mjs', '        run: |\n          set +e\n          node fsi-app/.discipline/governance/closure-gate.mjs\n          exit 0')), /forces success|does not start with set -euo pipefail/);
-  expectCaught('TRUE || true', replaceStep(DISCIPLINE_YML, 'fitness-check', 'Run fitness functions', (t) => t.replace('run: node fsi-app/.discipline/fitness/runner.mjs', 'run: node fsi-app/.discipline/fitness/runner.mjs || true')), /forces success/);
+  expectCaught('TRUE set +e', replaceStep(CI_YML, 'static', 'Closure gate', (t) => t.replace('        run: node fsi-app/.discipline/governance/closure-gate.mjs', '        run: |\n          set +e\n          node fsi-app/.discipline/governance/closure-gate.mjs\n          exit 0')), /forces success|does not start with set -euo pipefail/);
+  expectCaught('TRUE || true', replaceStep(CI_YML, 'static', 'Run fitness functions', (t) => t.replace('run: node fsi-app/.discipline/fitness/runner.mjs', 'run: node fsi-app/.discipline/fitness/runner.mjs || true')), /forces success/);
+  expectCaught('TRUE schema', replaceStep(CI_YML, 'schema', 'Attack every route method', (t) => t.replace('| tee -a "$GITHUB_STEP_SUMMARY"', '| tee -a "$GITHUB_STEP_SUMMARY" || true')), /forces success/);
 });
 
 test('RG-1, RG-2: any change to the rendering guard step\'s status handling is caught', () => {
-  expectCaught('RG-1', mutate(DISCIPLINE_YML, '          line="guard run:', '          status=0\n          line="guard run:'), /rendering guard step must be exactly/);
-  expectCaught('RG-2', mutate(DISCIPLINE_YML, 'run-rendering-guard.mjs || status=$?', 'run-rendering-guard.mjs || status=$?; status=0'), /rendering guard step must be exactly/);
+  expectCaught('RG-1', mutate(CI_YML, '          line="guard run:', '          status=0\n          line="guard run:'), /rendering guard step must be exactly/);
+  expectCaught('RG-2', mutate(CI_YML, 'run-rendering-guard.mjs || status=$?', 'run-rendering-guard.mjs || status=$?; status=0'), /rendering guard step must be exactly/);
 });
 
 test('GATE-9: the governance and fitness firings uploads exist on every run within the artifact budget', () => {
-  expectCaught('upload removed', mutate(DISCIPLINE_YML, 'name: gate-firings-governance-test-discipline-engine', 'name: something-else'), /no upload of gate-firings-governance-test-discipline-engine/);
-  expectCaught('upload retention', replaceStep(DISCIPLINE_YML, 'validate-commits', 'Upload gate firings (governance gates, validate-commits)', (t) => t.replace('retention-days: 7', 'retention-days: 90')), /retention within the F68 budget/);
+  expectCaught('upload removed', mutate(CI_YML, 'name: gate-firings-governance-static', 'name: something-else'), /no upload of gate-firings-governance-static/);
+  expectCaught('upload retention', replaceStep(CI_YML, 'master', 'Upload gate firings (governance gates)', (t) => t.replace('retention-days: 7', 'retention-days: 90')), /retention within the F68 budget/);
+  expectCaught('upload not every run', replaceStep(CI_YML, 'static', 'Upload gate firings (rule engine output)', (t) => t.replace('if: always()', 'if: success()')), /must run on every run/);
+});
+
+test('PERM-1, PERM-2: a second write permission, a workflow-level write, or a secret named outside the app job is caught', () => {
+  expectCaught('PERM-1 workflow', mutate(CI_YML, 'permissions:\n  contents: read\n\nconcurrency:', 'permissions:\n  contents: write\n\nconcurrency:'), /workflow permissions must be contents: read|only write permission/);
+  expectCaught('PERM-1 job', mutate(CI_YML, '    permissions:\n      contents: read\n      actions: read\n', '    permissions:\n      contents: read\n      actions: write\n'), /only write permission/);
+  expectCaught('PERM-2', replaceStep(CI_YML, 'static', 'Prepare gate firings log', (t) => t.replace('        env:\n', '        env:\n          LEAK: ${{ secrets.WORKER_SECRET }}\n')), /secrets may be named only/);
 });
 
 test('GATE-9: the Test discovery step runs the --check-unrun CLI and sits after the suite', () => {
-  const steps = stepsOfJob(DISCIPLINE_YML, 'test-discipline-engine').map((s) => s.name);
+  const steps = stepsOfJob(CI_YML, 'static').map((s) => s.name);
   const suite = steps.findIndex((n) => n.includes('Run discipline test suite'));
   const disc = steps.findIndex((n) => n.includes('Test discovery'));
   assert.ok(suite >= 0 && disc > suite);
-  assert.match(stepText(DISCIPLINE_YML, 'test-discipline-engine', 'Test discovery'), /run: node fsi-app\/\.discipline\/lib\/test-discovery\.mjs --check-unrun/);
+  const text = stepsOfJob(CI_YML, 'static').find((s) => s.name.includes('Test discovery')).body;
+  assert.match(text, /run: node fsi-app\/\.discipline\/lib\/test-discovery\.mjs --check-unrun/);
+});
+
+test('PIPE-1: the no-npm steps of the static job run before npm ci, and the attacks run last (the attack files are never in the tree the fitness runner compiles)', () => {
+  const steps = stepsOfJob(CI_YML, 'static').map((s) => s.name);
+  const at = (frag) => steps.findIndex((n) => n.includes(frag));
+  const install = at('Install fsi-app deps');
+  for (const frag of ['Run discipline test suite', 'Test discovery', 'Invariant-coverage meta-gate', 'Closure gate', 'Skill-contract drift', 'Orphan-module']) assert.ok(at(frag) >= 0 && at(frag) < install, `${frag} runs before npm ci (the no-npm job semantics)`);
+  for (const frag of ['ESLint (max-warnings 0)', 'Run fitness functions', 'actionlint (pinned', 'App unit tests requiring npm deps', 'Behavioral goldens', 'HARD - detector discrimination']) assert.ok(at(frag) > install, `${frag} runs after npm ci`);
+  assert.ok(at('DS23 attacks') > at('Behavioral goldens') && at('F9 on the real app') > at('DS24 control and attacks'), 'the attacks run last');
+});
+
+test('PIPE-1: the classifier outputs feed exactly the conditions the job table names, and every code condition reads the code output', () => {
+  const header = jobText('inputs').split('\n    steps:')[0];
+  for (const key of ['code', ...SCOPED_KEYS]) assert.match(header, new RegExp(`^ {6}${key}: \\$\\{\\{ steps\\.classify\\.outputs\\.${key} \\}\\}$`, 'm'), `inputs outputs ${key}`);
+  const reads = [...new Set([...CI_YML.matchAll(/needs\.inputs\.outputs\.([a-z_]+)/g)].map((m) => m[1]))].sort();
+  assert.deepEqual(reads, ['app', 'code', 'master_build', 'schema'], 'no step reads an output the classifier does not write');
 });
 
 test('AH6: a workflow name: is unique across .github/workflows (a duplicate would let a dormant file fire a consumer)', () => {
@@ -1108,6 +1181,7 @@ test('AH6: a workflow name: is unique across .github/workflows (a duplicate woul
     names.set(name, [...(names.get(name) ?? []), f]);
   }
   assert.deepEqual([...names.entries()].filter(([, files]) => files.length > 1), [], 'two workflow files share a name');
+  assert.deepEqual(names.get('CI'), ['ci.yml']);
 });
 
 // ── GATE-9: a container job whose steps use pipefail must run them under bash ────────────────────────────────
@@ -1134,34 +1208,25 @@ test('GATE-9: every container job that uses pipefail declares defaults.run.shell
   for (const f of readdirSync(dir).filter((n) => /\.ya?ml$/.test(n))) {
     assert.deepEqual(containerShellProblems(f, readFileSync(join(dir, f), 'utf8')), []);
   }
-  assert.match(jobText('rendering-guard'), /^ {4}defaults:\n {6}run:\n {8}shell: bash$/m, 'the rendering guard job runs its steps under bash');
+  assert.match(jobText('app'), /^ {4}defaults:\n {6}run:\n {8}shell: bash$/m, 'the app job runs its steps under bash');
 });
 
-test('GATE-9 attack: removing the shell default from the rendering guard job, or adding pipefail to a container job without it, is caught', () => {
-  const noShell = DISCIPLINE_YML.replace('    defaults:\n      run:\n        shell: bash\n', '');
-  assert.notEqual(noShell, DISCIPLINE_YML);
-  assert.equal(containerShellProblems('discipline.yml', noShell).length, 1);
+test('GATE-9 attack: removing the shell default from the app job, or adding pipefail to a container job without it, is caught', () => {
+  const noShell = CI_YML.replace('    defaults:\n      run:\n        shell: bash\n', '');
+  assert.notEqual(noShell, CI_YML);
+  assert.equal(containerShellProblems('ci.yml', noShell).length, 1);
   const synthetic = 'name: X\non:\n  workflow_dispatch: {}\njobs:\n  a:\n    runs-on: ubuntu-latest\n    container:\n      image: x\n    steps:\n      - run: |\n          set -euo pipefail\n          echo hi\n';
   assert.equal(containerShellProblems('x.yml', synthetic).length, 1);
   assert.deepEqual(containerShellProblems('x.yml', synthetic.replace('    container:', '    defaults:\n      run:\n        shell: bash\n    container:')), []);
 });
 
-// ── CI-FIX-1 (RULES-X-1 item 11, 2026-10-09): the required-check context names are pinned ───────────────────
-// Branch protection (strict) requires these eight contexts by their exact job `name:` string. A job renamed here
-// silently drops out of branch protection: the old context is never reported, so it is neither green nor red, and
-// the merge button does not know. The names are pinned, so a rename is a red test in the same PR. The names
-// carry one dash character each, so the constant below is the one disclosed place it appears.
-const EM = '\u2014'; // glyph:verbatim (the required job names contain the character)
-const REQUIRED_CONTEXTS = [
-  'Discipline engine unit tests',
-  'Fitness functions (application-layer enforcement)',
-  'Validate commits against discipline rules',
-  `HARD ${EM} detector discrimination + SSOT units`,
-  `Consistency layer (C3/C4/C5 reality ${EM} always-on backstop)`,
-  `Rendering guard (overflow / placeholder / hydration ${EM} real-browser layout)`,
-  'Migration proof (apply on a local stack)',
-  'Design audit (build vs design, value-level, soft)',
-];
+// ── CI-FIX-1 (RULES-X-1 item 11, 2026-10-09; PIPE-1, 2026-10-11): the required-check context names are pinned ───────────
+// Branch protection requires these five contexts by their exact job `name:` string (the executor switches protection to
+// them when this workflow merges). A job renamed here silently drops out of branch protection: the old context is never
+// reported, so it is neither green nor red, and the merge button does not know. The names are pinned, so a rename is a
+// red test in the same PR. A skipped job reports as skipped and satisfies protection, which is why schema and app may be
+// scoped at job level and master may be skipped on a pull request.
+const REQUIRED_CONTEXTS = ['inputs', 'static', 'schema', 'app', 'master'];
 
 /** Every job-level `name:` value across a set of workflow texts: [{ file, job, name }]. */
 function jobNames(workflows) {
@@ -1194,22 +1259,23 @@ function missingRequired(workflows) {
 }
 
 test('CI-FIX-1: every required status check context is the job name of exactly one job in .github/workflows', () => {
-  assert.equal(REQUIRED_CONTEXTS.length, 8);
+  assert.equal(REQUIRED_CONTEXTS.length, 5);
   assert.deepEqual(missingRequired(readWorkflows()), []);
+  assert.deepEqual(jobNames({ 'ci.yml': CI_YML }).map((j) => [j.job, j.name]), REQUIRED_CONTEXTS.map((c) => [c, c]), 'each job id is its own context name');
 });
 
 test('CI-FIX-1 attack: renaming one required job, or defining its name twice, is red', () => {
   const real = readWorkflows();
-  const renamed = { ...real, 'discipline.yml': real['discipline.yml'].replace('name: Rendering guard (overflow', 'name: Rendering guard v2 (overflow') };
-  assert.notEqual(renamed['discipline.yml'], real['discipline.yml']);
-  assert.deepEqual(missingRequired(renamed), [REQUIRED_CONTEXTS[5]]);
-  const migration = { ...real, 'migration-proof.yml': real['migration-proof.yml'].replace('name: Migration proof (apply on a local stack)', 'name: Migration proof') };
-  assert.deepEqual(missingRequired(migration), [REQUIRED_CONTEXTS[6]]);
-  const duplicated = { ...real, 'copy.yml': 'name: Copy\non:\n  workflow_dispatch: {}\njobs:\n  x:\n    name: Discipline engine unit tests\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n' };
-  assert.deepEqual(missingRequired(duplicated), [REQUIRED_CONTEXTS[0]]);
+  const renamed = { ...real, 'ci.yml': real['ci.yml'].replace('    name: static\n', '    name: static v2\n') };
+  assert.notEqual(renamed['ci.yml'], real['ci.yml']);
+  assert.deepEqual(missingRequired(renamed), ['static']);
+  const renamedApp = { ...real, 'ci.yml': real['ci.yml'].replace('    name: app\n', '    name: application\n') };
+  assert.deepEqual(missingRequired(renamedApp), ['app']);
+  const duplicated = { ...real, 'copy.yml': 'name: Copy\non:\n  workflow_dispatch: {}\njobs:\n  x:\n    name: schema\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n' };
+  assert.deepEqual(missingRequired(duplicated), ['schema']);
 });
 
-// ── CI-MIN-1 (lane cimin1-jobs-scoped-to-inputs, 2026-10-10, ADR-047 decision 5): every scoped job carries the skip ─
+// ── CI-MIN-1 (lane cimin1-jobs-scoped-to-inputs, 2026-10-10, ADR-047 decision 5; PIPE-1): every scoped job carries the skip ─
 //
 // A scoped job runs only when the pull request touched its inputs, decided by the workflow's `inputs` job running the
 // one classifier (governance/job-inputs.mjs, whose SCOPED table is the list asserted here, never a second list). The
@@ -1239,41 +1305,49 @@ function scopedJobProblems(text, jobId, key) {
   return problems;
 }
 
-const wiredScoped = () => SCOPED_KEYS.filter((k) => SCOPED[k].wired);
+/** Problems with one STEP-level scoped entry (the master job's next build): the step carries the if over the output. */
+function scopedStepProblems(text, jobId, key) {
+  const problems = [];
+  const lines = text.split(/\r?\n/);
+  const inputs = extractJobs(lines).find((j) => j.id === 'inputs');
+  if (!inputs || !new RegExp(`^ {6}${key}:\\s*\\$\\{\\{ steps\\.classify\\.outputs\\.${key} \\}\\}\\s*$`, 'm').test(lines.slice(inputs.startLine, inputs.endLine + 1).join('\n'))) problems.push(`the inputs job does not output ${key} from steps.classify`);
+  const guarded = stepsOfJob(text, jobId).filter((s) => s.ifExpr === `needs.inputs.outputs.${key} == 'true'`);
+  if (guarded.length !== 1) problems.push(`job ${jobId}: expected exactly one step guarded by needs.inputs.outputs.${key}, found ${guarded.length}`);
+  return problems;
+}
+
 const workflowText = (file) => readFileSync(join(REPO, '.github', 'workflows', file), 'utf8');
 
-test('CI-MIN-1: every wired scoped job in the classifier table carries needs: inputs and the job-level if', () => {
-  assert.ok(wiredScoped().length >= 5, 'the table names at least five wired scoped jobs');
-  for (const key of wiredScoped()) {
-    assert.deepEqual(scopedJobProblems(workflowText(SCOPED[key].workflow), SCOPED[key].jobId, key), [], key);
+test('CI-MIN-1: every scoped entry in the classifier table carries needs: inputs and the job-level if (or the step-level if)', () => {
+  assert.ok(SCOPED_KEYS.length >= 3, 'the table names the schema and app jobs and the master build step');
+  for (const key of SCOPED_KEYS) {
+    const def = SCOPED[key];
+    const problems = def.level === 'job' ? scopedJobProblems(workflowText(def.workflow), def.jobId, key) : scopedStepProblems(workflowText(def.workflow), def.jobId, key);
+    assert.deepEqual(problems, [], key);
   }
 });
 
-test('CI-MIN-1: an unwired scoped job is named in the table, still exists, and has no inputs dependency yet', () => {
-  for (const key of SCOPED_KEYS.filter((k) => !SCOPED[k].wired)) {
-    const text = workflowText(SCOPED[key].workflow);
-    assert.ok(extractJobs(text.split(/\r?\n/)).some((j) => j.id === SCOPED[key].jobId), `${key}: the job exists`);
-    assert.doesNotMatch(text, /needs\.inputs\.outputs/, `${key}: flipping wired means wiring the job and the table together`);
+test('CI-MIN-1: the two always-on jobs never read the classifier in their job-level condition, and the master job runs on a push only', () => {
+  for (const id of ALWAYS_ON) {
+    const ifProp = jobPropertyLines(jobById(id), CI_LINES).find((p) => p.key === 'if');
+    assert.doesNotMatch(ifProp ? ifProp.valueInline : '', /needs\.inputs/, `${id} is always-on`);
   }
-});
-
-test('CI-MIN-1: the four always-on jobs of discipline.yml never read the inputs job', () => {
-  for (const id of ['validate-commits', 'consistency-backstop', 'test-discipline-engine', 'fitness-check']) {
-    assert.doesNotMatch(jobText(id), /needs\.inputs|needs:\s*inputs/, `${id} is always-on`);
-  }
+  assert.match(jobPropertyLines(jobById('master'), CI_LINES).find((p) => p.key === 'if').valueInline, /github\.event_name == 'push'/);
 });
 
 test('CI-MIN-1 attack: a scoped job that loses its if, its needs, or reads the wrong output is caught', () => {
-  const yml = workflowText('discipline.yml');
-  assert.deepEqual(scopedJobProblems(yml, 'rendering-guard', 'rendering_guard'), []);
-  const noIf = mutate(yml, "    if: github.event_name == 'pull_request' && needs.inputs.outputs.rendering_guard == 'true'\n", '');
-  assert.ok(scopedJobProblems(noIf, 'rendering-guard', 'rendering_guard').some((p) => /no job-level if/.test(p)));
-  const noNeeds = mutate(yml, "    needs: inputs\n    if: github.event_name == 'pull_request' && needs.inputs.outputs.rendering_guard", "    if: github.event_name == 'pull_request' && needs.inputs.outputs.rendering_guard");
-  assert.ok(scopedJobProblems(noNeeds, 'rendering-guard', 'rendering_guard').some((p) => /needs must list inputs/.test(p)));
-  const wrongOutput = mutate(yml, "needs.inputs.outputs.rendering_guard == 'true'", "needs.inputs.outputs.design_audit == 'true'");
-  assert.ok(scopedJobProblems(wrongOutput, 'rendering-guard', 'rendering_guard').some((p) => /must test needs\.inputs\.outputs\.rendering_guard/.test(p)));
-  const noOutput = mutate(yml, '      rendering_guard: ${{ steps.classify.outputs.rendering_guard }}\n', '');
-  assert.ok(scopedJobProblems(noOutput, 'rendering-guard', 'rendering_guard').some((p) => /does not output rendering_guard/.test(p)));
+  const yml = workflowText('ci.yml');
+  assert.deepEqual(scopedJobProblems(yml, 'app', 'app'), []);
+  const noIf = mutate(yml, "    if: (github.event_name == 'pull_request' && needs.inputs.outputs.app == 'true') || github.event_name == 'workflow_dispatch'\n", '');
+  assert.ok(scopedJobProblems(noIf, 'app', 'app').some((p) => /no job-level if/.test(p)));
+  const noNeeds = mutate(yml, "  schema:\n    name: schema\n    needs: inputs\n", '  schema:\n    name: schema\n');
+  assert.ok(scopedJobProblems(noNeeds, 'schema', 'schema').some((p) => /needs must list inputs/.test(p)));
+  const wrongOutput = mutate(yml, "needs.inputs.outputs.schema == 'true'", "needs.inputs.outputs.app == 'true'");
+  assert.ok(scopedJobProblems(wrongOutput, 'schema', 'schema').some((p) => /must test needs\.inputs\.outputs\.schema/.test(p)));
+  const noOutput = mutate(yml, '      schema: ${{ steps.classify.outputs.schema }}\n', '');
+  assert.ok(scopedJobProblems(noOutput, 'schema', 'schema').some((p) => /does not output schema/.test(p)));
+  const noStepIf = replaceStep(yml, 'master', 'next build', (t) => t.replace("        if: needs.inputs.outputs.master_build == 'true'\n", ''));
+  assert.ok(scopedStepProblems(noStepIf, 'master', 'master_build').some((p) => /exactly one step guarded/.test(p)));
 });
 
 test('CI-MIN-1 attack: a fixture workflow whose scoped job has no inputs job, no needs and no if fails', () => {
@@ -1284,23 +1358,18 @@ test('CI-MIN-1 attack: a fixture workflow whose scoped job has no inputs job, no
   assert.ok(problems.some((p) => /no job-level if/.test(p)));
 });
 
-test('CI-MIN-1: a master push still runs the bug-class guard jobs (the 2026-10-11 addendum) and never cancels them', () => {
-  const text = workflowText('bug-class-guard.yml');
-  const on = text.slice(text.indexOf('\non:'), text.indexOf('\nconcurrency:'));
-  assert.match(on, /^ {2}push:\n {4}branches: \[master\]\n/m);
-  assert.match(on, /^ {2}pull_request:\n {4}branches: \[master\]\n/m);
-  assert.match(text, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/);
-  const lines = text.split(/\r?\n/);
-  for (const key of ['discrimination_guard', 'bug_class_scan']) {
-    const job = extractJobs(lines).find((j) => j.id === SCOPED[key].jobId);
-    const ifProp = jobPropertyLines(job, lines).find((p) => p.key === 'if');
-    assert.match(ifProp.valueInline, /^github\.event_name != 'pull_request' \|\|/, `${key}: a push runs it whatever the classifier says`);
-  }
+test('CI-MIN-1: a master push still runs validate-commits, the consistency backstop, the HARD discrimination step and the scoped build, and never cancels them (the 2026-10-11 addendum)', () => {
+  const on = CI_YML.slice(CI_YML.indexOf('\non:'), CI_YML.indexOf('\nconcurrency:'));
+  assert.match(on, /^ {2}push:\n {4}branches:\n {6}- master\n/m);
+  assert.match(on, /^ {2}pull_request:\n {4}branches:\n {6}- master\n/m);
+  assert.match(CI_YML, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/);
+  const names = stepsOf('master').map((s) => s.match(/^ {6}- name:\s*(.*)$/m)[1]);
+  for (const frag of ['Run discipline engine (push to master)', 'Memory gate', 'Consistency runner (push to master)', 'HARD - detector discrimination', 'next build']) assert.ok(names.some((n) => n.includes(frag)), `master runs: ${frag}`);
 });
 
 test('CI-MIN-1: every setup-node step in a workflow or action restores the npm cache from the one lockfile', () => {
   const files = listWorkflowAndActionFiles(REPO);
-  assert.ok(files.length > 30);
+  assert.ok(files.length > 25);
   let steps = 0;
   for (const f of files) {
     const path = join(REPO, f.path ?? f);
@@ -1316,7 +1385,7 @@ test('CI-MIN-1: every setup-node step in a workflow or action restores the npm c
       steps++;
     });
   }
-  assert.ok(steps > 40, `${steps} setup-node steps checked`);
+  assert.ok(steps > 30, `${steps} setup-node steps checked`);
 });
 
 // ---- Facet B, formerly F61 (REG-1, 2026-10-11): the former F61 test file, moved here with its function. ----
@@ -1665,7 +1734,7 @@ test('evaluateArtifactBudget ignores a file with no upload-artifact step at all'
 test('listUploadWorkflowFiles finds the real .github/workflows directory', () => {
   const files = listUploadWorkflowFiles(getRepoRoot());
   assert.ok(files.length > 10, `expected >10 workflow files, got ${files.length}`);
-  assert.ok(files.includes('.github/workflows/discipline.yml'));
+  assert.ok(files.includes('.github/workflows/ci.yml'));
 });
 
 // GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness

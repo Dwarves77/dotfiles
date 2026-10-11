@@ -22,8 +22,12 @@ const WIRED = {
   "uptime-probes": { jobs: ["surfaces", "spend"] },
   "source-monitoring": { jobs: ["check-sources", "triage-inaccessible"] },
   "spot-check-monthly": { jobs: ["spot-check"] },
-  "design-audit": { jobs: ["design-audit"], dispatchOnly: true },
 };
+
+// Lane PIPE-1 (2026-10-11): design-audit.yml became steps of the `app` job of ci.yml, so its family is recorded by a
+// dispatch-only STEP of that job (not a record-harness-run job: ci.yml has exactly five jobs). The same emitter call, the
+// same two secrets, dispatch only; the shape of the step is also asserted by scripts/proof/design-audit-workflow.test.mjs.
+const FAMILIES = [...Object.keys(WIRED), "design-audit"];
 
 test("overallOutcome: a failure outranks a cancellation outranks success, and all-skipped did not run", () => {
   assert.equal(overallOutcome(["success", "failure"]), "failure");
@@ -80,7 +84,7 @@ test("an unregistered family or a missing argument is refused", async () => {
 });
 
 test("each of the seven families is registered and every governing file exists", () => {
-  for (const fam of Object.keys(WIRED)) {
+  for (const fam of FAMILIES) {
     assert.ok(GOVERNING_FILES[fam]?.length > 0, `${fam} has governing files`);
     for (const g of GOVERNING_FILES[fam]) assert.ok(readFileSync(resolve(FSI, g), "utf8").length > 0, `${fam}: ${g}`);
   }
@@ -118,3 +122,18 @@ for (const [fam, spec] of Object.entries(WIRED)) {
     assert.match(recordJobProblems(text.replace(/--land\n$/, "--land || echo skipped\n"), fam, spec).join(";"), /best-effort/);
   });
 }
+
+test("ci.yml: a dispatch-only step of the app job lands the design-audit family, the only step that holds the two secrets", () => {
+  const text = readFileSync(join(WORKFLOWS, "ci.yml"), "utf8");
+  const lines = text.split("\n");
+  const start = lines.findIndex((l) => l === "  app:");
+  const end = lines.findIndex((l, i) => i > start && /^ {2}[A-Za-z0-9_-]+:\s*$/.test(l));
+  const job = lines.slice(start, end < 0 ? undefined : end).join("\n");
+  const step = job.slice(job.indexOf("      - name: Land the design-audit harness-run artifact"));
+  assert.ok(step.includes("- name: Land the design-audit harness-run artifact"), "the record step exists");
+  assert.match(step, /\n {8}if: \$\{\{ always\(\) && github\.event_name == 'workflow_dispatch' \}\}\n/, "dispatch only, and on every path");
+  assert.ok(step.includes('--family design-audit --workflow ci.yml --results "${{ job.status }}" --land'));
+  assert.ok(step.includes("SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}") && step.includes("NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}"));
+  assert.doesNotMatch(step, /\|\|\s*(echo|true)/, "a failed landing is not swallowed");
+  assert.equal((text.match(/secrets\.[A-Z_]+/g) ?? []).length, 2, "the two secrets of this one step are the only secret references in the whole workflow");
+});

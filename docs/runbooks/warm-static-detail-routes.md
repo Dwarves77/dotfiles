@@ -38,7 +38,7 @@ right after a deploy for whatever minted between the branch cut and the deploy l
 CLAUDE.md forbids new schedules. This is not one: it runs exactly once per deploy, triggered by the
 deploy event itself (a GitHub Actions job `on: deployment_status` / `workflow_run` keyed to the
 production deploy workflow, or a Vercel Deploy Hook / `vercel-build-output` webhook — whichever this
-repo's existing deploy pipeline already exposes; see `.github/workflows/build-proof.yml` and
+repo's existing deploy pipeline already exposes; see `.github/workflows/ci.yml (the app job and the master build step; formerly build-proof.yml)` and
 `.github/workflows/uptime-probes.yml` for this repo's existing post-deploy-triggered job shapes to
 extend rather than inventing a new trigger mechanism). It never runs on a timer, and it is idempotent
 — re-running it after a deploy that added nothing new just re-requests already-built pages (cheap:

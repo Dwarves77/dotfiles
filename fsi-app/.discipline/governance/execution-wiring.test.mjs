@@ -59,7 +59,7 @@ test('execution-wiring B7-20 B7-21: the sentinel and workflow surfaces are read 
   const { readFileSync } = await import('node:fs');
   const src = readFileSync(new URL('./execution-wiring.mjs', import.meta.url), 'utf8');
   assert.match(src, /codeAndStrings\(readFileSync\(join\(dir, f\)/);
-  assert.match(src, /workflowInvocationText\(readRepo\('\.github\/workflows\/discipline\.yml'\)\)/);
+  assert.match(src, /workflowInvocationText\(readRepo\('\.github\/workflows\/ci\.yml'\)\)/);
   const { workflowInvocationText } = await import('../fitness/lib/yml-read.mjs');
   const yml = '      # fsi-app/src/lib/ghost.test.mjs is run here\n      - run: node --test fsi-app/src/lib/real.test.mjs # and fsi-app/src/lib/trailing.test.mjs\n      - run: echo fsi-app/src/lib/echoed.test.mjs\n';
   const text = workflowInvocationText(yml);
