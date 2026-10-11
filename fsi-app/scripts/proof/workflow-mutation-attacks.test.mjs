@@ -44,6 +44,8 @@ function childEnv() {
 
 /** Run a copied shape test against `workflowText`. Returns { code, tail }. */
 function runShapeTest(shapeTest, workflowFile, workflowText, actionText = readAction()) {
+  // a shape test may read a sibling workflow (gate-step-attacks-workflow.test.mjs reads discipline.yml): copy it unmutated
+  writeFileSync(join(SCRATCH, ".github", "workflows", "discipline.yml"), readFileSync(join(REPO, ".github", "workflows", "discipline.yml"), "utf8"));
   writeFileSync(join(SCRATCH, ".github", "workflows", workflowFile), workflowText);
   writeFileSync(join(SCRATCH, ".github", "actions", "local-stack", "action.yml"), actionText);
   const r = spawnSync(process.execPath, ["--test", join(SCRATCH, "fsi-app", "scripts", "proof", shapeTest)], { encoding: "utf8", timeout: 120_000, env: childEnv() });
@@ -147,4 +149,23 @@ suite("route-and-view-attacks.yml", "route-and-view-attacks-workflow.test.mjs", 
   ["the stop step losing always()", (t) => replaceOnce(t, "        if: always() && steps.scope.outputs.touched == 'true'\n        run: |\n          if [ -f", "        if: steps.scope.outputs.touched == 'true'\n        run: |\n          if [ -f")],
   ["the upload step losing always()", (t) => replaceOnce(t, "        if: always() && steps.scope.outputs.touched == 'true'\n        uses: actions/upload-artifact@v4", "        if: steps.scope.outputs.touched == 'true'\n        uses: actions/upload-artifact@v4")],
   ["the time limit removed", (t) => replaceOnce(t, "    timeout-minutes: 60\n", "")],
+]);
+
+suite("gate-step-attacks.yml", "gate-step-attacks-workflow.test.mjs", "gate-step-attacks.yml", [
+  ["a secret reference", (t) => replaceOnce(t, "    timeout-minutes: 25\n", "    timeout-minutes: 25\n    env:\n      LEAK: ${{ secrets.SUPABASE_DB_PASSWORD }}\n")],
+  ["a workflow_dispatch trigger", (t) => replaceOnce(t, "      - master\n", "      - master\n  workflow_dispatch:\n")],
+  ["a path filter on the trigger", (t) => replaceOnce(t, "    branches:\n      - master\n", "    branches:\n      - master\n    paths:\n      - 'fsi-app/package-lock.json'\n")],
+  ["contents: write", (t) => replaceOnce(t, "permissions:\n  contents: read", "permissions:\n  contents: write")],
+  ["the lint attack losing the max-warnings flag from the control", (t) => replaceOnce(t, "npm run lint -- --max-warnings=0 src/lib/__eslint_control.ts", "npm run lint -- src/lib/__eslint_control.ts")],
+  ["the warning attack no longer required to be refused", (t) => replaceOnce(t, "ATTACK NOT REFUSED: the lint command passes a file with a warning (max-warnings 0 is not gating)", "warning attack passed")],
+  ["the error attack removed", (t) => replaceOnce(t, "ATTACK NOT REFUSED: the lint command passes a file with an error", "error attack passed")],
+  ["the npm ci sync attack no longer required to be refused", (t) => replaceOnce(t, "ATTACK NOT REFUSED: npm ci accepted a package.json that is out of sync with the lockfile", "sync attack passed")],
+  ["the missing-lockfile attack dropped", (t) => replaceOnce(t, "rm -f package-lock.json\n", "")],
+  ["the attack files left in the tree when the compiler half runs", (t) => replaceOnce(t, "          trap 'rm -f src/lib/__eslint_control.ts src/lib/__eslint_warning_attack.ts src/lib/__eslint_error_attack.ts' EXIT\n", "")],
+  ["the F9 step no longer marked as a disposable checkout", (t) => replaceOnce(t, "          GATE_ATTACK_DISPOSABLE_CHECKOUT: '1'\n", "")],
+  ["the clean-up step losing always()", (t) => replaceOnce(t, "        if: always() && steps.scope.outputs.touched == 'true'\n        working-directory: fsi-app\n        run: rm -f", "        if: steps.scope.outputs.touched == 'true'\n        working-directory: fsi-app\n        run: rm -f")],
+  ["a failure swallowed with continue-on-error", (t) => replaceOnce(t, "      - name: F9 on the real app, the clean tree passes and one type error is refused (the compiler half)\n", "      - name: F9 on the real app, the clean tree passes and one type error is refused (the compiler half)\n        continue-on-error: true\n")],
+  ["the lint command changed from discipline.yml's form", (t) => replaceOnce(t, "npm run lint -- --max-warnings=0 src/lib/__eslint_warning_attack.ts; then", "npx eslint src/lib/__eslint_warning_attack.ts; then")],
+  ["the scope gate removed from the install", (t) => dropLine(t, "if: steps.scope.outputs.touched == 'true'", "- name: DS23 control")],
+  ["the time limit removed", (t) => replaceOnce(t, "    timeout-minutes: 25\n", "")],
 ]);
