@@ -17,110 +17,130 @@
  *    GREEN-3 -- open unwaived block + transaction-local app.data_audit_override marker: insert
  *              proceeds (the deliberate-act exemption, mig-201 marker precedent).
  *
- *  Exit 0 = gate proven (all legs). Exit 1 = a leg failed. Env: a Postgres connection string in
- *  SUPABASE_DB_URL or DATABASE_URL. Runs in the CI-with-secrets / ops lane (post-apply). */
-import pg from "pg";
+ *  Exit 0 = gate proven (all legs). Exit 1 = a leg failed. Exit 2 = cannot verify (no direct-Postgres
+ *  connection by any pg-conn.mjs route). Runs in the live-smoke data-audit step (post-apply).
+ *
+ *  DATA-1 (2026-10-11): the connection used to be built here from SUPABASE_DB_URL/DATABASE_URL alone, which
+ *  the CI lane never injects, so the proof exited 2 on every run (the class pg-conn.mjs records). The client
+ *  is now injected into runProof(); the CLI guard resolves it through the shared connectPg, exactly as
+ *  pause-flag-guard-proof.mjs does. */
+import { connectPg } from "../lib/pg-conn.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
-loadLocalEnvFile();
-
-const CONN = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
-if (!CONN) { console.error("layer-c-insert-gate-proof: need SUPABASE_DB_URL or DATABASE_URL"); process.exit(2); }
+import { isMainModule } from "../lib/is-main.mjs";
 
 const GATE_RE = /layer-c-insert-gate/i;
-const legs = { green1: false, red1: false, red2: false, red3: false, green2: false, green3: false };
 const iso = (d) => d.toISOString().slice(0, 10);
-const TOMORROW = iso(new Date(Date.now() + 2 * 86400e3)); // +2d: immune to a midnight-UTC boundary mid-run
-const YESTERDAY = iso(new Date(Date.now() - 86400e3));
 
-const client = new pg.Client({ connectionString: CONN });
+/** Runs the six legs against `client` (a connected pg client or a test double exposing `.query`). Everything
+ *  happens inside ONE transaction that is always rolled back. Returns { legs, pass }. */
+export async function runProof(client, { log = console.log } = {}) {
+  const legs = { green1: false, red1: false, red2: false, red3: false, green2: false, green3: false };
+  const TOMORROW = iso(new Date(Date.now() + 2 * 86400e3)); // +2d: immune to a midnight-UTC boundary mid-run
+  const YESTERDAY = iso(new Date(Date.now() - 86400e3));
 
-async function expectBounce(name) {
-  await client.query("SAVEPOINT leg");
-  try {
-    await client.query("INSERT INTO _lcig_probe DEFAULT VALUES");
-    console.log(`${name} ✗ insert SUCCEEDED -- the gate did not bounce it.`);
-    return false;
-  } catch (e) {
-    const ok = GATE_RE.test(String(e.message || e));
-    console.log(`${name} ${ok ? "✓" : "✗"} insert bounced: ${String(e.message || e).slice(0, 110)}`);
-    await client.query("ROLLBACK TO SAVEPOINT leg");
-    return ok;
+  async function expectBounce(name) {
+    await client.query("SAVEPOINT leg");
+    try {
+      await client.query("INSERT INTO _lcig_probe DEFAULT VALUES");
+      log(`${name} FAIL insert SUCCEEDED -- the gate did not bounce it.`);
+      return false;
+    } catch (e) {
+      const ok = GATE_RE.test(String(e.message || e));
+      log(`${name} ${ok ? "ok" : "FAIL"} insert bounced: ${String(e.message || e).slice(0, 110)}`);
+      await client.query("ROLLBACK TO SAVEPOINT leg");
+      return ok;
+    }
   }
-}
 
-async function expectPass(name) {
-  await client.query("SAVEPOINT leg");
-  try {
-    await client.query("INSERT INTO _lcig_probe DEFAULT VALUES");
-    console.log(`${name} ✓ insert proceeded.`);
-    return true;
-  } catch (e) {
-    console.log(`${name} ✗ insert FAILED: ${String(e.message || e).slice(0, 110)}`);
-    await client.query("ROLLBACK TO SAVEPOINT leg");
-    return false;
+  async function expectPass(name) {
+    await client.query("SAVEPOINT leg");
+    try {
+      await client.query("INSERT INTO _lcig_probe DEFAULT VALUES");
+      log(`${name} ok insert proceeded.`);
+      return true;
+    } catch (e) {
+      log(`${name} FAIL insert FAILED: ${String(e.message || e).slice(0, 110)}`);
+      await client.query("ROLLBACK TO SAVEPOINT leg");
+      return false;
+    }
   }
+
+  try {
+    await client.query("BEGIN");
+
+    // Neutralize live lane state INSIDE the rolled-back transaction so the proof is deterministic
+    // whatever the live lane verdict is right now (an open block may genuinely exist, e.g. cfb1799a).
+    await client.query(`
+      UPDATE public.integrity_flags SET status = 'resolved'
+      WHERE category = 'data_integrity' AND subject_ref = 'data-audit-lane' AND status = 'open'`);
+
+    // Synthetic probe table carrying the REAL applied guard function.
+    await client.query("CREATE TEMP TABLE _lcig_probe (id bigserial PRIMARY KEY) ON COMMIT DROP");
+    await client.query(`
+      CREATE TRIGGER _lcig_probe_trg BEFORE INSERT ON _lcig_probe
+      FOR EACH ROW EXECUTE FUNCTION public.guard_data_audit_block()`);
+
+    // GREEN-1 -- no open block: untouched insert.
+    legs.green1 = await expectPass("GREEN-1 (no open block)      ");
+
+    // Seed the synthetic open block (rolled back with everything else).
+    const { rows: [blk] } = await client.query(`
+      INSERT INTO public.integrity_flags (category, subject_type, subject_ref, description, recommended_actions, status, created_by)
+      VALUES ('data_integrity', 'system', 'data-audit-lane',
+              'layer-c-insert-gate proof harness: synthetic open data-audit block (rolled back)',
+              '[]'::jsonb, 'open', 'layer-c-proof-harness')
+      RETURNING id`);
+    log(`     seeded synthetic block ${blk.id}`);
+
+    // RED-1 -- open block, no waiver.
+    legs.red1 = await expectBounce("RED-1  (open, no waiver)     ");
+
+    // RED-2 -- expired waiver: time never clears red.
+    await client.query(
+      `UPDATE public.integrity_flags SET recommended_actions = jsonb_build_array(jsonb_build_object('action','waiver','until',$1::text)) WHERE id = $2`,
+      [YESTERDAY, blk.id]);
+    legs.red2 = await expectBounce("RED-2  (expired waiver)      ");
+
+    // RED-3 -- a non-waiver action does not dispose, even future-dated.
+    await client.query(
+      `UPDATE public.integrity_flags SET recommended_actions = jsonb_build_array(jsonb_build_object('action','investigate','until',$1::text)) WHERE id = $2`,
+      [TOMORROW, blk.id]);
+    legs.red3 = await expectBounce("RED-3  (non-waiver action)   ");
+
+    // GREEN-2 -- a valid dated waiver disposes.
+    await client.query(
+      `UPDATE public.integrity_flags SET recommended_actions = jsonb_build_array(jsonb_build_object('action','waiver','until',$1::text)) WHERE id = $2`,
+      [TOMORROW, blk.id]);
+    legs.green2 = await expectPass("GREEN-2 (valid dated waiver) ");
+
+    // GREEN-3 -- deliberate-act override marker (transaction-local; last leg since it persists to txn end).
+    await client.query(`UPDATE public.integrity_flags SET recommended_actions = '[]'::jsonb WHERE id = $1`, [blk.id]);
+    await client.query("SELECT set_config('app.data_audit_override', 'layer-c-proof-harness: rollback-only proof', true)");
+    legs.green3 = await expectPass("GREEN-3 (override marker)    ");
+  } finally {
+    try { await client.query("ROLLBACK"); } catch { /* nothing to roll back */ }
+  }
+  return { legs, pass: Object.values(legs).every(Boolean) };
 }
 
-try {
-  await client.connect();
-  await client.query("BEGIN");
-
-  // Neutralize live lane state INSIDE the rolled-back transaction so the proof is deterministic
-  // whatever the live lane verdict is right now (an open block may genuinely exist, e.g. cfb1799a).
-  await client.query(`
-    UPDATE public.integrity_flags SET status = 'resolved'
-    WHERE category = 'data_integrity' AND subject_ref = 'data-audit-lane' AND status = 'open'`);
-
-  // Synthetic probe table carrying the REAL applied guard function.
-  await client.query("CREATE TEMP TABLE _lcig_probe (id bigserial PRIMARY KEY) ON COMMIT DROP");
-  await client.query(`
-    CREATE TRIGGER _lcig_probe_trg BEFORE INSERT ON _lcig_probe
-    FOR EACH ROW EXECUTE FUNCTION public.guard_data_audit_block()`);
-
-  // GREEN-1 -- no open block: untouched insert.
-  legs.green1 = await expectPass("GREEN-1 (no open block)      ");
-
-  // Seed the synthetic open block (rolled back with everything else).
-  const { rows: [blk] } = await client.query(`
-    INSERT INTO public.integrity_flags (category, subject_type, subject_ref, description, recommended_actions, status, created_by)
-    VALUES ('data_integrity', 'system', 'data-audit-lane',
-            'layer-c-insert-gate proof harness: synthetic open data-audit block (rolled back)',
-            '[]'::jsonb, 'open', 'layer-c-proof-harness')
-    RETURNING id`);
-  console.log(`     seeded synthetic block ${blk.id}`);
-
-  // RED-1 -- open block, no waiver.
-  legs.red1 = await expectBounce("RED-1  (open, no waiver)     ");
-
-  // RED-2 -- expired waiver: time never clears red.
-  await client.query(
-    `UPDATE public.integrity_flags SET recommended_actions = jsonb_build_array(jsonb_build_object('action','waiver','until',$1::text)) WHERE id = $2`,
-    [YESTERDAY, blk.id]);
-  legs.red2 = await expectBounce("RED-2  (expired waiver)      ");
-
-  // RED-3 -- a non-waiver action does not dispose, even future-dated.
-  await client.query(
-    `UPDATE public.integrity_flags SET recommended_actions = jsonb_build_array(jsonb_build_object('action','investigate','until',$1::text)) WHERE id = $2`,
-    [TOMORROW, blk.id]);
-  legs.red3 = await expectBounce("RED-3  (non-waiver action)   ");
-
-  // GREEN-2 -- a valid dated waiver disposes.
-  await client.query(
-    `UPDATE public.integrity_flags SET recommended_actions = jsonb_build_array(jsonb_build_object('action','waiver','until',$1::text)) WHERE id = $2`,
-    [TOMORROW, blk.id]);
-  legs.green2 = await expectPass("GREEN-2 (valid dated waiver) ");
-
-  // GREEN-3 -- deliberate-act override marker (transaction-local; last leg since it persists to txn end).
-  await client.query(`UPDATE public.integrity_flags SET recommended_actions = '[]'::jsonb WHERE id = $1`, [blk.id]);
-  await client.query("SELECT set_config('app.data_audit_override', 'layer-c-proof-harness: rollback-only proof', true)");
-  legs.green3 = await expectPass("GREEN-3 (override marker)    ");
-} catch (e) {
-  console.error(`layer-c-insert-gate-proof: ${e.message}`); process.exit(2);
-} finally {
-  try { await client.query("ROLLBACK"); } catch { /* nothing to roll back */ }
-  await client.end();
+if (isMainModule(import.meta.url)) {
+  loadLocalEnvFile();
+  // Shared resolver (scripts/lib/pg-conn.mjs): SUPABASE_DB_URL/DATABASE_URL still work; the CI lane's
+  // NEXT_PUBLIC_SUPABASE_URL + SUPABASE_DB_PASSWORD also resolve.
+  const client = await connectPg();
+  if (!client) {
+    console.error("layer-c-insert-gate-proof: no direct-Postgres connection (SUPABASE_DB_URL/DATABASE_URL, local supabase link + SUPABASE_DB_PASSWORD, or NEXT_PUBLIC_SUPABASE_URL-derived pooler), exit 2.");
+    process.exit(2);
+  }
+  let outcome;
+  try {
+    outcome = await runProof(client);
+  } catch (e) {
+    console.error(`layer-c-insert-gate-proof: ${e.message}`);
+    process.exit(2);
+  } finally {
+    await client.end();
+  }
+  console.log(`\nRESULT: ${outcome.pass ? "PASS -- gate proven (unwaived/expired/non-waiver bounce; green/waived/override proceed); no durable write" : "FAIL -- see legs above"}`);
+  process.exit(outcome.pass ? 0 : 1);
 }
-
-const pass = Object.values(legs).every(Boolean);
-console.log(`\nRESULT: ${pass ? "PASS -- gate proven (unwaived/expired/non-waiver bounce; green/waived/override proceed); no durable write" : "FAIL -- see legs above"}`);
-process.exit(pass ? 0 : 1);

@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { deriveAudits, selectAudits, laneCredentialsPresent } from './run-data-audit-lane.mjs';
+import { deriveAudits, selectAudits, laneCredentialsPresent, classifyAuditResult } from './run-data-audit-lane.mjs';
 import { withoutCredentials } from '../lib/env-file.mjs';
 
 test('deriveAudits() finds real, marked scripts and returns [label, path, hard] tuples sorted by label', () => {
@@ -109,4 +109,26 @@ test("the real script with --read-only and no credentials self-skips loudly with
   assert.match(r.stdout, /SKIPPED, no database credentials/);
   assert.match(r.stdout, /a skip, not a pass/);
   assert.doesNotMatch(r.stdout, /-------- /, "no audit ran");
+});
+
+// ---- DATA-1 (2026-10-11): a documented exit-2 SKIP is scored SKIP, never ERROR ----------------------------------------
+
+test("RED then GREEN: spec09's documented skip (exit 2 plus a `SKIP  <reason>` line) is SKIP and does not fail the lane; an undocumented exit 2 stays ERROR", () => {
+  const spec09 = "── spec09 org-scope adversarial RLS proof ──\nSKIP  fewer than two live organizations have a member, need two existing orgs with >=1 membership each\n";
+  assert.deepEqual(classifyAuditResult(2, spec09), {
+    verdict: "SKIP",
+    failing: false,
+    reason: "fewer than two live organizations have a member, need two existing orgs with >=1 membership each",
+  });
+  assert.deepEqual(classifyAuditResult(2, "SEC-1 derivation_edges RLS: engine error, inconsistent types deduced for parameter $1\n"), { verdict: "ERROR", failing: true });
+  assert.deepEqual(classifyAuditResult(2, ""), { verdict: "ERROR", failing: true }, "a crash with no output is an ERROR");
+  assert.equal(classifyAuditResult(3, "SKIP  nope").verdict, "ERROR", "only exit 2 can be a documented skip");
+  assert.equal(classifyAuditResult(1, "SKIP  x").verdict, "FAIL", "a SKIP line never rescues a failing exit");
+  assert.deepEqual(classifyAuditResult(0, ""), { verdict: "PASS", failing: false });
+});
+
+test("the SKIP line the real spec09 audit prints is the shape the runner recognises", async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(fileURLToPath(new URL('./spec09-org-rls-adversarial-audit.mjs', import.meta.url)), 'utf8');
+  assert.match(src, /console\.log\(`SKIP {2}\$\{result\.reason\}`\)/);
 });

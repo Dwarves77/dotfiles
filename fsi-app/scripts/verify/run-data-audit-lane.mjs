@@ -125,6 +125,22 @@ export function selectAudits(audits, { readOnly, writingLabels = LANE_WRITING_AU
   return readOnly ? audits.filter(([label]) => !writingLabels.includes(label)) : audits;
 }
 
+/** Scores one audit child process. PURE. Exit 0 PASS, exit 1 FAIL. Exit 2 means "cannot verify": it is a SKIP
+ *  only when the audit documented the skip on stdout with a line `SKIP  <reason>` (the shape the adversarial
+ *  audits print through runAdversarialCli), otherwise it is an ERROR (an engine error or a crash). Any other
+ *  exit code is an ERROR. DATA-1 (2026-10-11): spec09-org-rls-adversarial printed its documented skip and the
+ *  runner scored the exit 2 as ERROR and counted it as a hard failure. A SKIP is reported with its reason and
+ *  is NOT a pass and NOT a lane failure. */
+export function classifyAuditResult(code, stdout = "") {
+  if (code === 0) return { verdict: "PASS", failing: false };
+  if (code === 1) return { verdict: "FAIL", failing: true };
+  if (code === 2) {
+    const m = String(stdout).match(/^SKIP {2}(.+)$/m);
+    if (m) return { verdict: "SKIP", failing: false, reason: m[1].trim() };
+  }
+  return { verdict: "ERROR", failing: true };
+}
+
 async function runLane() {
   // Load env for the block-state reflect (Layer C). In CI the secrets are injected into the env; locally
   // they live in .env.local. The child audits load it themselves; the runner needs it for the reflect.
@@ -138,16 +154,18 @@ async function runLane() {
   const results = [];
   for (const [label, rel, hard] of AUDITS) {
     process.stdout.write(`\n-------- ${label} --------\n`);
-    const r = spawnSync(process.execPath, [resolve(ROOT, rel)], { stdio: "inherit", env: process.env });
+    const r = spawnSync(process.execPath, [resolve(ROOT, rel)], { stdio: ["inherit", "pipe", "inherit"], env: process.env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    if (r.stdout) process.stdout.write(r.stdout);
     const code = r.status == null ? 2 : r.status; // null => signal/crash
-    results.push({ label, hard, code, verdict: code === 0 ? "PASS" : code === 1 ? "FAIL" : "ERROR" });
+    results.push({ label, hard, code, ...classifyAuditResult(code, r.stdout) });
   }
 
   console.log("\n======== DATA-AUDIT LANE SUMMARY ========");
-  for (const r of results) console.log(`  ${r.verdict.padEnd(5)} ${r.hard ? "[hard]" : "[soft]"} ${r.label}`);
-  const hardFailures = results.filter((r) => r.hard && r.code !== 0);
-  const softFailures = results.filter((r) => !r.hard && r.code !== 0);
-  console.log(`\nhard failures/errors: ${hardFailures.length} | soft (informational): ${softFailures.length}`);
+  for (const r of results) console.log(`  ${r.verdict.padEnd(5)} ${r.hard ? "[hard]" : "[soft]"} ${r.label}${r.reason ? `  (${r.reason})` : ""}`);
+  const hardFailures = results.filter((r) => r.hard && r.failing);
+  const softFailures = results.filter((r) => !r.hard && r.failing);
+  const skipped = results.filter((r) => r.verdict === "SKIP");
+  console.log(`\nhard failures/errors: ${hardFailures.length} | soft (informational): ${softFailures.length} | skipped (not a pass): ${skipped.length}`);
 
   // LAYER C teeth, reflecting the verdict into the block row so generation preflight can HALT on undisposed red.
   // Read-only mode never writes: the reflect is a guarded integrity_flags write.

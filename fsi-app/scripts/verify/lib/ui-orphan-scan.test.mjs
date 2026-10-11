@@ -225,3 +225,24 @@ test('staleUiOrphanAllowlistEntries: flags an entry that now has a writer, and o
   });
   assert.deepEqual(stale.map((s) => s.key).sort(), ['t.a', 't.dropped']);
 });
+
+// ---- DATA-1 (2026-10-11): an injected guarded-write alias (`guardedInsertFn(`) is a writer ------------------------------
+
+test('RED then GREEN: guardedInsertFn / guardedUpdateFn aliases are write calls (opaque payload marks the table, literal payload gives columns)', () => {
+  const opaque = 'const res = await guardedInsertFn("state_cost_facts", row, { cite: CITE });';
+  assert.ok(extractOpaqueWriteTables(opaque).has('state_cost_facts'), 'a variable payload through the alias is an opaque write');
+  const literal = 'await deps.guardedInsertFn("regional_data_facts", { ...rest, region_id: regionId, source_id: rated.source_id }, { cite: CITE });';
+  assert.deepEqual(extractCodeWriteColumns(literal).map((w) => `${w.table}.${w.column}`).sort(), ['regional_data_facts.region_id', 'regional_data_facts.source_id']);
+  // the lowercase-i alias and the bare names keep working
+  assert.ok(extractOpaqueWriteTables('await insertFn("emission_factors", toWrite, { cite });').has('emission_factors'));
+  assert.ok(extractOpaqueWriteTables('await guardedInsert("t_one", payload, { cite });').has('t_one'));
+  // a name that merely CONTAINS the alias is not one
+  assert.ok(!extractOpaqueWriteTables('await myguardedInsertFn("t_two", payload, { cite });').has('t_two'));
+});
+
+test('the real state-cost-facts producer is seen as a writer of state_cost_facts (the nightly reported its 9 fields as write-orphans)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const src = readFileSync(fileURLToPath(new URL('../../producers/regional/state-cost-facts-producer.mjs', import.meta.url)), 'utf8');
+  assert.ok(extractOpaqueWriteTables(src).has('state_cost_facts'));
+});

@@ -136,7 +136,10 @@ function objectLiteralKeys(fragment) {
 }
 
 const WRITE_CALL_RE = /\.(insert|upsert|update)\(\s*/g;
-const GUARDED_WRITE_CALL_RE = /\b(?:guardedInsert|guardedInsertMany|guardedUpdate|insertFn)\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*,\s*/g;
+// DATA-1 (2026-10-11): the `Fn` suffix covers an injected alias (`guardedInsertFn(`), the shape every
+// producer with dependency injection uses (state-cost-facts-producer.mjs:232). The old alternation matched
+// only the bare names, so those writers were invisible and 9 state_cost_facts fields read as write-orphans.
+const GUARDED_WRITE_CALL_RE = /\b(?:(?:guardedInsert|guardedInsertMany|guardedUpdate)(?:Fn)?|insertFn)\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*,\s*/g;
 
 /** True when the payload starting at `argStart` (already past any call-site whitespace the caller's regex
  * consumed) is an inline object literal: `{...}` directly, or `[{...}` (an array literal whose first
