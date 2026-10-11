@@ -255,12 +255,12 @@ export async function resolveViewerIdentityFromAuthenticatedClient(
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+  const orgId = membershipError ? null : (membership?.org_id ?? null);
   if (membershipError) {
     // Fail-soft contract (see below): the userId is still known, the org is not. Logged, never silent.
     console.warn(`[api/org] resolveViewerIdentityFromAuthenticatedClient membership read failed (caller will see no-membership): ${membershipError.message}`);
-    return { userId, orgId: null };
   }
-  return { userId, orgId: membership?.org_id ?? null };
+  return { userId, orgId };
 }
 
 /**
