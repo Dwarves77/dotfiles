@@ -11,7 +11,7 @@
 
 ## Read and reused
 
-- Read: CLAUDE.md, COMMON.md and the CHAIN-5 section of batch2.md, `chain-proof.yml`, `chain-steps.json`, `run-chain-steps.mjs`, `assertions.mjs`, `prepare.mjs`, `manifest.mjs`, `run-fetch-drain.mjs` (function URL, metrics keys), `io-preflight.mjs` and the preflight section of `apply-record-briefs.mjs`, migration 322 (brief_apply_runs), `run-lane-step.mjs`, `replay-migrations.mjs` (report shape), `apply-schema-dump.mjs` (assertOracleUrl), the local-stack composite action, the five `[WORK: CHAIN-5]` log lines.
+- Read: CLAUDE.md, COMMON.md and the CHAIN-5 section of batch2.md, `chain-proof.yml`, `chain-steps.json`, `run-chain-steps.mjs`, `assertions.mjs`, `prepare.mjs`, `manifest.mjs`, `run-fetch-drain.mjs` (function URL, metrics keys), `io-preflight.mjs` and the preflight section of `apply-record-briefs.mjs`, migration 322 (brief_apply_runs), `run-lane-step.mjs`, `replay-migrations.mjs` (report shape), `apply-schema-dump.mjs` (assertOracleUrl), the local-stack composite action, the five `[CLOSED: PR 1072]` log lines.
 - Reused: the manifest and its assertion kinds (no new kind), `autoAssertions`, `substitute` and `templateKeys`, `run-lane-step.mjs` (its step record feeds the emitter), `assertOracleUrl` and `assertLoopbackDbUrl`, `DEFAULT_MIGRATIONS_DIR`, the existing `--pin-ids-from` pin on the export step and `briefBatch`'s NO TARGET refusal.
 
 ## Decisions
