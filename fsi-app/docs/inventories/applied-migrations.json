@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-11T04:07:13.245Z",
-  "count": 376,
+  "synced_at": "2026-10-11T16:47:35.135Z",
+  "count": 378,
   "migrations": [
     {
       "version": "001",
@@ -1506,6 +1506,14 @@
     {
       "version": "20261011032717",
       "name": "387_drop_caller_less_category_rpcs"
+    },
+    {
+      "version": "20261011082720",
+      "name": "384_schema_drift_reconcile_production_only"
+    },
+    {
+      "version": "20261011082745",
+      "name": "385_schema_drift_repair_replay_only_indexes"
     }
   ]
 }
