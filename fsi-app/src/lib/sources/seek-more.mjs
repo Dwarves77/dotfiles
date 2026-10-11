@@ -202,9 +202,9 @@ export function acquisitionRequestRecord(triggerQuestion, { inventoryMiss = null
     status: "open",
     created_by: "seek-more:acquisition-request",
     description:
-      `Priced acquisition REQUEST for "${triggerQuestion.questionText}" (surface=${triggerQuestion.surface}, ` +
-      `product_question=${triggerQuestion.productQuestion}) - held pools carried no answer; this REQUESTS an ` +
-      "operator-priced line, it does not fetch anything (ADR-036 decision 1, QUESTION_ACQUISITION=operator-priced-only).".slice(0, 480),
+      `Acquisition REQUEST for "${triggerQuestion.questionText}" (surface=${triggerQuestion.surface}, ` +
+      `product_question=${triggerQuestion.productQuestion}) - held pools carried no answer; this records the ` +
+      "request and does not fetch anything (ADR-044 decisions 1 and 2, QUESTION_ACQUISITION=holdings-session-batch).".slice(0, 480),
     recommended_actions: [
       {
         action: "operator-price-this-request",
@@ -295,7 +295,7 @@ export async function seekAnswerForQuestion(triggerQuestion, deps = {}) {
   const requestRecord = acquisitionRequestRecord(triggerQuestion, { inventoryMiss: line?.inventoryMiss ?? null });
 
   if (!hasPricedLine) {
-    // ADR-036 decision 1: QUESTION_ACQUISITION="operator-priced-only" - a residual with no operator-
+    // ADR-044 decisions 1 and 2: QUESTION_ACQUISITION="holdings-session-batch" - a residual with no
     // priced ticket NEVER fetches. The REQUEST record is the whole outcome.
     return { resolved: false, source: "none", candidates: [], requestRecord };
   }

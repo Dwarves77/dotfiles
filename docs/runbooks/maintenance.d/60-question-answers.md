@@ -1,7 +1,7 @@
 ## 60. `question-answers`
 
 **New this runbook, lane L4-B, 2026-10-05 (ADR-044).** Not a `maintenance.yml` step: it has its own dispatch
-workflow, `.github/workflows/question-answers.yml` (`workflow_dispatch` only, no schedule, not chained), because
+workflow, `.github/workflows/question-answers.yml` (no schedule; chained since lane CHAIN-4, 2026-10-08: a `workflow_run` edge off "Population turn" and "Propagation drain", loop hops 14 and 15, which runs `action=export` only and is forced dry while build mode holds; `apply` stays on push of a committed batch or hand dispatch), because
 the export writes a bundle file and the apply reads a committed batch, the same shape as `theme-briefs.yml`.
 
 **Purpose**: the system asks itself what a change means, answers from what it already holds, and writes the

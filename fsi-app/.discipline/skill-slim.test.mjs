@@ -47,7 +47,14 @@ export const CORE_MAX_BYTES = 16000;
 /** origin/master when SKILL-SLIM-1 was cut: the last commit at which every SKILL.md still held its whole text. */
 const PRE_SPLIT_BASE = "023d47588";
 /** { skill: [exact pre-split line, ...] } lines a later lane deliberately changed or removed, each with a reason. */
-const ACKNOWLEDGED_LINE_CHANGES = {};
+const ACKNOWLEDGED_LINE_CHANGES = {
+  // GATE-FIX-2 (2026-10-10): the advertised Consistency-Override text now matches override-check.mjs (the rationale names the
+  // invariant, the deadline is at most 30 days out). Old lines verbatim from PRE_SPLIT_BASE.
+  "sprint-followups-discipline": [
+    "**Override.** `Consistency-Override: C-N (rationale: <non-empty text>; remediation-deadline: YYYY-MM-DD)` trailer per failing check. The remediation-deadline must be a future date. Override surfaces in audit; recurring overrides on the same check indicate deeper issue.",
+    "**Worked example.** A commit adding a new migration at `fsi-app/supabase/migrations/099_*.sql` triggers C3 if the file exists on disk but is not listed in `docs/inventories/migrations.md`, OR if the inventory lists a migration filename that does not exist on disk (the migration 067 case). Rule 014 invokes the runner; runner reports C3 drift; rule 014 fails with the C3 missing-claim or orphan-claim message. Operator either updates the inventory (fixes the drift; runner passes) OR adds `Consistency-Override: C3 (rationale: <text>; remediation-deadline: <date>)`.",
+  ],
+};
 
 /** Every skill the gate or the skill map can demand (derived from the map, never a hand list). */
 export const GATE_DEMANDED = [...new Set(GOVERNED.map((g) => g.skill))].sort();

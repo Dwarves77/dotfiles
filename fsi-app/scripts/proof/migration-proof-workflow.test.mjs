@@ -111,6 +111,11 @@ test("the reports are uploaded and the stack is stopped on every run that starte
   const stop = step(/Stop the local stack/);
   assert.match(stop.body, /supabase stop --no-backup/);
   assert.match(stop.body, /rm -f "\$MP_ENV"/);
+  // TESTS-2 (AUD-AT-5 OWED-1, found by workflow-mutation-attacks.test.mjs): both steps must run when an earlier step FAILED,
+  // or a red proof leaves the stack and the env file behind. The generic gate check above accepts a step without always().
+  const ALWAYS_TOUCHED = "\n        if: always() && steps.scope.outputs.touched == 'true'\n";
+  assert.ok(up.body.includes(ALWAYS_TOUCHED), "the upload step must run on failure");
+  assert.ok(stop.body.includes(ALWAYS_TOUCHED), "the stop step must run on failure");
 });
 
 test("pull requests supersede each other (concurrency) and the job has a time limit", () => {

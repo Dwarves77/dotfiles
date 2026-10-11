@@ -25,6 +25,7 @@ import {
   stepIdsInJob,
   stepOutputReferencesInJob,
 } from './F52-workflow-file-validity.mjs';
+import { SCOPED, SCOPED_KEYS } from '../../governance/job-inputs.mjs';
 
 // ── fixture harness: a temp repo root with .github/workflows and/or .github/actions files ──────────
 
@@ -650,10 +651,10 @@ function stepNamed(id, fragment) {
   return found;
 }
 
-test('GATE-4: the workflow has exactly the five jobs, so a new push-time job is a deliberate edit', () => {
+test('GATE-4: the workflow has exactly the six jobs (the CI-MIN-1 inputs job plus the five), so a new push-time job is a deliberate edit', () => {
   assert.deepEqual(
     JOBS.map((j) => j.id),
-    ['validate-commits', 'test-discipline-engine', 'consistency-backstop', 'fitness-check', 'rendering-guard'],
+    ['inputs', 'validate-commits', 'test-discipline-engine', 'consistency-backstop', 'fitness-check', 'rendering-guard'],
   );
 });
 
@@ -662,7 +663,7 @@ test('GATE-4: a push to master runs Validate commits and the Consistency layer o
     const props = jobPropertyLines(jobById(id), DISCIPLINE_LINES);
     assert.equal(props.find((p) => p.key === 'if'), undefined, `${id} must run on every event (push and pull_request)`);
   }
-  for (const id of ['test-discipline-engine', 'fitness-check', 'rendering-guard']) {
+  for (const id of ['inputs', 'test-discipline-engine', 'fitness-check', 'rendering-guard']) {
     const ifProp = jobPropertyLines(jobById(id), DISCIPLINE_LINES).find((p) => p.key === 'if');
     assert.ok(ifProp, `${id} must carry a job-level if so a push to master skips it`);
     assert.match(ifProp.valueInline, /github\.event_name\s*==\s*'pull_request'/, `${id}'s if must select pull_request only`);
@@ -837,6 +838,7 @@ function stepsOfJob(text, jobId) {
 const IF_PR = "github.event_name == 'pull_request'";
 const IF_PUSH = "github.event_name == 'push'";
 const IF_DOCS = "steps.docs_only.outputs.docs_only != 'true'";
+const IF_RENDERING = `${IF_PR} && needs.inputs.outputs.rendering_guard == 'true'`;
 
 /** Every verdict step of discipline.yml, with the ONLY if it may carry (null = none). A step missing, renamed
  *  or given another condition is a finding. */
@@ -867,11 +869,12 @@ const DISCIPLINE_VERDICT_STEPS = {
   'rendering-guard': [['Run rendering guard', null]],
 };
 const JOB_IF = {
+  inputs: IF_PR,
   'validate-commits': null,
   'test-discipline-engine': IF_PR,
   'consistency-backstop': null,
   'fitness-check': IF_PR,
-  'rendering-guard': IF_PR,
+  'rendering-guard': IF_RENDERING,
 };
 
 /** The non-comment run-block commands of a step body (one entry per non-blank, non-comment line). */
@@ -1195,4 +1198,114 @@ test('CI-FIX-1 attack: renaming one required job, or defining its name twice, is
   assert.deepEqual(missingRequired(migration), [REQUIRED_CONTEXTS[6]]);
   const duplicated = { ...real, 'copy.yml': 'name: Copy\non:\n  workflow_dispatch: {}\njobs:\n  x:\n    name: Discipline engine unit tests\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n' };
   assert.deepEqual(missingRequired(duplicated), [REQUIRED_CONTEXTS[0]]);
+});
+
+// ── CI-MIN-1 (lane cimin1-jobs-scoped-to-inputs, 2026-10-10, ADR-047 decision 5): every scoped job carries the skip ─
+//
+// A scoped job runs only when the pull request touched its inputs, decided by the workflow's `inputs` job running the
+// one classifier (governance/job-inputs.mjs, whose SCOPED table is the list asserted here, never a second list). The
+// skip is JOB-level: a skipped required context satisfies branch protection, a path-filtered workflow does not. A job
+// that lost its `needs: inputs` or its `if` would run on every pull request again, silently spending the minutes the
+// plan removed; a job whose `if` reads the wrong output would skip a gate that guards the change.
+
+/** Problems with one scoped job of a workflow text. [] = the job carries the job-level skip and the inputs job feeds it. */
+function scopedJobProblems(text, jobId, key) {
+  const problems = [];
+  const lines = text.split(/\r?\n/);
+  const jobs = extractJobs(lines);
+  const inputs = jobs.find((j) => j.id === 'inputs');
+  if (!inputs) problems.push(`no inputs job (the classifier never runs, so ${jobId} cannot be scoped)`);
+  else if (!new RegExp(`^ {6}${key}:\\s*\\$\\{\\{ steps\\.classify\\.outputs\\.${key} \\}\\}\\s*$`, 'm').test(lines.slice(inputs.startLine, inputs.endLine + 1).join('\n'))) {
+    problems.push(`the inputs job does not output ${key} from steps.classify`);
+  }
+  const job = jobs.find((j) => j.id === jobId);
+  if (!job) return [...problems, `no job ${jobId}`];
+  const props = jobPropertyLines(job, lines);
+  const needsProp = props.find((p) => p.key === 'needs');
+  if (!needsProp || !parseNeedsIds(lines, needsProp, 4).includes('inputs')) problems.push(`job ${jobId}: needs must list inputs`);
+  const ifProp = props.find((p) => p.key === 'if');
+  if (!ifProp) problems.push(`job ${jobId}: no job-level if`);
+  else if (!new RegExp(`needs\\.inputs\\.outputs\\.${key} == 'true'`).test(ifProp.valueInline)) problems.push(`job ${jobId}: the if must test needs.inputs.outputs.${key} == 'true', got ${JSON.stringify(ifProp.valueInline)}`);
+  else if (/continue-on-error|\|\|\s*true\b/.test(ifProp.valueInline)) problems.push(`job ${jobId}: the if may not be made unable to fail`);
+  return problems;
+}
+
+const wiredScoped = () => SCOPED_KEYS.filter((k) => SCOPED[k].wired);
+const workflowText = (file) => readFileSync(join(REPO, '.github', 'workflows', file), 'utf8');
+
+test('CI-MIN-1: every wired scoped job in the classifier table carries needs: inputs and the job-level if', () => {
+  assert.ok(wiredScoped().length >= 5, 'the table names at least five wired scoped jobs');
+  for (const key of wiredScoped()) {
+    assert.deepEqual(scopedJobProblems(workflowText(SCOPED[key].workflow), SCOPED[key].jobId, key), [], key);
+  }
+});
+
+test('CI-MIN-1: an unwired scoped job is named in the table, still exists, and has no inputs dependency yet', () => {
+  for (const key of SCOPED_KEYS.filter((k) => !SCOPED[k].wired)) {
+    const text = workflowText(SCOPED[key].workflow);
+    assert.ok(extractJobs(text.split(/\r?\n/)).some((j) => j.id === SCOPED[key].jobId), `${key}: the job exists`);
+    assert.doesNotMatch(text, /needs\.inputs\.outputs/, `${key}: flipping wired means wiring the job and the table together`);
+  }
+});
+
+test('CI-MIN-1: the four always-on jobs of discipline.yml never read the inputs job', () => {
+  for (const id of ['validate-commits', 'consistency-backstop', 'test-discipline-engine', 'fitness-check']) {
+    assert.doesNotMatch(jobText(id), /needs\.inputs|needs:\s*inputs/, `${id} is always-on`);
+  }
+});
+
+test('CI-MIN-1 attack: a scoped job that loses its if, its needs, or reads the wrong output is caught', () => {
+  const yml = workflowText('discipline.yml');
+  assert.deepEqual(scopedJobProblems(yml, 'rendering-guard', 'rendering_guard'), []);
+  const noIf = mutate(yml, "    if: github.event_name == 'pull_request' && needs.inputs.outputs.rendering_guard == 'true'\n", '');
+  assert.ok(scopedJobProblems(noIf, 'rendering-guard', 'rendering_guard').some((p) => /no job-level if/.test(p)));
+  const noNeeds = mutate(yml, "    needs: inputs\n    if: github.event_name == 'pull_request' && needs.inputs.outputs.rendering_guard", "    if: github.event_name == 'pull_request' && needs.inputs.outputs.rendering_guard");
+  assert.ok(scopedJobProblems(noNeeds, 'rendering-guard', 'rendering_guard').some((p) => /needs must list inputs/.test(p)));
+  const wrongOutput = mutate(yml, "needs.inputs.outputs.rendering_guard == 'true'", "needs.inputs.outputs.design_audit == 'true'");
+  assert.ok(scopedJobProblems(wrongOutput, 'rendering-guard', 'rendering_guard').some((p) => /must test needs\.inputs\.outputs\.rendering_guard/.test(p)));
+  const noOutput = mutate(yml, '      rendering_guard: ${{ steps.classify.outputs.rendering_guard }}\n', '');
+  assert.ok(scopedJobProblems(noOutput, 'rendering-guard', 'rendering_guard').some((p) => /does not output rendering_guard/.test(p)));
+});
+
+test('CI-MIN-1 attack: a fixture workflow whose scoped job has no inputs job, no needs and no if fails', () => {
+  const fixture = ['name: X', 'on:', '  pull_request:', '    branches: [master]', 'jobs:', '  heavy:', '    runs-on: ubuntu-latest', '    steps:', '      - run: echo hi', ''].join('\n');
+  const problems = scopedJobProblems(fixture, 'heavy', 'heavy');
+  assert.ok(problems.some((p) => /no inputs job/.test(p)));
+  assert.ok(problems.some((p) => /needs must list inputs/.test(p)));
+  assert.ok(problems.some((p) => /no job-level if/.test(p)));
+});
+
+test('CI-MIN-1: a master push still runs the bug-class guard jobs (the 2026-10-11 addendum) and never cancels them', () => {
+  const text = workflowText('bug-class-guard.yml');
+  const on = text.slice(text.indexOf('\non:'), text.indexOf('\nconcurrency:'));
+  assert.match(on, /^ {2}push:\n {4}branches: \[master\]\n/m);
+  assert.match(on, /^ {2}pull_request:\n {4}branches: \[master\]\n/m);
+  assert.match(text, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/);
+  const lines = text.split(/\r?\n/);
+  for (const key of ['discrimination_guard', 'bug_class_scan']) {
+    const job = extractJobs(lines).find((j) => j.id === SCOPED[key].jobId);
+    const ifProp = jobPropertyLines(job, lines).find((p) => p.key === 'if');
+    assert.match(ifProp.valueInline, /^github\.event_name != 'pull_request' \|\|/, `${key}: a push runs it whatever the classifier says`);
+  }
+});
+
+test('CI-MIN-1: every setup-node step in a workflow or action restores the npm cache from the one lockfile', () => {
+  const files = listWorkflowAndActionFiles(REPO);
+  assert.ok(files.length > 30);
+  let steps = 0;
+  for (const f of files) {
+    const path = join(REPO, f.path ?? f);
+    const lines = readFileSync(path, 'utf8').split(/\r?\n/);
+    lines.forEach((l, i) => {
+      if (!/uses:\s*actions\/setup-node@/.test(l)) return;
+      const ind = l.match(/^\s*/)[0].length + (/^\s*- /.test(l) ? 2 : 0);
+      const block = [];
+      for (let j = i + 1; j < lines.length && (lines[j].trim() === '' || lines[j].match(/^\s*/)[0].length >= ind) && !/^\s*- /.test(lines[j]); j++) block.push(lines[j]);
+      const text = block.join('\n');
+      assert.match(text, /^\s*cache:\s*'?npm'?\s*$/m, `${path}:${i + 1} setup-node has no npm cache`);
+      assert.match(text, /^\s*cache-dependency-path:\s*fsi-app\/package-lock\.json\s*$/m, `${path}:${i + 1} setup-node has no cache-dependency-path`);
+      steps++;
+    });
+  }
+  assert.ok(steps > 40, `${steps} setup-node steps checked`);
 });

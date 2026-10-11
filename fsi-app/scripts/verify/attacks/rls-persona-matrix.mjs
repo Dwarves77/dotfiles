@@ -30,11 +30,9 @@
 //
 // Usage: node scripts/verify/attacks/rls-persona-matrix.mjs [--out-dir <dir>]   (default CP_OUT_DIR)
 
-import { writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { isMainModule } from "../../lib/is-main.mjs";
 import { roleStatements, parseRole, runSqlAttack } from "../../proof/attacks/attack-engine.mjs";
-import { assertLocalOnly } from "../../proof/attacks/run-attacks.mjs";
+import { runAttackCli } from "./attack-cli.mjs";
 import { PERSONAS, personaContext, setupPersonaFixtures, teardownPersonaFixtures } from "../fixtures/rls-personas.mjs";
 import { TARGETED_ATTACKS } from "./rls-persona-attacks.mjs";
 
@@ -207,44 +205,19 @@ export async function runAll({ client, now = () => new Date() }) {
   return report;
 }
 
-function parseArgs(argv) {
-  const out = { outDir: null };
-  for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === "--out-dir") out.outDir = argv[++i];
-    else throw new Error(`unknown argument ${argv[i]}`);
-  }
-  return out;
-}
-
 /** The CLI body with every side effect injectable. Returns the exit code. */
-export async function cliMain({
-  argv = process.argv.slice(2), env = process.env,
-  connect = async () => (await import("../../lib/pg-conn.mjs")).connectPg(),
-  writeFile = writeFileSync, makeDir = mkdirSync, log = console.log,
-}) {
-  let args;
-  try { args = parseArgs(argv); } catch (e) { log(`rls-persona-matrix: ${e.message}`); return 2; }
-  const local = assertLocalOnly(env);
-  if (!local.ok) { log("rls-persona-matrix: REFUSED, the environment is not the local stack:"); local.violations.forEach((v) => log(`  - ${v}`)); return 2; }
-  const client = await connect();
-  if (!client) { log("rls-persona-matrix: no database connection to the local stack. Cannot verify, exit 2."); return 2; }
-  try {
-    const report = await runAll({ client });
-    const personas = Object.keys(report.summary);
-    log(`rls-persona-matrix: ${report.tables} tables x ${COMMANDS.length} commands x ${personas.length} personas = ${report.cells.length} cells`);
-    for (const t of report.targeted) log(`${t.status === "pass" ? "HELD  " : "BROKEN"} ${t.id}  ${firstLine(t.observed, 160)}`);
-    for (const v of report.violations) log(`VIOLATION ${v}`);
-    const outDir = args.outDir ?? env.CP_OUT_DIR ?? env.MP_OUT_DIR ?? null;
-    if (outDir) {
-      makeDir(outDir, { recursive: true });
-      writeFile(join(outDir, "rls-persona-matrix-report.json"), JSON.stringify(report, null, 2) + "\n", "utf8");
-    } else {
-      log("rls-persona-matrix: no output directory (--out-dir, CP_OUT_DIR or MP_OUT_DIR); the report was not written.");
-    }
-    return report.violations.length === 0 ? 0 : 1;
-  } finally {
-    await client.end?.();
-  }
+export function cliMain(opts = {}) {
+  return runAttackCli({
+    ...opts,
+    name: "rls-persona-matrix",
+    reportFile: "rls-persona-matrix-report.json",
+    run: (client) => runAll({ client }),
+    describe: (report, log) => {
+      const personas = Object.keys(report.summary);
+      log(`rls-persona-matrix: ${report.tables} tables x ${COMMANDS.length} commands x ${personas.length} personas = ${report.cells.length} cells`);
+      for (const t of report.targeted) log(`${t.status === "pass" ? "HELD  " : "BROKEN"} ${t.id}  ${firstLine(t.observed, 160)}`);
+    },
+  });
 }
 
 if (isMainModule(import.meta.url)) {

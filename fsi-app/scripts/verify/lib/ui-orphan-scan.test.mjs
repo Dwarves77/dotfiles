@@ -21,6 +21,26 @@ test('parseSelectList: bare columns, alias:column, and embed_table(nested) recur
   assert.deepEqual(got.map((f) => f.column), ['id', 'jurisdiction', 'sources', 'id', 'tier']);
 });
 
+test('GATE-FIX-2 parseSelectList: alias:column carries the alias as the prop name, the column stays the bound column', () => {
+  const got = parseSelectList('id, jurisdiction_code:jurisdiction, label : name!inner, v::text, a:b::int');
+  assert.deepEqual(got, [
+    { column: 'id' },
+    { column: 'jurisdiction', alias: 'jurisdiction_code' },
+    { column: 'name', alias: 'label' },
+    { column: 'v' },
+    { column: 'b', alias: 'a' },
+  ]);
+});
+
+test('GATE-FIX-2 scanUiSelects: the alias reaches the selected entry, a bare column carries none', () => {
+  const content = 'await supabase.from("t").select("shown:real_col, plain_col");';
+  const { selected } = scanUiSelects([{ file: 'src/components/A.tsx', content }]);
+  assert.deepEqual(selected, [
+    { table: 't', column: 'real_col', file: 'src/components/A.tsx', alias: 'shown' },
+    { table: 't', column: 'plain_col', file: 'src/components/A.tsx' },
+  ]);
+});
+
 test('parseSelectList: does not fragment on commas nested inside an embed', () => {
   const got = parseSelectList('id, child ( a, b, c )');
   assert.deepEqual(got.map((f) => f.column), ['id', 'child', 'a', 'b', 'c']);

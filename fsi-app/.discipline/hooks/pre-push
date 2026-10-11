@@ -200,6 +200,29 @@ else
   echo "[discipline pre-push] step 0c (docs-only fast path): not docs-only (code/workflow files changed) -- running the full 4-step CI-parity check."
 fi
 
+# ---------------------------------------------------------------------------
+# Step 0e: is this a CI-triggering (final) push? (GATE-PUSH-1, 2026-10-11, amends ADR-040)
+# ---------------------------------------------------------------------------
+# A push whose tip commit carries no CI skip token starts a full PR run on metered Actions minutes, so it runs
+# the FINAL TIER before leaving the machine: step 3d (ESLint over the files changed against origin/master) and
+# step 3e (the fitness runner, exactly as CI runs it). A push whose tip carries a skip token (a WIP save-point)
+# runs neither. A branch deletion or an empty push has no tip to judge and runs no tier. The heavy steps (3, 3b,
+# 3c, 3f, 3g, 3h, 4) stay behind DISCIPLINE_PREPUSH_FULL=1 as ADR-040 ruled; the docs-only fast path still skips
+# everything it skipped before. The decision functions live in lib/final-push-tier.sh (a unit a test drives).
+. "$REPO_ROOT/fsi-app/.discipline/hooks/lib/final-push-tier.sh"
+pre_push_resolve_final_push "$PREPUSH_REFS"
+LINT_FILES="$(pre_push_changed_lintable_files)"
+LINT_FILE_COUNT="$(printf '%s' "$LINT_FILES" | grep -c . || true)"
+if [ "$PUSHED_TIPS" -eq 0 ]; then
+  echo "[discipline pre-push] step 0e: no pushed commit (deletion or empty push), final tier skipped"
+elif [ "$FINAL_PUSH" = "true" ] && [ "$DOCS_ONLY" = "true" ]; then
+  echo "[discipline pre-push] step 0e: final push, but docs-only (step 0c), final tier skipped"
+elif [ "$FINAL_PUSH" = "true" ]; then
+  echo "[discipline pre-push] step 0e: final push, running the final tier (eslint on $LINT_FILE_COUNT changed files, fitness runner)"
+else
+  echo "[discipline pre-push] step 0e: WIP push (skip token), final tier skipped"
+fi
+
 echo "[discipline pre-push] running CI-parity check..."
 
 # ---------------------------------------------------------------------------
@@ -237,14 +260,14 @@ echo "[discipline pre-push] step 1 (untracked critical files): OK"
 # Runs the consistency runner AND honors `Consistency-Override:` trailers on the commits being pushed
 # (the escape hatch this hook advertised but never parsed before g1b). override-check.mjs --prepush reads
 # the ref-update lines on stdin, collects the pushed commits' messages, and treats a C-check as overridden
-# only when a VALID trailer is present (non-empty rationale + today-or-future remediation-deadline). Same
+# only when a VALID trailer is present (a rationale sentence naming the check id or its invariant + a remediation-deadline from today to 30 days out). Same
 # primitive rule 014 + the CI backstop use, so the three surfaces cannot drift.
 if ! printf '%s' "$PREPUSH_REFS" | node fsi-app/.discipline/consistency/override-check.mjs --prepush >"$PRE_PUSH_LOG_DIR/c.log" 2>&1; then
   pre_push_log_firing 2 "$PRE_PUSH_LOG_DIR/c.log"
   echo "[discipline pre-push] STEP 2 FAIL: consistency runner reported drift with no valid override:" >&2
   cat "$PRE_PUSH_LOG_DIR/c.log" >&2
   echo "[discipline pre-push] fix the drift above, OR add on a commit being pushed:" >&2
-  echo "[discipline pre-push]   Consistency-Override: C<N> (rationale: <non-empty>; remediation-deadline: YYYY-MM-DD[future])" >&2
+  echo "[discipline pre-push]   Consistency-Override: C<N> (rationale: <a sentence naming C<N> or its invariant>; remediation-deadline: YYYY-MM-DD, today to +30 days)" >&2
   exit 1
 fi
 cat "$PRE_PUSH_LOG_DIR/c.log"
@@ -296,9 +319,24 @@ echo "[discipline pre-push] step 2b (memory gate, CI parity): OK"
 # Operator ruling 2026-10-03 (ADR-040): steps 3-4 duplicate CI's required checks, cost 10-20 minutes per
 # push on Windows, and did not predict CI failures (prerender, F51 fork-point). CI is the authoritative
 # gate; steps 3-4 no longer run locally on any push. Opt back in with DISCIPLINE_PREPUSH_FULL=1.
-if [ "$DOCS_ONLY" = "true" ] || [ "${DISCIPLINE_PREPUSH_FULL:-0}" != "1" ]; then
-  echo "[discipline pre-push] steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc): SKIPPED (CI is the gate, ADR-040; set DISCIPLINE_PREPUSH_FULL=1 to run locally)."
-else
+#
+# GATE-PUSH-1 (2026-10-11): steps 3d and 3e are NOT behind that opt-in on a CI-triggering push. Two guards:
+# RUN_HEAVY (docs-only false and DISCIPLINE_PREPUSH_FULL=1) wraps steps 3, 3b, 3c and 3f through 4;
+# RUN_FINAL (docs-only false and either DISCIPLINE_PREPUSH_FULL=1 or step 0e's FINAL_PUSH=true) wraps 3d and 3e.
+RUN_HEAVY=false
+RUN_FINAL=false
+if [ "$DOCS_ONLY" != "true" ]; then
+  if [ "${DISCIPLINE_PREPUSH_FULL:-0}" = "1" ]; then
+    RUN_HEAVY=true
+    RUN_FINAL=true
+  elif [ "$FINAL_PUSH" = "true" ]; then
+    RUN_FINAL=true
+  fi
+fi
+if [ "$RUN_HEAVY" != "true" ]; then
+  echo "[discipline pre-push] steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc): SKIPPED (CI is the gate, ADR-040; set DISCIPLINE_PREPUSH_FULL=1 to run locally; steps 3d and 3e run on a CI-triggering push, GATE-PUSH-1)."
+fi
+if [ "$RUN_HEAVY" = "true" ]; then
 
 # ---------------------------------------------------------------------------
 # Step 3: discipline + fitness tests — the SAME canonical suite CI runs
@@ -360,6 +398,10 @@ fi
 cat "$PRE_PUSH_LOG_DIR/gate.log"
 echo "[discipline pre-push] step 3c (skill-gate wiring): OK"
 
+fi
+# end of the heavy guard (steps 3, 3b, 3c); the final tier (3d, 3e) follows under its own guard
+if [ "$RUN_FINAL" = "true" ]; then
+
 # ---------------------------------------------------------------------------
 # Step 3d: ESLint (max-warnings 0), the SAME command as CI's "ESLint (max-warnings 0)" step
 # ---------------------------------------------------------------------------
@@ -367,14 +409,28 @@ echo "[discipline pre-push] step 3c (skill-gate wiring): OK"
 # fitness-check job ordering: that step runs right after npm ci and right before "Run fitness
 # functions"; here the deps-equivalent is step 0b above (worktree node_modules already resolved), so
 # this runs right before step 3e (the fitness runner, CI parity), the position's matching anchor.
-if ! (cd fsi-app && npm run lint -- --max-warnings=0) >"$PRE_PUSH_LOG_DIR/lint.log" 2>&1; then
-  pre_push_log_firing 3d "$PRE_PUSH_LOG_DIR/lint.log"
-  echo "[discipline pre-push] STEP 3d FAIL: ESLint reported violation(s) (max-warnings 0):" >&2
-  tail -60 "$PRE_PUSH_LOG_DIR/lint.log" >&2
-  echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/lint.log" >&2
-  exit 1
+#
+# GATE-PUSH-1 (2026-10-11): on a CI-triggering push this lints ONLY the files changed against origin/master
+# (the list step 0e computed), not the tree, so it costs seconds; with DISCIPLINE_PREPUSH_FULL=1 it is the
+# whole-tree command CI runs. Same log path, same FAIL message either way.
+if [ "${DISCIPLINE_PREPUSH_FULL:-0}" != "1" ] && [ "$LINT_FILE_COUNT" -eq 0 ]; then
+  echo "[discipline pre-push] step 3d: no lintable files changed"
+else
+  if [ "${DISCIPLINE_PREPUSH_FULL:-0}" = "1" ]; then
+    (cd fsi-app && npm run lint -- --max-warnings=0) >"$PRE_PUSH_LOG_DIR/lint.log" 2>&1
+  else
+    # shellcheck disable=SC2086
+    pre_push_eslint_files $LINT_FILES >"$PRE_PUSH_LOG_DIR/lint.log" 2>&1
+  fi
+  if [ "$?" -ne 0 ]; then
+    pre_push_log_firing 3d "$PRE_PUSH_LOG_DIR/lint.log"
+    echo "[discipline pre-push] STEP 3d FAIL: ESLint reported violation(s) (max-warnings 0):" >&2
+    tail -60 "$PRE_PUSH_LOG_DIR/lint.log" >&2
+    echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/lint.log" >&2
+    exit 1
+  fi
+  echo "[discipline pre-push] step 3d (eslint, max-warnings 0, CI parity): OK"
 fi
-echo "[discipline pre-push] step 3d (eslint, max-warnings 0, CI parity): OK"
 
 # ---------------------------------------------------------------------------
 # Step 3e: the fitness runner over the live tree, the SAME command the CI "Fitness functions" job runs
@@ -393,6 +449,10 @@ if ! node fsi-app/.discipline/fitness/runner.mjs >"$PRE_PUSH_LOG_DIR/fit.log" 2>
   exit 1
 fi
 echo "[discipline pre-push] step 3e (fitness runner, live tree, CI parity): OK"
+
+fi
+# end of the final-tier guard (steps 3d, 3e); the remaining heavy steps follow under the heavy guard again
+if [ "$RUN_HEAVY" = "true" ]; then
 
 # ---------------------------------------------------------------------------
 # Step 3f: npm-dependent test suites, the SAME discovery + command as CI's "App unit tests
@@ -472,7 +532,7 @@ fi
 echo "[discipline pre-push] step 4 (tsc --noEmit): OK"
 
 fi
-# end of the docs-only guard opened before Step 3 above
+# end of the heavy guard reopened after Step 3e above (GATE-PUSH-1)
 
 echo "[discipline pre-push] all checks pass; push proceeding."
 exit 0

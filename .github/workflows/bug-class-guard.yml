@@ -12,6 +12,16 @@ name: Bug-class guard
 # When the lexicon is hardened (false-positive classes eliminated), promote the soft scan to a
 # diff-gate (fail only on NEW candidates vs the merge base).
 
+# MASTER PUSH RUNS AGAIN (2026-10-11, CI-MIN-1 addendum, ADR-047). CI-MIN-0 removed the push trigger because strict
+# branch protection made the pull_request run the exact merge result. The operator ruled on 2026-10-11 that master
+# protection no longer requires an up-to-date branch, so a pull_request run no longer validates what lands and a
+# push to master runs this workflow again. A master push run is never cancelled (the concurrency group below keys a
+# push on its ref and cancels only pull_request runs). A dispatch trigger is deliberately not added.
+#
+# SCOPED JOBS (CI-MIN-1, ADR-047 decision 5). On a pull_request the `inputs` job classifies the diff
+# (fsi-app/.discipline/governance/job-inputs.mjs, the one classifier) and a job whose inputs are untouched is
+# skipped at job level; a skipped required context satisfies branch protection, a path-filtered workflow does not.
+# On a push every job runs.
 on:
   push:
     branches: [master]
@@ -27,8 +37,42 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  inputs:
+    name: Inputs (which scoped jobs this change touches)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      discrimination_guard: ${{ steps.classify.outputs.discrimination_guard }}
+      bug_class_scan: ${{ steps.classify.outputs.bug_class_scan }}
+    steps:
+      - name: Checkout (the merge commit and its base parent)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Classify the touched scoped jobs
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            node fsi-app/.discipline/governance/job-inputs.mjs --pr-merge --github-output
+          else
+            node fsi-app/.discipline/governance/job-inputs.mjs --all --github-output
+          fi
+
   discrimination-guard:
     name: HARD — detector discrimination + SSOT units
+    needs: inputs
+    if: github.event_name != 'pull_request' || needs.inputs.outputs.discrimination_guard == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -58,6 +102,8 @@ jobs:
 
   bug-class-scan:
     name: SOFT — bug-class repo scan (review signal, never fails the build)
+    needs: inputs
+    if: github.event_name != 'pull_request' || needs.inputs.outputs.bug_class_scan == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:

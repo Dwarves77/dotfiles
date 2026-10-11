@@ -7,7 +7,8 @@
 //
 // RULE. Every row component in ROW_COMPONENTS (the customer-facing ledger/card rows and the section
 // headers that carry a title beside an aside) MUST be (a) mounted by a UX smoke spec registered in
-// .discipline/rendering/smoke/ux-smoke-specs.mjs, which measures it at 375 × 812 and 1280 × 800 with
+// .discipline/rendering/smoke/ux-smoke-specs.mjs, which measures it at the four UX_VIEWPORTS widths (375, 768,
+// 1024 and 1280 px; smoke/ux-harness.mjs) with
 // ux-assert.mjs (law-2 target floor, squeezed-title wrap, overflow), and (b) carry at least one
 // `data-guard-title` attribute, so the squeezed-title detector has an element to measure (a spec cannot
 // pass by never marking a title). F35 is the COVERAGE half: it proves the measurement is wired to the
@@ -60,6 +61,9 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/coverage/CoveragePageView.tsx': 'spec 00 section 4 generated Coverage page, one row per place (lane COV-1)',
   'src/components/market/OemRoadmapPanelView.tsx': 'spec09 §1.1 OEM roadmap row',
   'src/components/market/ReroutingPanelView.tsx': 'spec09 §1.7 rerouting-multiplier row',
+  // lane GATE-FIX-2 (2026-10-10, coordinator grant; l13 open item): the fully-loaded labour chain renders one row per
+  // chain term inside the matrix panel; labour-chain-smoke.mjs mounts it, and its title is the shared SectionHeading.
+  'src/components/operations/LabourChain.tsx': 'spec 04 section 5 and section 6 component 5 fully-loaded labour chain, one row per term (lane L13)',
   'src/components/operations/AuxiliaryEnergyPanelView.tsx': 'spec09 §1.5 auxiliary-load row',
   'src/components/operations/GridQueuePanelView.tsx': 'spec09 §1.6 grid-queue gate row',
   // Lane L5 (2026-10-02, coordinator-directed registration, extended scope). AssessmentHistoryLedger
@@ -206,7 +210,7 @@ export const fitnessFunction = {
   name: 'row-ux-coverage',
   description:
     'Every customer-facing row/ledger component in ROW_COMPONENTS is mounted by a registered UX smoke spec ' +
-    '(measured at 375 × 812 and 1280 × 800: law-2 target floor, squeezed-title wrap, overflow) and carries a ' +
+    '(measured at four widths, 375, 768, 1024 and 1280 px: law-2 target floor, squeezed-title wrap, overflow) and carries a ' +
     'data-guard-title attribute. 2026-09-03: every ledger page wrapped titles one word per line on a phone and ' +
     'no gate measured a real row at a phone width.',
   source: 'docs/design/ux-laws.md (laws 2, 4, 12); invariant RD-60; operator screenshots docs/plans/mobile-evidence/',

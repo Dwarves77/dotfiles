@@ -110,7 +110,7 @@ This is the only named binding rule that survived the 2026-05-21 slim refactor (
 
 **Binding rule.** Any commit on master modifying `docs/inventories/*.md` files MUST satisfy the consistency runner (2 C-checks). The runner verifies that inventories match codebase reality: every claimed entity exists, every existing entity is claimed, no orphans, no drift.
 
-**Override.** `Consistency-Override: C-N (rationale: <non-empty text>; remediation-deadline: YYYY-MM-DD)` trailer per failing check. The remediation-deadline must be a future date. Override surfaces in audit; recurring overrides on the same check indicate deeper issue.
+**Override.** `Consistency-Override: C-N (rationale: <text>; remediation-deadline: YYYY-MM-DD)` trailer per failing check. The rationale must be a sentence (3 words, 20 characters) naming the check id (C3) or a word of the check's invariant (migrations, worktrees, program, anchors); the remediation-deadline must be today or later and at most 30 days out. `because` or a 2030 date is refused (`override-check.mjs`). Override surfaces in audit; recurring overrides on the same check indicate deeper issue.
 
 **Implementation.** Rule code at `fsi-app/.discipline/rules/014-inventory-consistency.mjs`. The rule invokes the consistency runner (`fsi-app/.discipline/consistency/runner.mjs`) and asserts exit 0 OR documented overrides for each failing check.
 

@@ -45,11 +45,13 @@ export const CANDIDATE_CLASSES = Object.freeze({
 export const VISIT_PER_CLASS = 2;
 /** Paths echoed in the diagnostic. */
 export const SAMPLE_SIZE = 3;
+/** Longest title fragment put in a list URL's `q` (lane SMOKE-4). A prefix of a title is still a substring of it. */
+export const LIST_QUERY_MAX_CHARS = 60;
 
 const PAGE_SIZE = 1000;
 const MAX_PAGES = 20;
 const IN_CHUNK = 100;
-const ITEM_COLUMNS = "id,legacy_id,item_type,domain";
+const ITEM_COLUMNS = "id,legacy_id,item_type,domain,title";
 
 /** A PostgREST GET reader. `fetchFn` is injectable so the fixture proof never touches a network. */
 export function restClient({ url, key, fetchFn = globalThis.fetch }) {
@@ -97,12 +99,31 @@ export function pathOfItemRow(r) {
   return itemDetailHref({ id: r.legacy_id || r.id, type: r.item_type, domain: r.domain });
 }
 
-/** { count, visit, sample } from item rows. PURE. Rows are de-duplicated by id and ordered by id for a stable pick. */
+/**
+ * The LIST page that must show an item's row (lane SMOKE-4), or null when the item has no title to search for. PURE.
+ * The list surface is the one the item's own detail path names (the surface that owns it); the list filters its rows by
+ * the free-text query `?q=` (src/components/list-surface/list-surface-helpers.ts filterRows: a case-insensitive substring of the row's title among
+ * other fields), so the item's title, cut to LIST_QUERY_MAX_CHARS, selects a list that contains the item's row whatever
+ * its position in the corpus. The unfiltered list shows a fixed first page that a candidate need not be on.
+ */
+export function listPathOfItemRow(r) {
+  const title = Array.from(String(r?.title ?? "").trim()).slice(0, LIST_QUERY_MAX_CHARS).join("").trim();
+  if (!title) return null;
+  const surface = pathOfItemRow(r).split("/")[1];
+  return surface ? `/${surface}?q=${encodeURIComponent(title)}` : null;
+}
+
+/**
+ * { count, visit, sample, listVisit } from item rows. PURE. Rows are de-duplicated by id and ordered by id for a stable
+ * pick. `visit` are detail paths; `listVisit` are list paths (distinct, at most VISIT_PER_CLASS) each holding a candidate row.
+ */
 export function summariseRows(rows) {
   const byId = new Map();
   for (const r of rows ?? []) if (r && typeof r.id === "string") byId.set(r.id, r);
-  const paths = [...byId.values()].sort((a, b) => (a.id < b.id ? -1 : 1)).map(pathOfItemRow);
-  return { count: paths.length, visit: paths.slice(0, VISIT_PER_CLASS), sample: paths.slice(0, SAMPLE_SIZE) };
+  const sorted = [...byId.values()].sort((a, b) => (a.id < b.id ? -1 : 1));
+  const paths = sorted.map(pathOfItemRow);
+  const listVisit = [...new Set(sorted.map(listPathOfItemRow).filter(Boolean))].slice(0, VISIT_PER_CLASS);
+  return { count: paths.length, visit: paths.slice(0, VISIT_PER_CLASS), sample: paths.slice(0, SAMPLE_SIZE), listVisit };
 }
 
 /**
@@ -173,7 +194,7 @@ export async function resolveBiasCandidates(rest) {
   return summariseRows(rows);
 }
 
-/** All classes. Throws on any failed read (the CLI turns that into exit 1). @returns {Promise<{resolved:true, classes:Record<string,{count:number,visit:string[],sample:string[]}>}>} */
+/** All classes. Throws on any failed read (the CLI turns that into exit 1). @returns {Promise<{resolved:true, classes:Record<string,{count:number,visit:string[],sample:string[],listVisit:string[]}>}>} */
 export async function resolveCandidates(rest) {
   const [inference, record, bias] = await Promise.all([resolveInferenceCandidates(rest), resolveRecordCandidates(rest), resolveBiasCandidates(rest)]);
   return {
@@ -189,7 +210,7 @@ export const unresolvedCandidates = (reason) => ({ resolved: false, reason, clas
 export function candidateLines(c) {
   if (!c || c.resolved !== true) return [`candidates UNRESOLVED: ${c?.reason ?? "no candidate file"}`];
   return Object.entries(c.classes).map(
-    ([k, v]) => `candidates ${k}: ${v.count} item(s)${v.sample.length ? `; e.g. ${v.sample.join(" ")}` : ""}${v.diag ? ` [${Object.entries(v.diag).map(([dk, dv]) => `${dk}=${dv}`).join(" ")}]` : ""}`,
+    ([k, v]) => `candidates ${k}: ${v.count} item(s)${v.sample.length ? `; e.g. ${v.sample.join(" ")}` : ""}${v.listVisit?.length ? `; list ${v.listVisit.join(" ")}` : ""}${v.diag ? ` [${Object.entries(v.diag).map(([dk, dv]) => `${dk}=${dv}`).join(" ")}]` : ""}`,
   );
 }
 

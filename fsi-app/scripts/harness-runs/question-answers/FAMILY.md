@@ -5,8 +5,8 @@ Registered by lane L4-B, 2026-10-05 (ADR-044). Two runtimes, one family:
 could still answer and writes the bundle a session lane authors from) and
 `scripts/turns/apply-question-answers.mjs` (validates a committed `question-answers-NNN.json` batch, writes the
 first inference for an answered question and closes its flag, or records on the flag that holdings cannot answer
-it). `.github/workflows/question-answers.yml` dispatches both (`workflow_dispatch` only, no schedule, build
-mode, not chained). The batch contract is `scripts/turns/question-answers/README.md`.
+it). `.github/workflows/question-answers.yml` dispatches both (no schedule; chained since lane CHAIN-4,
+2026-10-08 off "Population turn" and "Propagation drain", export only, forced dry in build mode). The batch contract is `scripts/turns/question-answers/README.md`.
 
 Each run writes one artifact (`scripts/turns/question-answers/artifact.mjs`); `config.action` is `export` or
 `apply`. The workflow's final step lands it into `harness_runs` (`scripts/turns/deliver-artifact-branch.sh`).

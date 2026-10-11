@@ -1,0 +1,219 @@
+name: Route and view attacks
+
+# ATTACKED lens for API routes, views and functions, run on a disposable local Supabase stack (lane TESTS-2, 2026-10-10;
+# CLAUDE.md rule 15, a guard is proven by attack, not by presence; docs/audits/aud-at2-route-guard-register-2026-10-08.md
+# section 5, docs/audits/aud-at1-rls-grants-attacked-2026-10-08.md section 4 item 6).
+#
+# WHAT THIS PROVES. On a stack where the applied migration set has been replayed and every pending migration applied (the
+# same two steps migration-proof.yml runs):
+#   1. scripts/verify/attacks/rls-view-function-attacks.mjs attacks the public views and the system-only SECURITY DEFINER
+#      functions as anon and as each persona of the RLS matrix (views run as their invoker, the guarded views read nothing,
+#      no view takes a write, the flag and ledger writers are not executable).
+#   2. scripts/proof/attacks/run-attacks.mjs runs the PROOF-4 attacks for migrations 371 (accept_invitation keeps the role,
+#      definer classes A, C and D) and the count RPCs of migration 361, on every pull request that touches the schema, so the
+#      accept_invitation and count-RPC legs run on a fixture set with real memberships and not only in a dispatched
+#      chain proof.
+#   3. The app is built and started with `next start` against the stack, four signed-in personas are minted through the
+#      stack's own auth service, and scripts/verify/attacks/routes-attacked.mjs sends one request per route method per persona
+#      (the 153 methods of the AT2 register) and holds the COVERAGE, TOKENS, ANON, ADMIN, WORKER and WRITES invariants.
+# The reports are artifacts (route paths, personas, status codes, outcome classes; never a body, a token or a database value).
+#
+# NEVER TOUCHES PRODUCTION. No secret is referenced anywhere in this file, `permissions` is contents: read, and the shared
+# composite action's preflight fails the job on a production host or any forbidden credential name. The attack scripts refuse
+# to run unless the environment is the local stack's and the app's base url is a loopback host.
+#
+# TRIGGER. Every pull_request to master, no path filter (a path-filtered workflow that does not fire never reports a
+# status). The job decides INSIDE itself whether the pull request touched a route, the route guard, the proxy, the
+# migrations or the attack files; a pull request that touched none passes in about a minute with every stack step skipped.
+# It is its own workflow and its own check: it adds no step to an existing workflow.
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  route-and-view-attacks:
+    name: Route and view attacks (views, functions, 153 route methods by five personas)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Checkout repository (the merge commit and its base parent)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Did this pull request touch a route, a guard, a migration or the attacks
+        id: scope
+        run: |
+          if ! git rev-parse --verify --quiet 'HEAD^2' >/dev/null; then
+            echo "No merge parent found: treating the pull request as in scope (fail toward running)."
+            echo "touched=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only HEAD^1 HEAD -- fsi-app/src/app fsi-app/src/lib/api fsi-app/src/lib/auth fsi-app/src/proxy.ts fsi-app/supabase/migrations fsi-app/scripts/verify/attacks fsi-app/scripts/verify/fixtures fsi-app/scripts/proof/attacks fsi-app/package-lock.json docs/audits/aud-at2-route-guard-register-2026-10-08.md .github/workflows/route-and-view-attacks.yml)"
+          if [ -n "$CHANGED" ]; then
+            echo "Files that put the attacks in scope (names only):"
+            echo "$CHANGED"
+            echo "touched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "touched=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Route and view attacks"
+              echo "This pull request touches no route, guard, proxy, migration or attack file, so the stack steps were skipped."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Setup Node
+        if: steps.scope.outputs.touched == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Note the attack scratch paths
+        if: steps.scope.outputs.touched == 'true'
+        run: |
+          {
+            echo "RVA_OUT_DIR=$RUNNER_TEMP/route-and-view-attacks-out"
+            echo "RVA_ENV=$RUNNER_TEMP/route-and-view-attacks.env"
+            echo "RVA_STACK=$RUNNER_TEMP/route-and-view-attacks-stack"
+            echo "RVA_APP_LOG=$RUNNER_TEMP/route-and-view-attacks-app.log"
+          } >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/route-and-view-attacks-out"
+
+      - name: Install fsi-app deps
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Start the local stack and preflight it (shared composite action)
+        if: steps.scope.outputs.touched == 'true'
+        id: stack
+        uses: ./.github/actions/local-stack
+        with:
+          stack_dir: ${{ env.RVA_STACK }}
+          env_file: ${{ env.RVA_ENV }}
+
+      - name: Attack the stack steps themselves (psql, the CLI, the stack, the env writer and the preflight refuse what they must)
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -euo pipefail
+          # AUD-AT-5 OWED-8 (CS5 to CS8): the steps that need Docker and the CLI are exercised for real, then attacked.
+          psql --version
+          supabase --version
+          test "$(stat -c %a "$RVA_ENV")" = "600"
+          . "$RVA_ENV"
+          node scripts/proof/preflight.mjs
+          test "$(psql "$SUPABASE_DB_URL" -tAc 'select 1')" = "1"
+          # a status output that names a remote host never becomes an env file
+          if printf 'API_URL="https://abc.supabase.co"\nDB_URL="postgresql://postgres:x@db.abc.supabase.co:5432/postgres"\nSERVICE_ROLE_KEY="k"\n' | node scripts/proof/write-local-env.mjs --out "$RUNNER_TEMP/never-written.env"; then
+            echo "ATTACK NOT REFUSED: the env writer accepted a remote host"; exit 1
+          fi
+          test ! -e "$RUNNER_TEMP/never-written.env"
+          # the preflight refuses a forbidden credential name (any VERCEL_ variable) and a production host, on top of the otherwise clean local env
+          if VERCEL_ATTACK=1 node scripts/proof/preflight.mjs; then echo "ATTACK NOT REFUSED: a forbidden credential name"; exit 1; fi
+          if DATABASE_URL='postgresql://postgres:x@db.abc.supabase.co:5432/postgres' node scripts/proof/preflight.mjs; then echo "ATTACK NOT REFUSED: a production database host"; exit 1; fi
+          echo "The stack steps refused every attack."
+
+      - name: Replay the applied migration files onto the stack
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$RVA_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/replay-migrations.mjs --report "$RVA_OUT_DIR/replay-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply every pending migration on the stack
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$RVA_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/apply-pending-migrations.mjs --apply --report "$RVA_OUT_DIR/apply-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Attack the views and the system-only functions (probes A, B and C of AUD-AT-1)
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$RVA_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/verify/attacks/rls-view-function-attacks.mjs --out-dir "$RVA_OUT_DIR" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Run the definer and count RPC attacks on a fixture set with real memberships (migrations 361 and 371)
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$RVA_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/attacks/run-attacks.mjs --out-dir "$RVA_OUT_DIR" --only sec4-definer-class-d-anon-refused,sec4-definer-class-a-authenticated-refused,sec4-definer-class-c-anon-control,sec4-accept-invitation-keeps-role,s8-c-count-rpcs-membership-gate | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Build the app against the stack (the public Supabase variables are inlined at build time)
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$RVA_ENV"
+          node scripts/proof/preflight.mjs
+          npx next build 2>&1 | tail -n 40
+
+      - name: Start the app with next start on a loopback port and wait for it to answer
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          . "$RVA_ENV"
+          nohup npx next start -H 127.0.0.1 -p 3100 > "$RVA_APP_LOG" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/route-and-view-attacks-app.pid"
+          if ! curl --silent --show-error --output /dev/null --retry 60 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:3100/api/version; then
+            echo "The app did not answer on 127.0.0.1:3100. Last lines of its log:"
+            tail -n 40 "$RVA_APP_LOG"
+            exit 1
+          fi
+          echo "The app answers on 127.0.0.1:3100."
+
+      - name: Attack every route method as anon, the viewer, the other-org member, the org member and the platform admin
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$RVA_ENV"
+          node scripts/proof/preflight.mjs
+          # The local stack runs with [auth.email] enable_signup = false, so the auth service refuses every email password
+          # sign-in (422); the persona tokens are minted with the stack's own JWT secret, read from its status output here
+          # (the stack is loopback-only and disposable) and masked in the log. It is passed to the one script that needs it.
+          jwt_secret="$(cd "$RVA_STACK" && supabase status -o env | sed -n 's/^JWT_SECRET=//p' | tr -d '"')"
+          test -n "$jwt_secret"
+          echo "::add-mask::$jwt_secret"
+          export ROUTE_PERSONA_JWT_SECRET="$jwt_secret"
+          node scripts/verify/attacks/routes-attacked.mjs --base-url http://127.0.0.1:3100 --out-dir "$RVA_OUT_DIR" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the attack reports (route paths, personas, status codes, outcome classes)
+        if: always() && steps.scope.outputs.touched == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: route-and-view-attacks-report
+          path: ${{ runner.temp }}/route-and-view-attacks-out
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop the app, stop the local stack and delete the env file
+        if: always() && steps.scope.outputs.touched == 'true'
+        run: |
+          if [ -f "$RUNNER_TEMP/route-and-view-attacks-app.pid" ]; then kill "$(cat "$RUNNER_TEMP/route-and-view-attacks-app.pid")" 2>/dev/null || true; fi
+          if [ -d "$RVA_STACK" ]; then (cd "$RVA_STACK" && supabase stop --no-backup) || true; fi
+          rm -f "$RVA_ENV"

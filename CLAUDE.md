@@ -22,7 +22,6 @@ This repo is the source of truth for the Caro's Ledge product (Freight Sustainab
 | `docs/census/` | Corpus-wide enumerations backed by a DB table (e.g. `census_worklist`) |
 | `docs/audits/` | Dated audits, investigations, verifications |
 | `docs/ops/` | Followups, session-log.md, operational logs |
-| `docs/sprint-1/`, `docs/sprint-2/` | Sprint-scoped working sets |
 | `docs/archive/` | Superseded working notes; `archive/logs/` machine evidence. Not indexed, not loaded |
 | `docs/design/` + `design_handoff_2026-05/` | Design system, redesign references |
 | `.claude/` | Commands, settings, agent worktrees (transient) |
@@ -36,7 +35,7 @@ This repo is the source of truth for the Caro's Ledge product (Freight Sustainab
 3. `docs/PROGRAM-BOARD.md`  -  **the resume state**: the thread table with state, evidence, and deferrals.
 4. `docs/ops/` followups + tail of `docs/ops/session-log.md`.
 5. Task-relevant ADRs and runbooks.
-6. **Before writing any `.tsx` or `.css` under `fsi-app/src`:** `docs/design/ux-laws.md` and `docs/design/design-principles.md` (DP-1, DP-2). Enforced, not advisory: F35 + the rendering guard's UX smoke slot measure every row component at 375 px (RD-60), and the discipline CI fails a PR touching a surface without a "UX compliance" block in its session-log addendum. Executor lanes read `docs/dispatches/lane-common-contract.md`.
+6. **Before writing any `.tsx` or `.css` under `fsi-app/src`:** `docs/design/ux-laws.md` and `docs/design/design-principles.md` (DP-1, DP-2). Enforced, not advisory: F35 + the rendering guard's UX smoke slot measure every row component at 375 px (RD-60). Executor lanes read `docs/dispatches/lane-common-contract.md`.
 7. Code.
 
 `fsi-app/STATUS.md` is **NOT** in this list (operator ruling 2026-08-14). It describes April

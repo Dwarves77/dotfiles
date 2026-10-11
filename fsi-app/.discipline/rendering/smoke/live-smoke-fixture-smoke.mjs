@@ -156,10 +156,14 @@ const EXPECTED_DEFECTS = [
 ];
 
 /** Lane SMOKE-3: what the live data would say about the conditional classes. `count` items per class, visited at the fixture item. */
-const fixtureCandidates = (count) => ({
+const fixtureCandidates = (count, listVisits = LIST_VISITS) => ({
   resolved: true,
-  classes: Object.fromEntries(["inference", "record", "bias"].map((c) => [c, { count, visit: count ? ["/regulations/item-1"] : [], sample: [] }])),
+  classes: Object.fromEntries(
+    ["inference", "record", "bias"].map((c) => [c, { count, visit: count ? ["/regulations/item-1"] : [], sample: [], ...(c in listVisits && count ? { listVisit: listVisits[c] } : {}) }]),
+  ),
 });
+/** Lane SMOKE-4: the filtered list URLs the chooser names for the list-conditional classes (the fixture serves a list by its path, so `?q=` selects the same row). */
+const LIST_VISITS = { record: ["/regulations?q=Item%20one"], bias: ["/market?q=Item%20one"] };
 /** The conditional content invariants: they fire only when the live data names a candidate, else they HOLD. */
 const CONDITIONAL_CONTENT = [INVARIANTS.GRADE_CHIP, INVARIANTS.BIAS_CHIPS, INVARIANTS.INFERENCES_SECTION];
 
@@ -183,8 +187,8 @@ export async function runSmoke(browser) {
   if (cleanFails.length > 0) {
     failures.push(`live-smoke-fixture:clean: expected zero failures, got ${cleanFails.length}: ${cleanFails.slice(0, 5).map((f) => `${f.invariant}@${f.viewport} ${f.url} ${f.text}`).join(" | ")}`);
   }
-  if (clean.report.pagesVisited.length !== 18) {
-    failures.push(`live-smoke-fixture:clean: expected 18 page visits (home, 4 lists, 4 items, at 2 viewports), got ${clean.report.pagesVisited.length}`);
+  if (clean.report.pagesVisited.length !== 22) {
+    failures.push(`live-smoke-fixture:clean: expected 22 page visits (home, 4 lists, 4 items, 2 candidate lists, at 2 viewports), got ${clean.report.pagesVisited.length}`);
   }
 
   const bad = await runFixtureLeg(browser, true, FIXTURE_PASSWORD);
@@ -209,6 +213,28 @@ export async function runSmoke(browser) {
   for (const inv of [INVARIANTS.CONNECTED_SECTION, INVARIANTS.TIER_SQUARE, INVARIANTS.ACROSS_PAGES_RAIL]) {
     if (!heldFired.has(inv)) failures.push(`live-smoke-fixture:no-candidates: unconditional invariant ${inv} stopped firing`);
   }
+
+  // Lane SMOKE-4: the LIST side. The runner visits the chosen candidate lists at both viewports, and on the defective site
+  // (rows carry no grade or bias chip) the list invariants fire from THOSE pages.
+  const candidateListVisits = bad.report.pagesVisited.filter((p) => p.url.includes("?q="));
+  if (candidateListVisits.length !== 4) failures.push(`live-smoke-fixture:list-chooser: expected 4 candidate list visits (2 lists at 2 viewports), got ${candidateListVisits.length}`);
+  for (const inv of [INVARIANTS.GRADE_CHIP, INVARIANTS.BIAS_CHIPS]) {
+    if (!bad.findings.some((f) => f.invariant === inv && f.severity === "fail" && /candidate item\(s\) exist/.test(f.text) && /list page/.test(f.text))) {
+      failures.push(`live-smoke-fixture:list-chooser: ${inv} did not fail on a candidate list page of the defective site`);
+    }
+  }
+
+  // Lane SMOKE-4: candidates exist but the chooser could name no list page (listVisit empty): the list invariants HOLD
+  // with the count, neither failing nor passing, and no candidate list is visited.
+  const noList = await runFixtureLeg(browser, true, FIXTURE_PASSWORD, fixtureCandidates(1, { record: [], bias: [] }));
+  checks += 1;
+  const noListFired = new Set(noList.findings.filter((f) => f.severity === "fail").map((f) => f.invariant));
+  const noListHolds = (noList.holds ?? []).filter((h) => h.kind === "list");
+  for (const inv of [INVARIANTS.GRADE_CHIP, INVARIANTS.BIAS_CHIPS]) {
+    if (noListFired.has(inv) && noList.findings.some((f) => f.invariant === inv && /list page/.test(f.text))) failures.push(`live-smoke-fixture:no-list: ${inv} failed on a list with no list page chosen (it must HOLD)`);
+    if (!noListHolds.some((h) => h.invariant === inv && h.candidates === 1)) failures.push(`live-smoke-fixture:no-list: ${inv} is not a HOLD carrying candidates=1 when no list page could be chosen`);
+  }
+  if (noList.report.pagesVisited.some((p) => p.url.includes("?q="))) failures.push("live-smoke-fixture:no-list: a candidate list was visited though none was chosen");
 
   const wrong = await runFixtureLeg(browser, false, "not-the-password");
   checks += 1;

@@ -25,7 +25,7 @@ import { writeFileSync, readFileSync } from "node:fs";
 import { isMainModule } from "../../../scripts/lib/is-main.mjs";
 import { preflight, runPreflightCli } from "./live-preflight.mjs";
 import { collectSnapshot, collectLinks, collectContent } from "./live-snapshot.mjs";
-import { requirementsForKind, judgeContentRun } from "./live-content.mjs";
+import { requirementsForKind, judgeContentRun, LIST_CANDIDATE_CLASSES } from "./live-content.mjs";
 import { candidateLines } from "./live-candidates.mjs";
 import { collectContainers, isNarrowViewport } from "../overflow-rule.mjs";
 import { isHydrationError, headersForRefetch, structuralDiff } from "./live-hydration.mjs";
@@ -99,7 +99,7 @@ async function captureHydration(ctx, page, navResp, url, viewport, errors) {
 }
 
 /** Visit one page in a fresh page of `ctx` and return findings plus the page record. */
-async function visit(ctx, baseUrl, origin, path, kind, viewport, contentChecks = false) {
+async function visit(ctx, baseUrl, origin, path, kind, viewport, contentChecks = false, candidateList = false) {
   const page = await ctx.newPage();
   const responses = [];
   const consoleMsgs = [];
@@ -128,6 +128,7 @@ async function visit(ctx, baseUrl, origin, path, kind, viewport, contentChecks =
       ...snap,
       containerScan,
       content,
+      candidateList,
     };
     const ctxInfo = { url, viewport: viewport.width };
     const findings = [...checkSnapshot(base), ...checkResponses(responses, origin, ctxInfo), ...checkConsole(consoleMsgs, ctxInfo)];
@@ -248,17 +249,25 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
   const detailPaths = [...itemPaths];
   for (const p of candidatePaths) if (!detailPaths.includes(p)) detailPaths.push(p);
 
+  // Lane SMOKE-4: the same for the LIST side. A list requirement of a conditional class (record grade chip, bias chips on
+  // rows) is judged on list pages filtered to a candidate's row (`listVisit`), not on whichever rows a list shows first.
+  const candidateListPaths = [];
+  if (contentChecks && candidates?.resolved === true) {
+    for (const name of LIST_CANDIDATE_CLASSES) for (const p of candidates.classes?.[name]?.listVisit ?? []) if (!candidateListPaths.includes(p)) candidateListPaths.push(p);
+  }
+
   const plan = [
     { path: "/", kind: "home" },
     ...LIST_SURFACES.map((s) => ({ path: `/${s}`, kind: "list" })),
     ...detailPaths.map((p) => ({ path: p, kind: "detail" })),
+    ...candidateListPaths.map((p) => ({ path: p, kind: "list", candidateList: true })),
   ];
 
   for (const viewport of VIEWPORTS) {
     const ctx = await browser.newContext({ storageState, viewport: { width: viewport.width, height: viewport.height } });
     try {
       for (const step of plan) {
-        const r = await visit(ctx, baseUrl, origin, step.path, step.kind, viewport, contentChecks);
+        const r = await visit(ctx, baseUrl, origin, step.path, step.kind, viewport, contentChecks, step.candidateList === true);
         findings.push(...r.findings);
         pages.push(r.record);
         if (r.snap) snapshots.push(r.snap);
