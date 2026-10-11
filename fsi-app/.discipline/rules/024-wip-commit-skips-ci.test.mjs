@@ -7,7 +7,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { rule, hasSkipToken } from './024-wip-commit-skips-ci.mjs';
+import { rule, hasSkipToken, RULE_024_LANDED } from './024-wip-commit-skips-ci.mjs';
 import { rules, SCOPE, isSquashJudged } from '../manifest.mjs';
 import { buildContextFromFixture } from '../lib/context.mjs';
 
@@ -124,5 +124,80 @@ test('024 real git, CI mode over a pushed commit: a WIP commit with no token fai
     git(dir, ['commit', '-q', '-m', 'WIP lane: step [skip ci]']);
     const good = engine(dir, ['--mode=ci', '--commit=HEAD']);
     assert.equal(good.code, 0, good.out);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// Cutoff (lane CI-MIN-0b): the rule judges only commits made at or after RULE_024_LANDED.
+function dated(message, commitDate) {
+  const ctx = ctxFor(message);
+  ctx.commitDate = commitDate;
+  return rule.trigger(ctx) ? rule.check(ctx) : { status: 'SKIP' };
+}
+
+test('024 cutoff: the landing instant is the merge time of PR 1102', () => {
+  assert.equal(RULE_024_LANDED, '2026-10-11T02:52:00Z');
+});
+
+test('024 cutoff, fixture: a WIP commit without the token dated before the cutoff is SKIPPED; after it, FAILS', () => {
+  const before = dated('WIP cifix2: step', '2026-10-10T12:00:00Z');
+  assert.equal(before.status, 'SKIP');
+  assert.match(before.reason, /predates the rule/);
+  assert.equal(dated('WIP cifix2: step', '2026-10-12T12:00:00Z').status, 'FAIL');
+  assert.equal(dated('WIP cifix2: step', RULE_024_LANDED).status, 'FAIL');
+});
+
+test('024 cutoff, fixture: a normal commit passes on either side; a token on a non-WIP commit before the cutoff is skipped, after it fails', () => {
+  assert.equal(dated('lane: step', '2026-10-10T12:00:00Z').status, 'SKIP');
+  assert.equal(dated('lane: step', '2026-10-12T12:00:00Z').status, 'PASS');
+  assert.equal(dated('lane: step [skip ci]', '2026-10-10T12:00:00Z').status, 'SKIP');
+  assert.equal(dated('lane: step [skip ci]', '2026-10-12T12:00:00Z').status, 'FAIL');
+});
+
+test('024 cutoff, fixture: an unparseable date is judged, never skipped', () => {
+  assert.equal(dated('WIP cifix2: step', 'not a date').status, 'FAIL');
+});
+
+function commitAt(dir, file, message, isoDate) {
+  writeFileSync(join(dir, file), `${message}\n`);
+  git(dir, ['add', '-A']);
+  const r = spawnSync('git', ['commit', '-q', '-m', message], {
+    cwd: dir, encoding: 'utf-8',
+    env: { ...process.env, GIT_AUTHOR_DATE: isoDate, GIT_COMMITTER_DATE: isoDate },
+  });
+  assert.equal(r.status, 0, r.stderr);
+}
+
+test('024 cutoff, real git CI mode: the same WIP commit is skipped dated 2026-10-10 and fails dated 2026-10-12; a normal commit passes either side', () => {
+  const dir = newRepo();
+  try {
+    commitAt(dir, 'a.md', 'WIP lane: old', '2026-10-10T12:00:00Z');
+    const old = engine(dir, ['--mode=ci', '--commit=HEAD', '--verbose']);
+    assert.equal(old.code, 0, old.out);
+    assert.match(old.out, /024 skip: commit predates the rule/);
+    assert.doesNotMatch(old.out, /FAIL\s+\[024\]/);
+    commitAt(dir, 'b.md', 'WIP lane: new', '2026-10-12T12:00:00Z');
+    const fresh = engine(dir, ['--mode=ci', '--commit=HEAD']);
+    assert.equal(fresh.code, 1, fresh.out);
+    assert.match(fresh.out, /FAIL\s+\[024\]/);
+    commitAt(dir, 'c.md', 'lane: normal after', '2026-10-12T13:00:00Z');
+    assert.equal(engine(dir, ['--mode=ci', '--commit=HEAD']).code, 0);
+    commitAt(dir, 'd.md', 'lane: normal before', '2026-10-09T13:00:00Z');
+    assert.equal(engine(dir, ['--mode=ci', '--commit=HEAD']).code, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('024 cutoff, real git commit-msg mode: WIP-without-token fails regardless of date (a proposed commit is always judged)', () => {
+  const dir = newRepo();
+  try {
+    writeFileSync(join(dir, 'note.md'), 'x\n');
+    git(dir, ['add', '-A']);
+    const file = join(dir, '.git', 'COMMIT_EDITMSG');
+    writeFileSync(file, 'WIP lane: step');
+    const r = spawnSync('node', [RUNNER, '--mode=commit-msg', `--message-file=${file}`], {
+      cwd: dir, encoding: 'utf-8',
+      env: { ...process.env, DISCIPLINE_FIRING_LOG: 'off', GIT_COMMITTER_DATE: '2026-10-10T12:00:00Z', GIT_AUTHOR_DATE: '2026-10-10T12:00:00Z' },
+    });
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stdout + r.stderr, /FAIL\s+\[024\]/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
