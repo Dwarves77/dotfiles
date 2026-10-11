@@ -22,9 +22,13 @@ Branch `lane/daudit4-spec-values-follow-system`, cut from origin/master 76bec7b2
 
 ## NOT done
 
-- Two spec row NAMES in `operations-matrix.json` still say the old counts: the "region column sub-line ... 'N/6 sourced'" row (its selector counts 5 region headers and still matches) and the "ACCEPTANCE C" row ("Twenty-two of the thirty cells ... eight are scores"; its value 8 is unchanged and correct). Text only, outside the three-row write set. [WORK: owed]
+- Two spec row NAMES in `operations-matrix.json` still say the old counts: the "region column sub-line ... 'N/6 sourced'" row (its selector counts 5 region headers and still matches) and the "ACCEPTANCE C" row ("Twenty-two of the thirty cells ... eight are scores"; its value 8 is unchanged and correct). Corrected in this PR on the coordinator's grant (names now read N/7 and twenty-seven of thirty-five). [CLOSED: PR 1092]
 - Local red-then-green of the audit rows: not possible without the CI image; the job's before and after counts stand in. [NOT-WORK: COMMON rule 9, CI is the gate]
 
 ## Open items
 
-- The seventh dimension row (D7 grid_intensity) is not on artboard 08, which draws six: a DESIGN CHANGE OWED to Claude Design (rule 20, S8-E5). [NOT-WORK: design change recorded for Claude Design, no build action]
+- The seventh dimension row (D7 grid_intensity) is not on artboard 08, which draws six. [NOT-WORK: operator item, DESIGN CHANGES OWED list]
+
+## DESIGN CHANGES OWED
+
+- Artboard 08-operations-list-redesign-2026-09-08: add the seventh dimension row, D7 grid_intensity (S8-E5, PR 1029), to the region x dimension matrix (35 cells at five regions, 42 at six; hint "8 of 42 cells sourced, 19%"). Ruling: rule 20, system drives design.

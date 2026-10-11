@@ -120,7 +120,7 @@
       }
     },
     {
-      "name": "region column sub-line is the artboard's one-line 'N/6 sourced' form, one per region column [system sheet: 10px, the smallest step on the type scale]",
+      "name": "region column sub-line is the artboard's one-line 'N/7 sourced' form (seven dimensions since S8-E5, DAUDIT-4), one per region column [system sheet: 10px, the smallest step on the type scale]",
       "selector": "[data-audit=\"ops-matrix\"] table > thead th",
       "textMatch": "sourced",
       "expect": {
@@ -215,7 +215,7 @@
       }
     },
     {
-      "name": "ACCEPTANCE C, THE MECHANISM: every cell that is not the em-dash Absence carries a bare Anton score and nothing else. Twenty-two of the thirty cells are the dash, eight are scores; the rendered-text enumeration of all thirty is in ops-matrix-acceptance-smoke.mjs",
+      "name": "ACCEPTANCE C, THE MECHANISM: every cell that is not the em-dash Absence carries a bare Anton score and nothing else. Twenty-seven of the thirty-five cells are the dash, eight are scores (DAUDIT-4: five regions x seven dimensions); the rendered-text enumeration of all thirty-five is in ops-matrix-acceptance-smoke.mjs",
       "selector": "[data-audit=\"ops-cell-score\"]",
       "expect": {
         "count": "8",
