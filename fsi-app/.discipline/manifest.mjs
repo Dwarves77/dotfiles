@@ -25,7 +25,7 @@
 // lib/mask-source.mjs); rule 023 is new, one check for the blind spot all five content rules shared (a file
 // git does not diff as text).
 //
-// REGISTERED (8):
+// REGISTERED (9):
 //   012  hardcoded user-home path in introduced code
 //   015  raw row write outside the guarded path (scripts/lib/db.mjs) in introduced code
 //   017  raw process.env knob read in generation logic
@@ -34,8 +34,10 @@
 //   021  dashboard cache key out of step with the DashboardData shape hash
 //   022  em dash, en dash or section-sign glyph in introduced prose
 //   023  source file not diffed as text (binary attribute, NUL byte, UTF-16)
+//   024  WIP commit carries [skip ci], and only a WIP commit does (commit message form)
 //
-// Commit messages are normal: subject + body, no required trailers.
+// Commit messages are normal: subject + body, no required trailers. The one message-form rule is 024: a
+// "WIP " subject carries [skip ci] and no other commit carries a skip token.
 //
 // FIRING LOG. runner.mjs appends one JSON line per rule firing to governance/.hook-firings.log
 // (gitignored): {ts, rule, mode, path, line, verdict, baseline}. A later evaluation is a query over that file.
@@ -64,6 +66,10 @@ import { rule as rule022 } from './rules/022-no-dash-glyphs.mjs';
 // Source file not diffed as text (2026-10-08, lane GATE-7): the one check for the blind spot every content
 // rule shared.
 import { rule as rule023 } from './rules/023-source-not-diffed-as-text.mjs';
+
+// WIP commit carries [skip ci], and only a WIP commit does (2026-10-10, lane CI-MIN-0, ADR-047): the first
+// whole-commit (message form) rule. Metered CI minutes are spent only by the final push of a pull request.
+import { rule as rule024 } from './rules/024-wip-commit-skips-ci.mjs';
 
 // SCOPE (lane RULE-RANGE-1, 2026-10-08): what a rule judges, declared as data on each registered rule so the CI
 // runner can tell a verdict that a squash-merge makes moot from one it does not.
@@ -97,4 +103,5 @@ export const rules = [
   withScope(rule021, SCOPE.TREE_STATE),
   withScope(rule022, SCOPE.INTRODUCED_LINES),
   withScope(rule023, SCOPE.TREE_STATE),
+  withScope(rule024, SCOPE.WHOLE_COMMIT),
 ];
