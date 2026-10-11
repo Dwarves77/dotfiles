@@ -37,9 +37,11 @@
 // USAGE:
 //   node scripts/obligations/derive-obligations.mjs            # dry: what would be inserted
 //   node scripts/obligations/derive-obligations.mjs --apply    # insert new register rows through the guarded path
+//   ... --candidates <file>   # also plan (dry) or write (--apply) obligation_objects rows for a grounded candidate batch
 import { classifyBindingPosition, classifyInstrumentIdentity } from "../../src/lib/obligations/classify-binding-position.mjs";
 import { dutyHoldersExcludeForwarder, currentObligationObjects } from "../../src/lib/workspace/relevance.mjs";
 import { normaliseMode, LEG_MODE_CODES, BINDING_POSITION } from "../../src/lib/contracts/vocabularies.mjs";
+import { deriveObligationObjects } from "./derive-obligation-objects.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
@@ -228,10 +230,31 @@ export function buildContextByItem(claimRows, objectRows) {
 }
 
 /**
+ * The whole derivation: the event-grain register (`obligations`, migration 290) AND the obligation objects
+ * (`obligation_objects`, migration 376; lane HALF-1, 2026-10-11). The register phase is the original body, unchanged. The
+ * object phase writes one row per accepted candidate provision (derive-obligation-objects.mjs); with no candidates it
+ * reads and writes nothing, so a chained run that carries no grounded batch is a true no-op there. Same `apply` flag for
+ * both phases, so the one build-mode gate that forces a chained firing dry covers both.
+ * @param {{ apply?: boolean, objectCandidates?: object[] }} opts
+ * @param {{ readAll: Function, readAllByIds: Function, guardedInsertMany: Function }} deps
+ */
+export async function main({ apply = false, objectCandidates = [] } = {}, deps) {
+  const register = await deriveRegister({ apply }, deps);
+  const objects = await deriveObligationObjects({ candidates: objectCandidates, apply, classify: classifyItemBindingPosition }, deps);
+  if (objects.candidates > 0) {
+    console.log(
+      `[derive-obligations] obligation objects: candidates ${objects.candidates} | to insert ${objects.to_insert} | ` +
+      `already registered ${objects.already_registered} | refused ${objects.refused.length} | inserted ${objects.inserted}`,
+    );
+  }
+  return { ...register, objects };
+}
+
+/**
  * @param {{ apply?: boolean }} opts
  * @param {{ readAll: Function, readAllByIds: Function, guardedInsertMany: Function }} deps
  */
-export async function main({ apply = false } = {}, deps) {
+async function deriveRegister({ apply = false } = {}, deps) {
   const { readAll, readAllByIds, guardedInsertMany } = deps;
   console.log(`[derive-obligations] mode = ${apply ? "APPLY" : "DRY-RUN"}, version = ${DERIVATION_VERSION}`);
 
@@ -322,7 +345,15 @@ if (isMainModule(import.meta.url)) {
     process.exit(2);
   }
   const { readAll, readAllByIds, guardedInsertMany } = await import("../lib/db.mjs");
-  main({ apply: process.argv.includes("--apply") }, { readAll, readAllByIds, guardedInsertMany }).catch((e) => {
+  // --candidates <file>: a grounded drain batch of obligation-object candidates (JSON array, or { candidates: [...] }).
+  const ci = process.argv.indexOf("--candidates");
+  let objectCandidates = [];
+  if (ci >= 0 && process.argv[ci + 1]) {
+    const { readFileSync } = await import("node:fs");
+    const parsed = JSON.parse(readFileSync(process.argv[ci + 1], "utf8"));
+    objectCandidates = Array.isArray(parsed) ? parsed : (parsed.candidates ?? []);
+  }
+  main({ apply: process.argv.includes("--apply"), objectCandidates }, { readAll, readAllByIds, guardedInsertMany }).catch((e) => {
     console.error("[derive-obligations] fatal:", e);
     process.exit(1);
   });

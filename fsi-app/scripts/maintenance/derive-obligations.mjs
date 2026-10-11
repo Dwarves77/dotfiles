@@ -5,19 +5,45 @@
 // breakdown; apply inserts through the guarded path (idempotent on forward_event_id) and reads back the
 // register count. Not ruling-gated: the register is spec-01's core build and the derivation is
 // deterministic (classify-binding-position.mjs), unmapped → NULL, never invented.
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { main as deriveMain } from "../obligations/derive-obligations.mjs";
 import { runCli } from "./lib/cli.mjs";
 
 /**
- * @param {{ mode?: "dry"|"apply" }} opts
+ * Pure: the obligation-object candidates a `--arg` names. Empty arg means none (the chained run: the step still runs
+ * the object phase and reports zero candidates). A path is a grounded drain batch: a JSON array, or { candidates: [...] }.
+ */
+export function loadObjectCandidates(arg, read = (p) => readFileSync(p, "utf8")) {
+  const path = String(arg ?? "").trim();
+  if (!path) return [];
+  const parsed = JSON.parse(read(path));
+  return Array.isArray(parsed) ? parsed : (parsed.candidates ?? []);
+}
+
+/**
+ * @param {{ mode?: "dry"|"apply", arg?: string }} opts  arg: optional path to an obligation-object candidate batch
  * @param {{ readAll: Function, readAllByIds: Function, guardedInsertMany: Function }} deps
  */
-export async function main({ mode = "dry" } = {}, deps) {
+export async function main({ mode = "dry", arg = "" } = {}, deps) {
   const apply = mode === "apply";
   const summary = { step: "derive-obligations", mode, counts: {}, applied: 0, read_back: {}, exitCode: 0 };
-  const res = await deriveMain({ apply }, deps);
+  const res = await deriveMain({ apply, objectCandidates: loadObjectCandidates(arg) }, deps);
+  const o = res.objects ?? {};
+  summary.objects = {
+    candidates: o.candidates ?? 0,
+    to_insert: o.to_insert ?? 0,
+    already_registered: o.already_registered ?? 0,
+    refused: (o.refused ?? []).length,
+    refusal_reasons: (o.refused ?? []).map((r) => r.reason),
+    inserted: o.inserted ?? 0,
+    binding_position_breakdown: o.binding_position_breakdown ?? {},
+  };
+  if (apply && summary.objects.inserted !== summary.objects.to_insert) {
+    summary.note = `MISMATCH, object rows planned ${summary.objects.to_insert}, inserted ${summary.objects.inserted}`;
+    summary.exitCode = 1;
+  }
   summary.counts = {
     forward_events: res.forward_events,
     derived: res.derived,
