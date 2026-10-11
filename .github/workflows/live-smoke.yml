@@ -52,8 +52,20 @@ on:
 permissions:
   contents: read
 
+# CONCURRENCY (lane SMOKE-5, 2026-10-11, run 38110613718). Three merges landed within a minute, Vercel deployed each,
+# and three smoke runs started at 04:08:08, 04:08:58 and 04:09:01. The old group was keyed on the event's
+# environment_url, which is the deployment's own unique URL, so each deployment got its own group and nothing was ever
+# superseded: three runs hit the same production site together and one was answered 429 by its rate limit.
+# The group is now keyed on the ENVIRONMENT of a successful deployment event ("Production"), so a newer production
+# deployment's smoke cancels an older one still running. Cancelling is safe HERE and not in discipline.yml's master run:
+# a smoke run is a read-only check of whatever a deployment serves right now, so once a newer production deployment
+# exists the older run is measuring a site that is no longer live and its result answers nothing; discipline.yml's
+# master run validates a distinct commit, and a superseded master commit still needs its own verdict. The cancelled run
+# still records its harness-run artifact (those steps run under if: always()). Only a success event shares the group:
+# the pending and in_progress events of any deployment key on the run id, so they never cancel a running smoke. A manual
+# workflow_dispatch keeps its own group per target url.
 concurrency:
-  group: live-smoke-${{ github.event.inputs.url || github.event.deployment_status.environment_url || github.run_id }}
+  group: live-smoke-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.url || (github.event.deployment_status.state == 'success' && github.event.deployment_status.environment) || github.run_id }}
   cancel-in-progress: true
 
 jobs:
