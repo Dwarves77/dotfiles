@@ -40,14 +40,6 @@ const ALLOWLIST = [
     path: "fsi-app/scripts/verify/capture-length-scan.test.mjs",
     reason: "this guard's own source carries the banned literal in its regex/allowlist text.",
   },
-  {
-    path: "docs/plans/defect-fix-plan-2026-09-12.md",
-    reason: "historical evidence text (the 2026-09-13 postgres-log quote) describing the query that caused the incident -- not a live call site.",
-  },
-  {
-    path: "docs/dispatches/lane-briefs/2026-09-05/lane-feslot2b.js",
-    reason: "a historical dispatch record (FE-SLOT-2, 2026-09-05) quoting a read-only measurement SQL snippet in its own brief text -- not a live call site.",
-  },
 ];
 const ALLOWLIST_PATHS = new Set(ALLOWLIST.map((e) => e.path));
 

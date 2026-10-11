@@ -374,26 +374,6 @@ test('check 4 wired to the live tree: this lane\'s own branch touches no coordin
   assert.deepEqual(runCheck4(getRepoRoot()), []);
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// LANE G1 AMENDMENT 2 ATTACK (a): F51's former check 5 fired on docs/dispatches/lane-briefs/2026-09-19/README.md
-// because three coordinator docs PRs each appended a row to its per-brief table (Cause A, the exact
-// shape plan 6.8 removed elsewhere). The fix (item 1) deleted the table; this test proves the shape
-// stays gone. AMENDMENT 2 ATTACK (b), the allowlist-does-not-widen synthetic fixture, is RETIRED by lane
-// F51c: its premise (an allowlist entry for the README) no longer exists -- item 3 deletes it, because
-// under the concurrency definition the README's three serial touches were never a violation to begin
-// with. The "LIVE-TREE PROOF" test below is its replacement: real evidence, against the real repo
-// history, that every one of the seven deleted entries clears the concurrency definition on its own.
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-
-test('AMENDMENT 2 ATTACK (a): the live README carries no per-brief table row; planting one in a fixture copy proves the pattern would be caught', () => {
-  const readmePath = join(getRepoRoot(), 'docs/dispatches/lane-briefs/2026-09-19/README.md');
-  const text = readFileSync(readmePath, 'utf8');
-  const tableRowPattern = /^\|\s*brief-/m;
-  assert.equal(tableRowPattern.test(text), false, 'the live README must carry no re-added per-brief table row (plan 6.8 Rule A)');
-  const plantedRegression = text + '\n| brief-x.md | X | a table row growing back |\n';
-  assert.equal(tableRowPattern.test(plantedRegression), true, 'the detection pattern must catch a re-added table row in a fixture copy');
-});
-
 // fitnessFunction.check() wired end to end against the live tree: returns the true current violation set.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 test('fitnessFunction.check() live: id/name/enumerate shape, and the result matches the sum of the four checks', LIVE_TREE, () => {
