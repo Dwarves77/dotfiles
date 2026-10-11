@@ -103,3 +103,75 @@ test("defaultSort is the list surfaces' key set and every pre-rebuild value maps
   // An unknown value returns null so the store keeps its default rather than storing garbage.
   assert.match(SOURCE, /default:\s*\n\s*return null;/);
 });
+
+// ── DATA-3a (B-0052): the two workspace_settings calls read their result WITH its error ──
+//
+// Behavioural, through the real store and a real supabase-js client whose transport (global fetch) is replaced by
+// an in-process router. loadFromWorkspace: a failed read must not leave the store ready to SAVE (a later toggle
+// would overwrite the stored row with the defaults), so orgId stays unset and the failure is logged; a .single()
+// that found no row (PGRST116) is the legitimate "new workspace" case and still loads the defaults. The debounced
+// save is best-effort by design and its failure is now logged instead of swallowed.
+import { createJiti } from "jiti";
+
+process.env.NEXT_PUBLIC_SUPABASE_URL = "http://supabase.test";
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+
+let settingsResponse = { status: 200, body: {} };
+let writes = 0;
+globalThis.fetch = async (input, init) => {
+  if (init && init.method && init.method !== "GET") writes += 1;
+  return new Response(JSON.stringify(settingsResponse.body), {
+    status: settingsResponse.status,
+    headers: { "content-type": "application/json" },
+  });
+};
+
+const jiti = createJiti(import.meta.url, {
+  interopDefault: true,
+  alias: { "@": resolve(HERE, "..") },
+});
+const { useSettingsStore } = await jiti.import("./settingsStore.ts");
+
+async function warned(fn) {
+  const warns = [];
+  const original = console.warn;
+  console.warn = (...a) => warns.push(a.map(String).join(" "));
+  try {
+    await fn();
+  } finally {
+    console.warn = original;
+  }
+  return warns;
+}
+
+const BOOM = { status: 500, body: { message: "boom", code: "XX000", details: null, hint: null } };
+
+test("loadFromWorkspace: a failed read logs, shows the defaults, and leaves saving held (orgId unset)", async () => {
+  useSettingsStore.setState({ orgId: null, loaded: false });
+  settingsResponse = BOOM;
+  const warns = await warned(() => useSettingsStore.getState().loadFromWorkspace("org-1"));
+  assert.equal(useSettingsStore.getState().orgId, null);
+  assert.equal(useSettingsStore.getState().loaded, true);
+  assert.ok(warns.some((w) => w.includes("workspace_settings read failed") && w.includes("boom")), JSON.stringify(warns));
+});
+
+test("loadFromWorkspace: no row (PGRST116) is the new-workspace case and loads the defaults with the org set", async () => {
+  useSettingsStore.setState({ orgId: null, loaded: false });
+  settingsResponse = { status: 406, body: { message: "JSON object requested, multiple (or no) rows returned", code: "PGRST116", details: "The result contains 0 rows", hint: null } };
+  const warns = await warned(() => useSettingsStore.getState().loadFromWorkspace("org-2"));
+  assert.equal(useSettingsStore.getState().orgId, "org-2");
+  assert.equal(useSettingsStore.getState().loaded, true);
+  assert.deepEqual(warns, []);
+});
+
+test("debounced save: a failed workspace_settings update is logged, not swallowed", async () => {
+  useSettingsStore.setState({ orgId: "org-3", loaded: true });
+  settingsResponse = BOOM;
+  writes = 0;
+  const warns = await warned(async () => {
+    useSettingsStore.getState().setExportFormat("slack");
+    await new Promise((r) => setTimeout(r, 1300));
+  });
+  assert.equal(writes, 1);
+  assert.ok(warns.some((w) => w.includes("workspace_settings save failed") && w.includes("boom")), JSON.stringify(warns));
+});

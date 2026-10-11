@@ -81,3 +81,44 @@ test("region-count RPC arguments pass through (browse counts public groups only)
   assert.equal(ctx.currentUser.employer, "");
   assert.equal(ctx.currentUser.isPlatformAdmin, false);
 });
+
+// ── Lane DATA-3a (2026-10-11, backlog B-0048): every read is read WITH its error ──
+//
+// The six reads used to destructure `{ data }` and drop `error`, so a failed read rendered the shell as if the
+// user had no groups, no pending invitations, no topics, zero region counts, no employer. The function's
+// contract is throw-on-failure (the six /community/* pages let the throw reach Next's error boundary); one case
+// per read proves a failure now rejects with its site. RED against the unchanged source: each resolves instead.
+/** A chain whose every method returns itself and which resolves to `result` when awaited or ended by maybeSingle(). */
+function chainOf(result) {
+  const chain = new Proxy(
+    {},
+    {
+      get(_t, prop) {
+        if (prop === "then") return (resolveFn) => resolveFn(result);
+        if (prop === "maybeSingle") return async () => result;
+        return () => chain;
+      },
+    }
+  );
+  return chain;
+}
+function failingClient(results) {
+  return {
+    from: (table) => chainOf(results[table] ?? { data: [], error: null }),
+    rpc: (name) => chainOf(results[name] ?? { data: name === "is_platform_admin" ? false : [], error: null }),
+  };
+}
+const READ_FAILED = { data: null, error: { message: "boom" } };
+
+for (const [read, results, pattern] of [
+  ["group memberships", { community_group_members: READ_FAILED }, /group memberships read failed: boom/],
+  ["pending invitations", { community_group_invitations: READ_FAILED }, /pending invitations read failed: boom/],
+  ["owned topics", { community_topics: READ_FAILED }, /owned topics read failed: boom/],
+  ["region counts rpc", { community_region_counts: READ_FAILED }, /community_region_counts failed: boom/],
+  ["profile", { profiles: READ_FAILED }, /profile read failed: boom/],
+  ["employer", { org_memberships: READ_FAILED }, /employer read failed: boom/],
+]) {
+  test(`DATA-3a: a failed ${read} read throws with its site instead of rendering as empty`, async () => {
+    await assert.rejects(() => loadCommunityShellContext(failingClient(results), { id: "u1", email: "ada@example.org" }), pattern);
+  });
+}

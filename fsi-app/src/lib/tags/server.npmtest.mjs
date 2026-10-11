@@ -90,3 +90,11 @@ test("resolveItemUuid: not found → null", async () => {
   const id = await resolveItemUuid(supabase, "does-not-exist");
   assert.equal(id, null);
 });
+test("resolveItemUuid: a failed read THROWS, it is not reported as not-found (DATA-3a, B-0052)", async () => {
+  const supabase = {
+    from() {
+      return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: { message: "connection reset" } }) }) }) };
+    },
+  };
+  await assert.rejects(() => resolveItemUuid(supabase, "o3"), /resolveItemUuid: intelligence_items read failed: connection reset/);
+});
