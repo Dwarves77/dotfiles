@@ -64,7 +64,7 @@ The committed map did not match what `scripts/proof/applied-map.mjs` reads. Meas
 
 ### What is NOT done
 - The 74 code-differs rows are not edited (MIG-HIST-2). Outside-ledger objects are still unverified (findings, not passes). [CLOSED: PR 1085]
-- `docs/runbooks/maintenance.d/64-chain-proof.md` and `docs/decisions/ADR-045-chain-proof-on-a-local-stack.md` carry the map schema table; it does not yet list `statements-null` and `apply-record-stub` as apply classes. Outside this lane's write set: for the coordinator's docs pass. [WORK: DOCS-5]
+- `docs/runbooks/maintenance.d/64-chain-proof.md` and `docs/decisions/ADR-045-chain-proof-on-a-local-stack.md` carry the map schema table; it does not yet list `statements-null` and `apply-record-stub` as apply classes. Outside this lane's write set: for the coordinator's docs pass. [CLOSED: PR 1104]
 - The audit document stays in the session scratchpad (docs/audits is not this lane's to edit). [CLOSED: PR 1033]
 
 ### Open items

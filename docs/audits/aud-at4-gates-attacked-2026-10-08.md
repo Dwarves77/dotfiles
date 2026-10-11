@@ -454,7 +454,7 @@ None.
 
 ## Owed legs (reason)
 
-- F9 on the real app project: the fixture project (two files) proved the tsconfig exclude and ts-nocheck forms; a full tsc over the 3,500-file app needs the full dependency install and was not run. [WORK: TESTS-2]
+- F9 on the real app project: the fixture project (two files) proved the tsconfig exclude and ts-nocheck forms; a full tsc over the 3,500-file app needs the full dependency install and was not run. [CLOSED: PR 1101]
 - F45 live ratchet: the detector, ratchet comparison and scope predicates were run in process; `measureAtBase` against a real origin/master base was not run (no remote in the throwaway repo). [CLOSED: PR 1088]
 - F24 and the live-only DDL class: the gate reads a committed snapshot of the database; an object that exists live and is absent from the snapshot cannot be represented offline. Owed to a live-catalog leg (no live access in this lane). [NOT-WORK: the live-catalog leg needs the production database]
 - F28 time-based legs (STALE RUN, NEVER RUN windows) were not exercised with dated ledger rows; only schema, nesting and governing-file edits were. [CONFIRMED: owed, not exercised by this lane] [CLOSED: PR 1088]

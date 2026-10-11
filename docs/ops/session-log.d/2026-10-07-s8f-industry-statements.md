@@ -20,5 +20,5 @@ Brief: industry-level statements replace the removed calculator (plan Stage 8). 
 - Not traced: the source function behind `getPublicSurfaceCounts` (`fetchPublicSurfaceCounts`), the number of `nrg_pc_205` consumption bands, whether `state_cost_facts.value_numeric` is populated live, whether the live `regional_data_facts` rows carry `source_id`. [NOT-WORK: scope statement, no defect]
 
 ### Open items
-- `docs/INDEX.md` needs a line for the new register (coordinator-only file per the lane contract). [WORK: DOCS-5]
+- `docs/INDEX.md` needs a line for the new register (coordinator-only file per the lane contract). [CLOSED: PR 1104]
 - Value Delivery Check: this lane's work does not directly advance customer-facing value delivery. It is a read-only register feeding the coordinator's design for Stage 8 (Operations). It enumerates Regulations, Market Intel, Research, Operations and Community only where a table or block touches them (Operations blocks, Market-fed tables, `obligations` read by Regulations); Community is not touched. [NOT-WORK: fact, no action]
