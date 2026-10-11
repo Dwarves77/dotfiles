@@ -674,7 +674,9 @@ test("GATE-FIX-2: a backslash path on a read-only git form stays quiet", () => {
 test("GATE-FIX-2: a backslash raw command never earns the lane-contract exemption (pair 7 unchanged)", () => {
   const t = x7Tree();
   try {
-    assert.equal(isolationAsk(`git -C ${t.lane} merge origin/master`, { cwd: t.lane }), true);
+    // Force backslash separators on every platform (a POSIX temp path has none): a raw backslash is never trusted.
+    assert.equal(isolationAsk(`git -C ${t.lane.replaceAll("/", "\\")} merge origin/master`, { cwd: t.lane }), true);
+    assert.equal(isolationAsk(`git -C ${t.lane.replaceAll("\\", "/")} merge origin/master`, { cwd: t.lane }), false, "the forward-slash form of the same lane stays exempt");
   } finally { x7Rm(t.root, { recursive: true, force: true }); }
 });
 
