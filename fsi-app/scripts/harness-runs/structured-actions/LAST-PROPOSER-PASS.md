@@ -1,17 +1,17 @@
 # Last proposer pass -- structured-actions
 
 Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `structured-actions` has **two** artifacts in
-this directory (`structured-actions-run-002`, `structured-actions-run-003`); F28's rule (d) requires this
-file to name the latest verbatim: **structured-actions-run-003**. Newest pass first. This is the family's
+this directory (`structured-actions-run-002`, `structured-actions-run-001`); F28's rule (d) requires this
+file to name the latest verbatim: **structured-actions-run-001**. Newest pass first. This is the family's
 first proposer pass.
 
-## Pass over structured-actions-run-002 and structured-actions-run-003 (2026-10-10, lane PROPOSE-1)
+## Pass over structured-actions-run-002 and structured-actions-run-001 (2026-10-10, lane PROPOSE-1)
 
 **Artifacts read:** structured-actions-run-002 (dry, started_at 2026-09-29T02:37:41.097Z, harness_version
 sha256:622784f74f0d0dd9, two-stage method: a live read-only SQL pass picked 67 candidate items and cut the
 do-now section bodies with a heading-bounded regex, then the real `extractActionFromParagraph` ran locally
 over those bodies; items_with_at_least_one_action 42, total_actions 162, one defects_found entry with a
-fix_ref) and structured-actions-run-003 (dry, started_at 2026-10-10T14:30:07.526Z, governing_hash
+fix_ref) and structured-actions-run-001 (dry, started_at 2026-10-10T14:30:07.526Z, governing_hash
 sha256:7cf5b60b87514ef8, a full-corpus run through `scripts/turns/dry-run-structured-actions.mjs`: items_scanned
 2690, items_with_brief 2690, items_with_actions 43, total_actions 141, actions_with_timeframe_days 6,
 actions_with_owner 0, actions_with_due_date 2, defects_found empty, per_item 2690 rows). Also read
@@ -69,7 +69,7 @@ claims to know what they said.
    fix_ref and no decision recorded in either artifact. Both runs write nothing to any
    customer-data table. The question is carried unchanged, not new.
 5. `[CONFIRMED]` **Recorder fact A: the ledger id and the artifact name disagree.** Method: compared the
-   committed artifact (`run_id` structured-actions-run-003, file `structured-actions-run-003.json`) with
+   committed artifact (`run_id` structured-actions-run-001, file `structured-actions-run-001.json`) with
    `fsi-app/.discipline/governance/harness-ledger-export.json` (exactly one structured-actions row, run_id
    `structured-actions-run-001`, started_at 2026-10-10T14:30:07.526+00:00) and with
    `scripts/lib/record-harness-run.mjs`, which renumbers an artifact to `harness_runs` max+1 for its family and
@@ -108,3 +108,5 @@ yet. The candidate the two artifacts support: actions extracted per item with at
 162/42 = 3.86 on the approximated sections; run-003 141/43 = 3.28 on the real parser), plus the share of
 actions with a stated due date (run-003 2/141). Neither is comparable across the two runs until hypothesis 2
 is resolved, so no trend is claimed.
+
+2026-10-11: artifact structured-actions-run-003.json renamed to structured-actions-run-001.json to match the ledger id (renumbered: true); HARNESS-1 correction, PR 1095.

@@ -12,9 +12,10 @@ name: Bug-class guard
 # When the lexicon is hardened (false-positive classes eliminated), promote the soft scan to a
 # diff-gate (fail only on NEW candidates vs the merge base).
 
+# MASTER PUSH RUNS LESS (2026-10-10, CI-MIN-0, ADR-047): no push trigger. Branch protection is strict, so the
+# pull_request run validated the exact merge result; a push to master re-ran the same checks on the same tree
+# (metered minutes, 2,000 per month). A dispatch trigger is deliberately not added.
 on:
-  push:
-    branches: [master]
   pull_request:
     branches: [master]
 
