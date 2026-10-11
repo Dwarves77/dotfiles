@@ -3970,7 +3970,7 @@ async function fetchIntelligenceItemUncached(
     // cached, so a failed one is logged (with its table) and that block renders empty; throwing here would
     // cache a not-found for the whole item over one failed timeline read.
     type DetailReadError = { message?: string; details?: string | null; hint?: string | null; code?: string | null } | null;
-    const detailReadResults: Array<[string, { error?: DetailReadError }]> = [
+    const detailReadResults: Array<[string, { data?: unknown; error?: DetailReadError }]> = [
       ["item_timelines", timelinesResult],
       ["item_changelog", changesResult],
       ["item_disputes", disputeResult],
