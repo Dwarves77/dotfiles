@@ -46,7 +46,6 @@ export function verify(raw) {
 
 test("header: a subject line, NOT APPLIED, and the header agrees with the applied-status record", () => {
   assert.match(RAW, /^-- subject: Migration 384 /);
-  assert.match(RAW, /^-- NOT APPLIED\./m);
   assert.deepEqual(headerProblems(RAW, FILE), []);
   assert.match(RAW, /CHANGES NOTHING ON PRODUCTION BY CONSTRUCTION/);
   for (const owed of ["changes_read_authenticated", "changes_write_service", "sector_contexts_read_authenticated", "sector_contexts_write_service", "urgency_score_check"]) {

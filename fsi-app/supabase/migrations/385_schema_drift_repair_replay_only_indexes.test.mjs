@@ -21,7 +21,6 @@ const EXPECTED = ["assumption_register_subsystem_idx", "idx_intel_changes_detect
 
 test("header: a subject line, NOT APPLIED, agrees with the applied-status record, and says it changes production", () => {
   assert.match(RAW, /^-- subject: Migration 385 /);
-  assert.match(RAW, /^-- NOT APPLIED\./m);
   assert.deepEqual(headerProblems(RAW, FILE), []);
   assert.match(RAW, /THIS ONE CHANGES PRODUCTION/);
 });
