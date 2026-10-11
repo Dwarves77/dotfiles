@@ -23,13 +23,13 @@ Research, Operations, Community; the ratified model — owned by `caros-ledge-pl
 
 **Any dispatch that includes a downstream effect — database write, agent run, materialization, surface migration, deploy, source-of-truth content publication — must define the verification check inline before the dispatch is authorized.** The dispatch defines what "I did X" means and how to confirm X actually happened. No dispatch ships without this contract.
 
-The PR-A1 California test pattern (commit landing in `arch/pr-a1-california-test-pattern`) is the canonical example: a read-only investigation phase ran first and surfaced that ~80% of the dispatched writes were already done, were duplicates, or were wrong on their premises. The investigation produced six explicit decisions for Jason to authorize before any write touched the database. Each authorized write then ran with its own per-step read-back verification check; if any check had failed, the script would have halted before the next step.
+The PR-A1 California test pattern (commit landing in `arch/pr-a1-california-test-pattern`) is the canonical example: a read-only investigation phase ran first and surfaced that ~80% of the dispatched writes were already done, were duplicates, or were wrong on their premises. The investigation produced six explicit decisions for the operator to authorize before any write touched the database. Each authorized write then ran with its own per-step read-back verification check; if any check had failed, the script would have halted before the next step.
 
 The shape every dispatch with a downstream effect must have:
 1. **Inline verification check.** "After step N, query Y. The dispatch is verified if Y returns Z. Halt and surface if it doesn't."
-2. **Read-only investigation first when state is uncertain.** If the dispatch's premises are not provable from the current branch state alone, the first deliverable is a read-only investigation report. Writes wait on Jason's authorization based on what investigation reveals.
+2. **Read-only investigation first when state is uncertain.** If the dispatch's premises are not provable from the current branch state alone, the first deliverable is a read-only investigation report. Writes wait on the operator's authorization based on what investigation reveals.
 3. **Per-step verification, not batch.** Each downstream effect verifies its own outcome before the next runs. Failure halts; failure does not silently roll forward.
-4. **Honest divergence reporting.** When investigation findings contradict dispatch premises, surface the divergence as findings, not as in-flight work to overrule. Jason decides whether to revise scope or proceed.
+4. **Honest divergence reporting.** When investigation findings contradict dispatch premises, surface the divergence as findings, not as in-flight work to overrule. The operator decides whether to revise scope or proceed.
 
 The cost of skipping this discipline has been logged: PR-A1's investigation prevented a duplicate CARB source row, an unnecessary update to the deprecated `jurisdictions` column, and a search for a staged_updates drift remediation that didn't exist. Across two prior sessions before this rule landed, two perf waves shipped speculative changes against unverified premises; one regressed (the code-split wave, +1.4 kB per route).
 
@@ -148,9 +148,9 @@ Audit findings split cleanly along this axis:
 
 - **Functional and factual fixes** (broken click target, wrong route, missing aria-label, hydration warning, divergence between two live surfaces that both claim to be authoritative) — proceed autonomously per verification-before-authorization. The dispatch contract carries them.
 - **Aesthetic drift the system can resolve from intended-use signals in dispatch context** (preview shows old tab list, live ships new tab list, dispatch context confirms the new list is intended) — proceed autonomously; update the preview to match the live surface, or note the intentional divergence.
-- **Aesthetic drift the system cannot resolve from intended-use signals** (preview shows a treatment the live surface no longer ships, but no dispatch context tells the agent which one is intended) — route to integrity flags as a `category='design_drift'` row for Admin review, NOT to Jason chat. The flag becomes a tracked decision that survives session boundaries.
+- **Aesthetic drift the system cannot resolve from intended-use signals** (preview shows a treatment the live surface no longer ships, but no dispatch context tells the agent which one is intended) — route to integrity flags as a `category='design_drift'` row for Admin review, NOT to the operator chat. The flag becomes a tracked decision that survives session boundaries.
 
-The principle eliminates the bottleneck where every audit finding routed to Jason for adjudication. Most findings are functional and clearly resolvable. The genuinely ambiguous ones — where intended use is the only way to break the tie — surface as durable Admin queue items, not as chat interruptions.
+The principle eliminates the bottleneck where every audit finding routed to the operator for adjudication. Most findings are functional and clearly resolvable. The genuinely ambiguous ones — where intended use is the only way to break the tie — surface as durable Admin queue items, not as chat interruptions.
 
 ## Accordion default-state (in force from 2026-05-07)
 
@@ -288,7 +288,7 @@ Category guidance:
 - `data_integrity` — cross-row referential or invariant break
 - `surface_concern` — UI/UX problem the agent surfaced during dispatch work
 
-Flags surface in `/admin → Platform flags` for owner review. Status flow: `open → in_review → resolved | archived`. The platform admin (Jason) resolves the flag by picking from `recommended_actions` and optionally adding a `resolution_note` — this becomes the authoritative answer for future investigations of the same concern.
+Flags surface in `/admin → Platform flags` for owner review. Status flow: `open → in_review → resolved | archived`. The platform admin resolves the flag by picking from `recommended_actions` and optionally adding a `resolution_note` — this becomes the authoritative answer for future investigations of the same concern.
 
 The agent never writes to chat about a category-fitting concern it can't resolve. The flag IS the channel.
 

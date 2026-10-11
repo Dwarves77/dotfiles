@@ -23,7 +23,7 @@ Status tokens follow CLAUDE.md rule 14. Every observation below carries [CONFIRM
 | P3 | authenticated as an org member of another org | OWED: org_memberships holds 1 organization with members; no second org and no member of another org exists [CONFIRMED: count of distinct org_id = 1] |
 | P4 | authenticated as a platform non-admin: the one real profile with is_platform_admin false, who is also the org member (role member) of the single org | RUN (SET LOCAL ROLE authenticated, jwt sub = that profile id, claims role authenticated). The id and e-mail are not recorded here. |
 
-The brief names the profile of jasonlosh@gmail.com for the org-member legs; the catalog read matched that profile to the single non-admin member. P4 therefore covers both the "org member" leg and the "platform non-admin" leg. The "org member of another org" leg is owed under P3, not run as a substitute.
+The brief names the profile of the operator's gmail address for the org-member legs; the catalog read matched that profile to the single non-admin member. P4 therefore covers both the "org member" leg and the "platform non-admin" leg. The "org member of another org" leg is owed under P3, not run as a substitute.
 
 ## 2. Result summary
 

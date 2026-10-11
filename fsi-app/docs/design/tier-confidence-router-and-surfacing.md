@@ -1,10 +1,10 @@
 # Tier → Confidence-Label Router + Moat Surfacing
 
-Status: DESIGN LOCKED with Jason 2026-06-25. Supersedes the binary per-type authority floor's
+Status: DESIGN LOCKED with the operator 2026-06-25. Supersedes the binary per-type authority floor's
 treatment of sub-floor claims (migration 141) by adding a gradient ROUTER and reverses
 `source-credibility-model` Section 8's "show customers the T1–T7 badge" doctrine.
 
-Nothing builds against this doc until Jason ratifies the label-register wording (§3) and the
+Nothing builds against this doc until the operator ratifies the label-register wording (§3) and the
 two-workstream scope (§7). This is the verification-before-authorization investigation artifact.
 
 ---
@@ -124,7 +124,7 @@ Neither renders "T3" to anyone; both render "Credible analysis — [source]".
 - **WS1 first** (unblocks the 131 backward batch + clears the Data-audit lane — the actual
   problem). Code only, $0, except prove-on-one CBAM + EUDR (~$1.50 each) before the 131 batch. The
   131 batch quote (~$131–197, regenerate + free legal-host fetch, NO web_search) stands and runs
-  only after prove-on-one + Jason's go.
+  only after prove-on-one + the operator's go.
 - **WS2 second** (presentation; the label is render-derived so it layers on after WS1 stamps tiers
   correctly). Pure code, $0.
 - **Skill edits ride WITH each workstream** (env-policy + analysis-construction with WS1;

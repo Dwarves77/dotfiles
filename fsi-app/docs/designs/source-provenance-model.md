@@ -512,7 +512,7 @@ The B audit confirms the architectural premise: the existing corpus has fabricat
 
 ### Full audit report
 
-Per-item URL-by-URL outcomes: `C:/Users/jason/AppData/Local/Temp/optionc-b-audit.txt` (76 KB, item sections + tally).
+Per-item URL-by-URL outcomes: `C:/Users/USER/AppData/Local/Temp/optionc-b-audit.txt` (76 KB, item sections + tally).
 
 ---
 

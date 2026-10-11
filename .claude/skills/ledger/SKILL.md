@@ -7,7 +7,7 @@ description: Load Caro's Ledge project memory AND its verification discipline be
 
 Two jobs. Sections A0 and A load project state. **Section B is the rule set that state is useless without** — it exists because loading the roadmap does not stop an agent confidently inventing a root cause.
 
-The vault is `docs/` inside the GitHub repo `Dwarves77/dotfiles`. Obsidian is only a local viewer pointed at `C:\Users\jason\dotfiles\docs`; it is not a service, nothing connects to it, and it syncs nowhere. **Git is the only transport.** A session that has not fetched the repo has no memory, and must say so rather than answering from the application database, from web search, or from its own context.
+The vault is `docs/` inside the GitHub repo `Dwarves77/dotfiles`. Obsidian is only a local viewer pointed at `C:\Users\USER\dotfiles\docs`; it is not a service, nothing connects to it, and it syncs nowhere. **Git is the only transport.** A session that has not fetched the repo has no memory, and must say so rather than answering from the application database, from web search, or from its own context.
 
 ## A0. Locate the vault and pin it to origin/master
 
@@ -33,13 +33,13 @@ echo "branch: $(git -C "$VAULT" rev-parse --abbrev-ref HEAD)  ahead/behind origi
 git -C "$VAULT" log -1 --format='origin/master %h %ad %s' --date=short origin/master
 ```
 
-**The operator's checkout is the Obsidian vault and is kept on master by `.claude/hooks/vault-sync.mjs`.** On the operator's machine `C:/Users/jason/dotfiles` is what Obsidian shows. The hook fast-forwards it to origin/master at every SessionStart, at the end of the done skill and after every merge on the coordinator's train; it acts only when the checkout is on master, has no modified tracked file and no local commit, and otherwise prints `SKIPPED (<reason>)` naming the fix. It never resets, never stashes and never touches untracked files. Nobody commits in that checkout; lanes commit in worktrees and the hook carries master back to it.
+**The operator's checkout is the Obsidian vault and is kept on master by `.claude/hooks/vault-sync.mjs`.** On the operator's machine `C:/Users/USER/dotfiles` is what Obsidian shows. The hook fast-forwards it to origin/master at every SessionStart, at the end of the done skill and after every merge on the coordinator's train; it acts only when the checkout is on master, has no modified tracked file and no local commit, and otherwise prints `SKIPPED (<reason>)` naming the fix. It never resets, never stashes and never touches untracked files. Nobody commits in that checkout; lanes commit in worktrees and the hook carries master back to it.
 
 **Read the memory files from `origin/master`, not from the working tree**, using `git show origin/master:<path>`. The working tree may sit on a stale or unmerged feature branch; `origin/master` is the shared memory. (Observed 2026-08-17: a Cowork container was on branch `dead-code-sweep`, ahead 1 and behind 7, and `git pull --ff-only` refused. Reading the working tree there would have returned three-day-old state presented as current.)
 
 Fallbacks, in order:
 
-1. **Clone fails** (no network, proxy-blocked) and this is Claude Code on the operator's machine: the vault is `C:\Users\jason\dotfiles`. Still `git fetch` and read `origin/master`.
+1. **Clone fails** (no network, proxy-blocked) and this is Claude Code on the operator's machine: the vault is `C:\Users\USER\dotfiles`. Still `git fetch` and read `origin/master`.
 2. **Cowork with the desktop bridge connected:** `mcp__remote-devices__device_stage_files` on `CLAUDE.md`, `docs/PROGRAM-BOARD.md`, `docs/INDEX.md`, `docs/ops/session-log.md` and read the staged copies. These are point-in-time snapshots of the operator's working tree, possibly dirty and possibly behind master. Say which source you used.
 3. **Nothing works:** stop and say "I have no access to the vault, so I have no project memory this session." Do not proceed to answer architecture, cost, status, or history questions from the database or from search. The database is not the memory.
 

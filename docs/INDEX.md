@@ -130,6 +130,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## plans
 
+- [complete-build-plan-2026-10-11](./plans/complete-build-plan-2026-10-11.md) - the W0..W6 plan from the complete audit; done = P1..P6 observed by the operator
 - [whole-build-plan-2026-10-11](./plans/whole-build-plan-2026-10-11.md) - the consolidation plan drafted from the four whole-build audit registers (subtract first: one pipeline, one registry, three-step hook); superseded in sequence by the ruled fix-it-all plan in [the audit directory README](./audits/whole-build-audit-2026-10-11/README.md).
 - [whole-build-agent-plan-2026-10-11](./plans/whole-build-agent-plan-2026-10-11.md) - the agent plan for the consolidation waves 0 to 4: Sonnet and Haiku lanes, disjoint write sets, two CI runs per PR.
 - [ci-minutes-plan-2026-10-10](./plans/ci-minutes-plan-2026-10-10.md) - zero-cost CI on the private repository: Phase 0 (WIP skip ci, one run per PR, master push runs less), Phase 1 (jobs scoped to inputs), measurement, production budget of 500 minutes per month; decision in ADR-047
@@ -222,6 +223,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## audits
 
+- [2026-10-11-complete-audit/](./audits/2026-10-11-complete-audit/README.md) - THE audit (second pass, 41 registers, 2,272-row backlog); every earlier audit is a prediction it checked
 - [whole-build-audit-2026-10-11](./audits/whole-build-audit-2026-10-11/README.md) - the whole-build audit directory: the ruled fix-it-all plan (README) and five registers (spec-to-runtime traceability, enforcement 2A and 2B, failure ledger, DB schema traceability), every row carrying the disposition token of the lane that closes it; machine lists live in [archive logs](./archive/logs/whole-build-audit-2026-10-11/owed-list-2026-10-11.md).
 - [audit-consolidated-2026-09-30](./audits/audit-consolidated-2026-09-30.md) - Lane CONSOLIDATE: synthesis of the 2026-09-30 audit wave (A1 through A10, split lanes A2/A2b, A3/A3b/A3c, A4/A4b/A4c, A5/A5b/A5c, A8/A8b/A8c, plus A7 architecture-review and A9 mechanical-checkers). 78 deduplicated findings by class (dead/unwired, broken, unwired, security/RLS, data integrity, duplication, tests/gates, docs drift, process), consolidated ids cite every source-lane id and file:line; confirmed P0/P1 in full sentences; refuted-along-the-way list; honest per-lane coverage statement including a reported, not-followed prompt-injection attempt against lane A5.
 - [f25-wave52-dispositions-2026-09-07](./audits/f25-wave52-dispositions-2026-09-07.md)  -  Lane F25-WAVE52: disposition of all 14 F25 module-liveness allowlist entries whose expiry (wave52) passed when PR #601 landed (master RED, run 34072529126). Per binding operator ruling (never re-grant an F25 expiry), each of 7 `scripts/_reground/*` and 7 `scripts/verify/*` files is WIRED (10: four `run-data-audit-lane.mjs` AUDITS entries, one `maintenance.yml` remediation step, six `_reground/*` operator-CLI tools newly registered in `OUT-OF-REPO-BOUNDARY.md`'s Operator-CLI register  -  Source 7 widened to recognize that path shape) or DELETED (4, incidents already closed/superseded). `node .discipline/fitness/runner.mjs`: F25 0 violations, no expiry-carrying entries remain.
@@ -308,7 +310,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [traceability-matrix-2026-07-07](./ops/chrome-audit-2026-07/traceability-matrix-2026-07-07.md)  -  Live-pages audit findings register + disposition matrix (41 findings, DEEP-AUDIT + date/dedup)
 - [deletion-reclassification-log](./ops/deletion-reclassification-log.md)  -  Deletion / reclassification log
 - [flip-readiness-2026-07-08](./ops/flip-readiness-2026-07-08.md)  -  Cadence/loop flip readiness; the three standing switches (cadence/batch-1/budget)
-- [browser-verification-pending](./ops/browser-verification-pending.md)  -  The one accumulating browser-check list for Jason's end-of-program session
+- [browser-verification-pending](./ops/browser-verification-pending.md)  -  The one accumulating browser-check list for the operator's end-of-program session
 - [program-closeout-2026-07-08](./ops/program-closeout-2026-07-08.md)  -  Build-to-completion close-out: DONE checklist (7/7), census, + the 18-flag operator decision table
 - [root-cause-why-the-queue-2026-07-08](./ops/root-cause-why-the-queue-2026-07-08.md)  -  ROOT CAUSE: why /admin reads 1,280 with 0 agent runs  -  built as a human-supervised DETECTION engine; the autonomous DRAIN half (1 of 17 flag classes) was never wired. Corrects the "DONE 7/7" claim.
 - [site-gap-register-2026-07-09](./ops/site-gap-register-2026-07-09.md)  -  CANONICAL BASELINE (supersedes the traceability matrix): Chrome wiring-audit U-01..U-11 + D/F/Q fix-forward rows + U-11 ledger truth + phase-0-5 baseline mapping. F-1 fabricated-source class kill recorded.

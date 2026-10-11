@@ -169,7 +169,7 @@ test("isPlatformAdminProfile admits only a literal true", () => {
   assert.equal(isPlatformAdminProfile(null), false);
 });
 
-// ── Live finding 1 (brief-live-findings.md, 2026-09-24): "the nav footer shows jasonlosh@gmail.com ·
+// ── Live finding 1 (brief-live-findings.md, 2026-09-24): "the nav footer shows the operator's gmail address ·
 // owner while the server session is hotmail". Two OWNER accounts in ONE org: each session's identity
 // (the email the nav's account menu renders, the role, the platform bit) must derive from that
 // session's authenticated user id, never from an org-level pick such as "the first owner". The fake

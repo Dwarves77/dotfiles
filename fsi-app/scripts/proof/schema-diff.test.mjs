@@ -72,7 +72,7 @@ test("the report carries counts and names only: no definitions, no hashes, no ro
   const text = JSON.stringify(diffCatalogs(CATALOG, oracle));
   assert.ok(!text.includes("c2-changed") && !text.includes('"c1"'), "a definition hash leaked into the report");
   for (const c of Object.values(diffCatalogs(CATALOG, oracle).categories)) {
-    assert.deepEqual(Object.keys(c).sort(), ["changed", "names_changed", "names_only_in_oracle", "names_only_in_replayed", "only_in_oracle", "only_in_replayed", "oracle_count", "replayed_count"]);
+    assert.deepEqual(Object.keys(c).sort(), ["changed", "names_changed", "names_only_in_oracle", "names_only_in_replayed", "normalised_away", "only_in_oracle", "only_in_replayed", "oracle_count", "replayed_count"]);
   }
 });
 
@@ -84,11 +84,11 @@ test("names are capped at 200 per list in the report while the counts stay exact
   assert.match(summarizeDiff(d), /and 410 more/);
 });
 
-test("the catalog query is one read-only select over the public schema, and hashes definitions", () => {
+test("the catalog query is one read-only select over the public schema, and reads definition TEXT (DRIFT-1: no md5; the comparison and the structural record need the text)", () => {
   assert.match(CATALOG_QUERY, /^select json_build_object\(/);
   assert.ok(!/\b(insert|update|delete|drop|alter|truncate)\b/i.test(CATALOG_QUERY.replace(/pg_get_\w+/g, "")));
   assert.match(CATALOG_QUERY, /nspname = 'public'/);
-  assert.match(CATALOG_QUERY, /md5\(/);
+  assert.doesNotMatch(CATALOG_QUERY, /md5\(/);
   for (const needle of ["pg_get_functiondef", "pg_get_triggerdef", "pg_get_constraintdef", "pg_indexes", "pg_policies", "format_type", "pg_get_expr", "deptype = 'e'"]) {
     assert.ok(CATALOG_QUERY.includes(needle), needle);
   }

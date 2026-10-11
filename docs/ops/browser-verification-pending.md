@@ -1,4 +1,4 @@
-# Browser-Verification Checklist — Jason's single end-of-program session
+# Browser-Verification Checklist — the operator's single end-of-program session
 
 **What this is.** One accumulating list of the last-mile visual/browser checks that need a real
 authenticated session in a browser. Per the 2026-07-08 dispatch (Option B): these do **not** block
@@ -9,7 +9,7 @@ is complete.
 
 **How to read it.** Each item states: the feature + PR, the backend proof already standing, and the
 one thing to look at in the browser. `Functional` = backend-proven, browser just confirms wiring.
-`Visual` = needs Jason's design judgment, no backend proxy. The list grows as features land.
+`Visual` = needs the operator's design judgment, no backend proxy. The list grows as features land.
 
 ---
 
@@ -57,6 +57,6 @@ one thing to look at in the browser. `Functional` = backend-proven, browser just
 ---
 
 ## Related
-- [flip-readiness-2026-07-08](./flip-readiness-2026-07-08.md) — the cadence switch (ready on Jason's word; not on this list, not a task)
+- [flip-readiness-2026-07-08](./flip-readiness-2026-07-08.md) — the cadence switch (ready on the operator's word; not on this list, not a task)
 - [deletion-reclassification-log](./deletion-reclassification-log.md) — the 28-item reclassify audit trail behind check #3
 - [redesign-completeness-2026-07-08](../audits/redesign-completeness-2026-07-08.md) — the recon behind check #5

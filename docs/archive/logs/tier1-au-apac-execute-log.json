@@ -388,7 +388,7 @@
     {
       "name": "sg_retag_count_gate",
       "ok": true,
-      "detail": "9 candidates (expected 9 per Jason auth, halt-threshold |Δ|>2)",
+      "detail": "9 candidates (expected 9 per the operator auth, halt-threshold |Δ|>2)",
       "at": "2026-05-08T02:27:04.971Z"
     },
     {

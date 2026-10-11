@@ -1,8 +1,8 @@
 {
   "generated_at": "2026-05-26T14:38:32.546Z",
   "source_batch": "docs/audits/sprint3-classifier-quality-batch-2026-05-25.json",
-  "source_sweep_step3_paused": "C:\\Users\\jason\\dotfiles\\fsi-app\\docs\\audits\\sprint3-a15-vendor-source-sweep-2026-05-25.json",
-  "source_sweep_step4_broader": "C:\\Users\\jason\\dotfiles\\fsi-app\\docs\\audits\\sprint3-a15-step4-broader-sweep-2026-05-25.json",
+  "source_sweep_step3_paused": "C:\\Users\\USER\\dotfiles\\fsi-app\\docs\\audits\\sprint3-a15-vendor-source-sweep-2026-05-25.json",
+  "source_sweep_step4_broader": "C:\\Users\\USER\\dotfiles\\fsi-app\\docs\\audits\\sprint3-a15-step4-broader-sweep-2026-05-25.json",
   "total_rows_in_batch": 474,
   "excluded_already_handled_by_a15": {
     "count": 5,

@@ -252,10 +252,10 @@ never had a second real user.** `organizations` = 1, `org_memberships` = 2, `pro
 | 2 | Fix 2.2 promotion date, 2.4 tier badges, 2.5 gap-flag subject_type, 2.6 dead variable | XS each | none |
 | 3 | Decide 2.3: implement or remove the two dead demotion triggers | S | vocabulary decision |
 | 4 | Catch-up migration for section 8.1 live-only columns; dump+commit canonical `validate_item_provenance` (section 8.3) | S | migration window (DDL is additive/recording only) |
-| 5 | **Operator decision: `pending_first_fetch` backlog (1,376)** , drain, schedule, or write off | decision | Jason |
+| 5 | **Operator decision: `pending_first_fetch` backlog (1,376)** , drain, schedule, or write off | decision | the operator |
 | 6 | Delete section 5 dead code (one PR, file list above is the manifest) | M | none , deletion only |
 | 7 | Wire-or-delete each section 4 row (each is one decision + small PR; F25 allowlist shrinks accordingly) | S each | none |
 | 8 | Build U7: brief generation reads graph candidates; advance contract version; A3 assertion | M | the flywheel's missing joint |
-| 9 | section 6 never-ran features: pick per feature , ship (needs an email provider decision for invites), hold, or remove | decisions | Jason |
+| 9 | section 6 never-ran features: pick per feature , ship (needs an email provider decision for invites), hold, or remove | decisions | the operator |
 | 10 | section 3 stubs: implement or descope the 3 market producers, SERIES_ITEM_MAP ratification, region persistence, saved-search filters | S-M each | SERIES_ITEM_MAP is an operator ratification |
 

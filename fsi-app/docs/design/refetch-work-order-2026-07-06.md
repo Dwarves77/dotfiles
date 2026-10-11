@@ -1,6 +1,6 @@
 # Re-Fetch / Re-Ground Work Order — hold-lift day (2026-07-06)
 
-Standing dispatch item 5. The first FETCH batch after Jason rules cadence (lifts `SCRAPE_HOLD`). All items carry
+Standing dispatch item 5. The first FETCH batch after the operator rules cadence (lifts `SCRAPE_HOLD`). All items carry
 an open `completeness-exposure` integrity_flag (45 emitted, guarded, idempotent) so the queue is the durable home.
 **Browserless spend is quoted from the list size BEFORE the batch runs** (Prototyping plan 20k units/mo — conserve).
 
@@ -44,6 +44,6 @@ cover the slots, else quarantines honestly. The 2 named breaches (355af9e8, 6f1e
 "Page Not Found" FACTs were invalidated immediately; both remain legitimately verified.
 
 ## Durable home
-Migration 147 (`sources.fetch_status` ∈ ok/cdn_block/soft_404/blocked/error) — pending Jason's DDL window — persists
+Migration 147 (`sources.fetch_status` ∈ ok/cdn_block/soft_404/blocked/error) — pending the operator's DDL window — persists
 each transport's verdict, so the NEXT audit reads a column instead of re-adjudicating 2,097 captures. The error-body
 gate reads `isErrorBody` at read time until then (render-derive).

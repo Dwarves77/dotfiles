@@ -1,6 +1,6 @@
 # Dead and forgotten code census, 2026-10-08
 
-Fact lane, read-only. Repo C:\Users\jason\dotfiles, master ee0dd483 (HEAD equals origin/master, confirmed with `git rev-parse HEAD origin/master` after `git fetch origin`). Operator question: "How many errant and forgotten pieces of code exist throughout this whole system?!"
+Fact lane, read-only. Repo C:\Users\USER\dotfiles, master ee0dd483 (HEAD equals origin/master, confirmed with `git rev-parse HEAD origin/master` after `git fetch origin`). Operator question: "How many errant and forgotten pieces of code exist throughout this whole system?!"
 
 Labels: every count carries [CONFIRMED: method]; every interpretation is [HYPOTHESIS]. A count is a count of candidates that match a stated mechanical test, not a verdict that the thing should be deleted.
 

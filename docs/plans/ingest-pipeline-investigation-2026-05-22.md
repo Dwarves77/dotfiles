@@ -363,21 +363,21 @@ Per `sprint-followups-discipline`, this investigation produces no design surface
 
 ## Files cited (absolute paths)
 
-- `C:/Users/jason/dotfiles/fsi-app/vercel.json`
-- `C:/Users/jason/dotfiles/.github/workflows/source-monitoring.yml`
-- `C:/Users/jason/dotfiles/.github/workflows/spot-check-monthly.yml`
-- `C:/Users/jason/dotfiles/.github/workflows/trust-recompute.yml`
-- `C:/Users/jason/dotfiles/fsi-app/src/app/api/worker/check-sources/route.ts`
-- `C:/Users/jason/dotfiles/fsi-app/src/app/api/worker/drain-first-fetch/route.ts` (line 276 hardcoded domain=1)
-- `C:/Users/jason/dotfiles/fsi-app/src/app/api/agent/run/route.ts`
-- `C:/Users/jason/dotfiles/fsi-app/src/app/api/admin/scan/route.ts` (line 252 hardcoded domain=1)
-- `C:/Users/jason/dotfiles/fsi-app/src/app/api/community/posts/[id]/promote/route.ts` (line 370 hardcoded domain=1)
-- `C:/Users/jason/dotfiles/fsi-app/src/app/api/staged-updates/route.ts`
-- `C:/Users/jason/dotfiles/fsi-app/src/lib/llm/first-fetch-classify.ts` (no domain in classifier output)
-- `C:/Users/jason/dotfiles/fsi-app/src/app/regulations/page.tsx` (line 50 filters domain=1; line 101 client filter domain===1)
-- `C:/Users/jason/dotfiles/fsi-app/supabase/migrations/004_source_trust_framework.sql` (line 135 domain INT NOT NULL CHECK (1..7))
-- `C:/Users/jason/dotfiles/fsi-app/supabase/migrations/065_pending_first_fetch_queue.sql` (line 120 enqueue trigger; fires on sources INSERT or auto_run_enabled flip only)
-- `C:/Users/jason/dotfiles/fsi-app/supabase/migrations/070_phase1_routing_rpcs.sql` (existing category-aware routing RPCs, orphans per REC-OBS-G)
+- `C:/Users/USER/dotfiles/fsi-app/vercel.json`
+- `C:/Users/USER/dotfiles/.github/workflows/source-monitoring.yml`
+- `C:/Users/USER/dotfiles/.github/workflows/spot-check-monthly.yml`
+- `C:/Users/USER/dotfiles/.github/workflows/trust-recompute.yml`
+- `C:/Users/USER/dotfiles/fsi-app/src/app/api/worker/check-sources/route.ts`
+- `C:/Users/USER/dotfiles/fsi-app/src/app/api/worker/drain-first-fetch/route.ts` (line 276 hardcoded domain=1)
+- `C:/Users/USER/dotfiles/fsi-app/src/app/api/agent/run/route.ts`
+- `C:/Users/USER/dotfiles/fsi-app/src/app/api/admin/scan/route.ts` (line 252 hardcoded domain=1)
+- `C:/Users/USER/dotfiles/fsi-app/src/app/api/community/posts/[id]/promote/route.ts` (line 370 hardcoded domain=1)
+- `C:/Users/USER/dotfiles/fsi-app/src/app/api/staged-updates/route.ts`
+- `C:/Users/USER/dotfiles/fsi-app/src/lib/llm/first-fetch-classify.ts` (no domain in classifier output)
+- `C:/Users/USER/dotfiles/fsi-app/src/app/regulations/page.tsx` (line 50 filters domain=1; line 101 client filter domain===1)
+- `C:/Users/USER/dotfiles/fsi-app/supabase/migrations/004_source_trust_framework.sql` (line 135 domain INT NOT NULL CHECK (1..7))
+- `C:/Users/USER/dotfiles/fsi-app/supabase/migrations/065_pending_first_fetch_queue.sql` (line 120 enqueue trigger; fires on sources INSERT or auto_run_enabled flip only)
+- `C:/Users/USER/dotfiles/fsi-app/supabase/migrations/070_phase1_routing_rpcs.sql` (existing category-aware routing RPCs, orphans per REC-OBS-G)
 
 ## Related
 

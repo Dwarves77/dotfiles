@@ -212,7 +212,7 @@ Both prompt = hook live → mark §7.2 HOOK-PROOF VERIFIED. Either silent = hook
 | Option C URL-anchor backfill log | [fsi-app/scripts/.a5-sonnet-backfill.log](../scripts/.a5-sonnet-backfill.log) | 2026-05-29 |
 | Part 1 audit script (B reachability) | [fsi-app/scripts/audit-optionc-reachability.mjs](../scripts/audit-optionc-reachability.mjs) | 2026-05-29 |
 | Part 1 audit script (sources mapping) | [fsi-app/scripts/audit-optionc-sources.mjs](../scripts/audit-optionc-sources.mjs) | 2026-05-29 |
-| Part 1 B audit report | C:/Users/jason/AppData/Local/Temp/optionc-b-audit.txt | 2026-05-29 |
+| Part 1 B audit report | C:/Users/USER/AppData/Local/Temp/optionc-b-audit.txt | 2026-05-29 |
 | Part 1 C audit transcript | conversation 2026-05-29 (folded into source-provenance-model.md section 8) | 2026-05-29 |
 | Provenance design doc | [docs/designs/source-provenance-model.md](designs/source-provenance-model.md) | 2026-05-29 |
 | Fabricated items archive script | [fsi-app/scripts/flag-fabricated-items.sql](../scripts/flag-fabricated-items.sql) | 2026-05-29 |

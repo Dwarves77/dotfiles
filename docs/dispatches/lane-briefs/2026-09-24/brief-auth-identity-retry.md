@@ -4,7 +4,7 @@ Read `docs/dispatches/lane-common-contract.md` first. Worktree from `origin/mast
 
 ## The defect [HYPOTHESIS, strongly evidenced; diagnosis 2026-09-24]
 
-On 2026-09-24 at 16:51:50Z and 16:52:00Z the operator (jasonlosh@hotmail.com, user `2b7d21eb-8ea0-4b8d-a313-744aa3789c75`) signed in on two computers and saw "No workspace yet" and no Admin item, while the database was correct throughout (profiles.org_id set, workspace_role owner, is_platform_admin true, org_memberships owner of "Dietl / Rockit") [CONFIRMED by SELECT]. A later load recovered with no data change.
+On 2026-09-24 at 16:51:50Z and 16:52:00Z the operator (the operator's hotmail address, user `2b7d21eb-8ea0-4b8d-a313-744aa3789c75`) signed in on two computers and saw "No workspace yet" and no Admin item, while the database was correct throughout (profiles.org_id set, workspace_role owner, is_platform_admin true, org_memberships owner of "Dietl / Rockit") [CONFIRMED by SELECT]. A later load recovered with no data change.
 
 - `fsi-app/src/components/AuthProvider.tsx:139-152` fetches `/api/auth/identity` exactly once per tab (empty-dependency effect, no retry, no revalidation).
 - Any non-200 or network failure goes to `seed(null)`; `resolveAuthSeed(null)` in `fsi-app/src/lib/bootstrap-seed.ts:43,57-58` returns `EMPTY_SEED` with `orgId: null`. That is the RESOLVED-no-org value of the three-valued state from the 2026-09-04 PERF-MERGE fix (`fsi-app/src/components/app-shell-banner.ts:26-40`).
@@ -38,7 +38,7 @@ Each gate starts only when `tasklist | grep -ic node.exe` prints 3 or fewer:
 3. `tsc`.
 4. The FULL fitness runner (0 violations).
 5. Restore `coverage-report.json` if it is dirtied.
-6. The locked gate once: `bash "C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/lane-prepush-check.sh" <worktree>`.
+6. The locked gate once: `bash "C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/lane-prepush-check.sh" <worktree>`.
 
 A child crash (exit 3221225794 or `signal 9`) is contention: wait and re-run that step once. The session-log addendum carries a "UX compliance" block (this touches a surface).
 

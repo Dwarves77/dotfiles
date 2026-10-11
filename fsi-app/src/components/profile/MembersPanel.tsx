@@ -69,7 +69,7 @@ interface MembersPanelProps {
   callerUserId: string;
   /**
    * The signed-in reader's own email. dc.html p14's first row reads
-   * "you · jasonlosh@hotmail.com" on its second line; /api/orgs/[id]/members
+   * "you · the operator's hotmail address" on its second line; /api/orgs/[id]/members
    * returns a resolved display_name and no email column, so the caller's own
    * address is passed in from the page (which already has it) rather than
    * guessed. Omitted = the second line reads "you" alone.

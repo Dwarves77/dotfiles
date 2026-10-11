@@ -53,7 +53,7 @@ Every regulation tracked in this system directly affects one or more of:
 - **Operational routing** — emission zones, vehicle mandates, packaging restrictions, port requirements
 
 ### User Roles
-1. **Jason (admin)** — Reviews staged updates, approves/rejects, manages priorities, generates skill files
+1. **The operator (admin)** — Reviews staged updates, approves/rejects, manages priorities, generates skill files
 2. **Team members (read-only)** — View dashboard, download reports, use briefings for client conversations
 3. **Automated worker** — Runs weekly, stages proposed updates, never writes directly to production data
 
@@ -858,19 +858,19 @@ Monday 06:00 UTC — Worker runs
   ├── Writes proposed changes to staged_updates
   └── Sends Slack/email notification
 
-Monday ~morning — Jason reviews
+Monday ~morning — the operator reviews
   ├── Opens admin panel
   ├── Reviews each staged update
   ├── Approves or rejects
   ├── Approved changes write to production tables
   └── System generates new SKILL.md
 
-Monday ~afternoon — Jason uploads
+Monday ~afternoon — the operator uploads
   └── Downloads SKILL.md → uploads to Claude skill
 ```
 
 ### Manual Trigger
-Jason can say "update the skill" in any Claude conversation. Claude will:
+The operator can say "update the skill" in any Claude conversation. Claude will:
 1. Web search all priority sources
 2. Identify changes since last update
 3. Generate updated SKILL.md
@@ -906,13 +906,13 @@ The following files should be included with this handoff:
 
 | Decision | Rationale |
 |----------|-----------|
-| Supabase over raw PostgreSQL | Jason already uses Supabase for Pet Pursuit; auth + RLS built in |
-| Railway over AWS Lambda | Jason already has Railway; supports cron natively; simpler for single worker |
-| Vercel over Railway for frontend | Jason already has Vercel for Pet Pursuit; optimized for React |
+| Supabase over raw PostgreSQL | the operator already uses Supabase for Pet Pursuit; auth + RLS built in |
+| Railway over AWS Lambda | the operator already has Railway; supports cron natively; simpler for single worker |
+| Vercel over Railway for frontend | the operator already has Vercel for Pet Pursuit; optimized for React |
 | Claude Sonnet over Opus for worker | Cost efficiency for weekly batch job; Sonnet handles structured extraction well |
 | Staged updates (not auto-apply) | Human review required — regulatory data can't have false positives |
 | Blob download over clipboard | Clipboard API blocked in many sandboxed environments; Blob works universally |
-| Single admin initially | Jason is sole user with write access; team gets read-only |
+| Single admin initially | the operator is sole user with write access; team gets read-only |
 | SKILL.md manual upload | Claude doesn't have programmatic skill upload API yet |
 | HTML export format | Renders in any browser, prints clean to PDF, all hyperlinks preserved |
 | No real-time/websocket | Weekly update cadence doesn't justify persistent connections |

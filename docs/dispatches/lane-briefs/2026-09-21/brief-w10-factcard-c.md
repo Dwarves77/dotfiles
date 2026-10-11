@@ -1,6 +1,6 @@
 # Lane W10-FactCard-c: the two live leftovers on the market detail (coordinator, 2026-09-21)
 
-Model: Sonnet. Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-w10-factcard` (has node_modules). Branch: `lane/w10-factcard-c`, cut from `origin/master` (at or past `c3199c05`). Read `docs/dispatches/lane-common-contract.md`, `docs/design/ux-laws.md`, `docs/design/design-principles.md`, and brief section 2.1 of `docs/design/parts-brief-2026-09-18.md`. STOP on anything not covered. Small lane: two defects, each with a render test built from the measured pattern.
+Model: Sonnet. Worktree: `C:/Users/USER/dotfiles/.worktrees/wt-w10-factcard` (has node_modules). Branch: `lane/w10-factcard-c`, cut from `origin/master` (at or past `c3199c05`). Read `docs/dispatches/lane-common-contract.md`, `docs/design/ux-laws.md`, `docs/design/design-principles.md`, and brief section 2.1 of `docs/design/parts-brief-2026-09-18.md`. STOP on anything not covered. Small lane: two defects, each with a render test built from the measured pattern.
 
 ## Measured on production `c3199c05`, signed in, text-node walk of `main` [CONFIRMED by a read-only auditor, 2026-09-21]
 
@@ -23,4 +23,4 @@ NOT yours: the card names a real person and an employer. That is a CONTENT defec
 
 ## Report
 
-ONE final report, five lines maximum, sent once, no interim messages: commit sha; the cause of each defect with file and line and a status token; fitness violations and push gate result; any STOP with its measurement. Write the PR body `pr-w10-factcard-c.md` into `C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad, `C--Users-jason`, not your own), with a `## UX compliance` section, ending with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+ONE final report, five lines maximum, sent once, no interim messages: commit sha; the cause of each defect with file and line and a status token; fitness violations and push gate result; any STOP with its measurement. Write the PR body `pr-w10-factcard-c.md` into `C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad, `C--Users-USER`, not your own), with a `## UX compliance` section, ending with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.

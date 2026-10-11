@@ -20,9 +20,9 @@ before the identity route edit). Read before any `.tsx` edit: `docs/design/ux-la
    `orgId: null`. The client paired that with the browser session user: "signed in, no workspace".
 3. [CONFIRMED by code read] Two admin gates. The nav's Admin row showed for workspace role
    owner/admin; `/admin` (`requirePlatformAdmin`) admits only `profiles.is_platform_admin = true`.
-4. [REFUTED] Live finding 1, "the nav footer shows `jasonlosh@gmail.com · owner`": the text is not in
+4. [REFUTED] Live finding 1, "the nav footer shows `the operator's gmail address · owner`": the text is not in
    the nav. A read-only live check (the operator's saved session, headless, `/admin`) found the one text
-   node `jasonlosh@gmail.com · owner` inside `div.admin-t08-frame`, which is /admin's "Newest join" tile
+   node `the operator's gmail address · owner` inside `div.admin-t08-frame`, which is /admin's "Newest join" tile
    (`src/components/admin/redesign/WorkspacesUsageRow.tsx:134`, `[memberDisplayName(newest), newest.role]`).
    A SELECT on `org_memberships` for org `a0000000-...0001` confirms the newest membership is the gmail
    account (owner, created 2026-05-28); hotmail joined 2026-04-05. That tile is a members-table figure

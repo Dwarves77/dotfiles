@@ -4,7 +4,7 @@
     {
       "name": "refueleu_skip",
       "ok": true,
-      "detail": "a3 left untouched per Jason's call (intentional no-op)",
+      "detail": "a3 left untouched per the operator's call (intentional no-op)",
       "at": "2026-05-07T16:52:42.565Z"
     },
     {

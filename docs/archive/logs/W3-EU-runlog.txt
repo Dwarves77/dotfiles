@@ -4,7 +4,7 @@ Region:            EU
 Depth:             normal
 Jurisdictions:     28
 Cost cap:          (none)
-Output:            C:\Users\jason\dotfiles\docs\W3-tier1-EU-results.json
+Output:            C:\Users\USER\dotfiles\docs\W3-tier1-EU-results.json
 Started:           2026-05-04T20:29:47.994Z
 ══════════════════════════════════════════════════════════════
 
@@ -582,5 +582,5 @@ Duplicates:   14
 Haiku calls:  207
 Wall time:    2066.9s
 Total cost:   $3.0070 (Sonnet $2.8000 + Haiku $0.2070)
-Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-EU-results.json
+Wrote:        C:\Users\USER\dotfiles\docs\W3-tier1-EU-results.json
 ══════════════════════════════════════════════════════════════

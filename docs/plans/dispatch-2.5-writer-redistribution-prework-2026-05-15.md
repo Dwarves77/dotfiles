@@ -21,7 +21,7 @@ Operator reviews this document, confirms (or amends), then writer redistribution
 | Line count | 814 (operator mandate said 820; minor discrepancy, content is whole) |
 | Git tracking | Tracked as of PR #117 chore commit (`54fa972 chore(skill): track archived environmental-policy-and-innovation source`) |
 | Original-path SKILL.md | DELETED in PR #117 chore commit (`5ef5092 chore(skill): remove original path; content preserved in _archived/`) |
-| User-skills copy | Does not exist (`/mnt/skills/user/...` is a Linux/WSL path; on this Windows system `C:/Users/jason/.claude/skills/environmental-policy-and-innovation/` also does not exist) |
+| User-skills copy | Does not exist (`/mnt/skills/user/...` is a Linux/WSL path; on this Windows system `C:/Users/USER/.claude/skills/environmental-policy-and-innovation/` also does not exist) |
 
 The 814-line file is the only authoritative source. Operator's mandate referenced 820 lines and a `/mnt/skills/user/` path; the actual file is 814 lines at the path above.
 
@@ -354,7 +354,7 @@ The source skill is at `fsi-app/.claude/skills/_archived/environmental-policy-an
 
 The operator mandate says: "Convert /mnt/skills/user/environmental-policy-and-innovation/SKILL.md into a 5-10 line pointer to the decomposed structure."
 
-The `/mnt/skills/user/...` path is a Linux/WSL path that does not exist on this Windows system. The user-level Claude skills directory on Windows (`C:/Users/jason/.claude/skills/environmental-policy-and-innovation/`) also does not exist.
+The `/mnt/skills/user/...` path is a Linux/WSL path that does not exist on this Windows system. The user-level Claude skills directory on Windows (`C:/Users/USER/.claude/skills/environmental-policy-and-innovation/`) also does not exist.
 
 **Three options for the pointer:**
 

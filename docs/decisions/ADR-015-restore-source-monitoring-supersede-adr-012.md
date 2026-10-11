@@ -10,7 +10,7 @@ related: ADR-012, ADR-013, RD-11 (F16 fetch-hold gate), RD-20 (staged-transit), 
 
 # ADR-015 — Source-monitoring restored as the operating design
 
-## Decision (operator ruling, Jason, 2026-07-18)
+## Decision (operator ruling, the operator, 2026-07-18)
 
 The founding design is the operating design. Caro's Ledge is a source-monitoring system that
 discovers new regulatory instruments on a cadence and feeds them through the intake pipeline. Manual
@@ -51,7 +51,7 @@ Manual-only intake was the interim safety posture during the spend crisis. It is
 
 ### R5 dispute, recorded as specified (asserting neither side)
 
-ADR-012's header asserts "operator ruling, Jason, 2026-07-11, transmitted-as-written." The operator's
+ADR-012's header asserts "operator ruling, the operator, 2026-07-11, transmitted-as-written." The operator's
 2026-07-18 conduct and the dispatch record (a dedicated forensic session was needed to answer "wasn't
 this system designed to scan for regulations?") dispute that the permanent-manual sentence carried
 operator intent. This ADR records the dispute and asserts neither side: unresolved as historical fact,

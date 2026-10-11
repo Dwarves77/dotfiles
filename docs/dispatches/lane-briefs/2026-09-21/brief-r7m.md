@@ -1,6 +1,6 @@
 # Lane R7m: the loop manifest is a directory (coordinator, 2026-09-21)
 
-Model: Sonnet. Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-landdocs-0911`. Branch: `lane/r7m-loop-hops-dir`, cut from `origin/master` (at or past `b1dd38e4`). Read `docs/dispatches/lane-common-contract.md` first. STOP on anything this brief does not cover.
+Model: Sonnet. Worktree: `C:/Users/USER/dotfiles/.worktrees/wt-landdocs-0911`. Branch: `lane/r7m-loop-hops-dir`, cut from `origin/master` (at or past `b1dd38e4`). Read `docs/dispatches/lane-common-contract.md` first. STOP on anything this brief does not cover.
 
 ## Why (measured, 2026-09-21)
 

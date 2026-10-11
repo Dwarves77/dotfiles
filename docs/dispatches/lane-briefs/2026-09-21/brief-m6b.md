@@ -1,6 +1,6 @@
 # Lane M6b: the Gate A re-scan hop, the last hop before proof run 6.2 (coordinator, 2026-09-21)
 
-Model: Sonnet. Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-l25-slot-mirror`. Branch: `lane/m6b-gate-a-rescan`, cut from `origin/master` (at or past `b1dd38e4`). Read `docs/dispatches/lane-common-contract.md`, then plan row M6 (`docs/plans/complete-system-build-plan-2026-09-04.md` section 6.1) and sections C and D of `docs/dispatches/lane-briefs/2026-09-20/brief-m6-amendment-1.md`. Where they disagree with this file, this file wins. STOP on anything not covered.
+Model: Sonnet. Worktree: `C:/Users/USER/dotfiles/.worktrees/wt-l25-slot-mirror`. Branch: `lane/m6b-gate-a-rescan`, cut from `origin/master` (at or past `b1dd38e4`). Read `docs/dispatches/lane-common-contract.md`, then plan row M6 (`docs/plans/complete-system-build-plan-2026-09-04.md` section 6.1) and sections C and D of `docs/dispatches/lane-briefs/2026-09-20/brief-m6-amendment-1.md`. Where they disagree with this file, this file wins. STOP on anything not covered.
 
 ## Premises, each checked against master `b1dd38e4` by the coordinator
 

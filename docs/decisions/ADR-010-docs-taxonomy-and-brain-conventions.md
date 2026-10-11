@@ -13,7 +13,7 @@ related:
 
 ## Amendment (2026-07-13): linking convention is markdown relative links, superseding `[[wikilinks]]`
 
-Operator ruling (Jason, 2026-07-13). Docs link with **standard markdown relative links** —
+Operator ruling (the operator, 2026-07-13). Docs link with **standard markdown relative links** —
 `[label](relative/path.md)`, resolved from the *linking file's own directory* — **not** Obsidian
 `[[wikilinks]]`. Rationale: relative links render on GitHub and in any plain-markdown viewer and survive
 outside the vault, whereas `[[wikilinks]]` resolve only inside Obsidian. This supersedes Decision point 5

@@ -1,7 +1,7 @@
 # Lane W10-CommandBar-parts session log (2026-09-23)
 
 Brief: `docs/dispatches/lane-briefs/2026-09-22/brief-w10-remaining-parts.md`, section "3. W10-CommandBar
-parts page" plus its COMMON BLOCK. Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-landdocs-0911`,
+parts page" plus its COMMON BLOCK. Worktree: `C:/Users/USER/dotfiles/.worktrees/wt-landdocs-0911`,
 branch `lane/w10-commandbar-parts`, cut from `origin/master` at `316a79d4`.
 
 Skills loaded: `fsi-app:environmental-policy-and-innovation` (COMMON BLOCK first call; not otherwise

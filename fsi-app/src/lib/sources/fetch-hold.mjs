@@ -6,7 +6,7 @@
 // "scrape hold LIVE, zero fetches" constraint (previously enforced only by deleting BROWSERLESS_API_KEY, which
 // fails SILENTLY as a "key not configured" error rather than an explicit, telemetered hold).
 //
-// THE HOLD gates Jason's cadence ruling: while engaged, no fetch runs (seek-more is blocked); when Jason sets
+// THE HOLD gates the operator's cadence ruling: while engaged, no fetch runs (seek-more is blocked); when the operator sets
 // the scrape cadence he LIFTS the hold (SCRAPE_HOLD=off) and new site content / seek-more resumes. Default is
 // LIFTED so wiring the gate into the primitive does not change current prod fetch behavior — the hold is an
 // EXPLICIT operator control, engaged with SCRAPE_HOLD∈{1,on,true,engaged}. (The paid build runners ALSO delete

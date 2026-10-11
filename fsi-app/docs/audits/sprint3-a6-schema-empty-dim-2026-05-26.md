@@ -10,7 +10,7 @@ suffice for the Asia/UK/UAE D2–D6 backfill A6 proposes.
 
 ## 1. What the operations mockup actually requires
 
-Source: `C:/Users/jason/dotfiles/design_handoff_2026-05/operations.html` and the README's
+Source: `C:/Users/USER/dotfiles/design_handoff_2026-05/operations.html` and the README's
 "Operations" section.
 
 The mockup defines an `.empty-dim` CSS treatment specifically for empty-state cells:

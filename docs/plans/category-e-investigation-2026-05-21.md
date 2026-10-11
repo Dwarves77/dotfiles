@@ -6,7 +6,7 @@ operator binding rule (`feedback_site_code_deletes_need_operator_signoff.md`),
 each item is reported as WHAT / WHEN / WHY / STATE with no recommendations.
 Operator decides keep, wire, or remove for each item.
 
-All file paths are absolute from the repo root (`C:/Users/jason/dotfiles`).
+All file paths are absolute from the repo root (`C:/Users/USER/dotfiles`).
 
 ---
 

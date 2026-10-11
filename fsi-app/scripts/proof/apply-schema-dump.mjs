@@ -21,10 +21,17 @@
 //   2. runs psql on the dump file itself and collects the ERROR line(s);
 //   3. writes schema-apply-report.json (counts, error messages and role names, never row data) and reads back the
 //      number of public tables.
+// DRIFT-1b (2026-10-10): the oracle image carries DEFAULT PRIVILEGES (pg_default_acl) that grant anon, authenticated and
+// service_role on every object created in public; pg_dump emits no REVOKE for a role absent from an object's ACL, so
+// every object the dump creates picked up grants production does not have (342 grants in fire 9, DRIFT-1 session log).
+// Rule: the oracle's pg_default_acl must equal what the dump declares. So, after the roles file and BEFORE the dump, the
+// wrapper reads the oracle's own pg_default_acl, REVOKEs every non-owner grantee entry (catalog-driven, never a hand
+// list), applies the dump (whose own `ALTER DEFAULT PRIVILEGES` statements, emitted after the objects, then declare
+// production's), and reads pg_default_acl back: an entry the dump never declared is red (`default_acl.extra`).
 // Exit: 0 = applied with no error; 1 = an error (the report lists it); 2 = cannot run.
 
 import { spawnSync } from "node:child_process";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { assertLoopbackDbUrl } from "./replay-migrations.mjs";
 import { SUPERUSER_ROLE } from "./write-local-env.mjs";
@@ -66,21 +73,94 @@ export function missingRole(message) {
   return m ? m[1] : null;
 }
 
-/** Build the report. PURE. Every error is fatal; a missing role is also named in `missing_roles`. */
-export function buildReport({ errors, publicTables, startedAt, finishedAt, rolesApplied = false, rolesErrors = [] }) {
+const DEFACL_TYPES = { r: "TABLES", S: "SEQUENCES", f: "FUNCTIONS", T: "TYPES", n: "SCHEMAS" };
+const DEFACL_WORDS = { TABLES: "r", SEQUENCES: "S", FUNCTIONS: "f", ROUTINES: "f", TYPES: "T", SCHEMAS: "n" };
+const SEP = "|";
+
+/** The catalog read of the non-owner default-privilege entries: one row per (owner, schema or empty, object type, grantee or PUBLIC). */
+export const DEFAULT_ACL_QUERY = [
+  "select pg_get_userbyid(d.defaclrole), coalesce(n.nspname, ''), d.defaclobjtype::text,",
+  "case when a.grantee = 0 then 'PUBLIC' else pg_get_userbyid(a.grantee) end",
+  "from pg_default_acl d left join pg_namespace n on n.oid = d.defaclnamespace, aclexplode(d.defaclacl) a",
+  "where a.grantee <> d.defaclrole group by 1, 2, 3, 4 order by 1, 2, 3, 4",
+].join(" ");
+
+/** Parse the psql -At rows of DEFAULT_ACL_QUERY. PURE. Throws on a row that is not four fields or has an unknown object type. */
+export function parseDefaultAclRows(stdout) {
+  return String(stdout ?? "").split(/\r?\n/).filter((l) => l.trim() !== "").map((l) => {
+    const f = l.split(SEP);
+    if (f.length !== 4 || !f[0] || !f[3] || !DEFACL_TYPES[f[2]]) throw new Error(`unreadable pg_default_acl row: ${l.slice(0, 80)}`);
+    return { owner: f[0], schema: f[1], objtype: f[2], grantee: f[3] };
+  });
+}
+
+const ident = (n) => `"${String(n).replace(/"/g, '""')}"`;
+const granteeSql = (g) => (g === "PUBLIC" ? "PUBLIC" : ident(g));
+
+/** The REVOKE statements that empty the given entries. PURE. One statement per row; the oracle's catalog is the source. */
+export function clearDefaultAclStatements(rows) {
+  return rows.map((r) => `ALTER DEFAULT PRIVILEGES FOR ROLE ${ident(r.owner)}${r.schema ? ` IN SCHEMA ${ident(r.schema)}` : ""} REVOKE ALL ON ${DEFACL_TYPES[r.objtype]} FROM ${granteeSql(r.grantee)};`);
+}
+
+/** Split a comma list of grantees outside double quotes. */
+function splitGrantees(list) {
+  const out = []; let cur = ""; let q = false;
+  for (const ch of list) {
+    if (ch === '"') q = !q;
+    if (ch === "," && !q) { out.push(cur); cur = ""; } else cur += ch;
+  }
+  out.push(cur);
+  return out.map((g) => g.trim()).filter(Boolean).map((g) => (g.startsWith('"') ? g.slice(1, -1).replace(/""/g, '"') : g.toUpperCase() === "PUBLIC" ? "PUBLIC" : g.toLowerCase()));
+}
+
+/** The non-owner default-privilege entries the dump DECLARES (the GRANT forms of its ALTER DEFAULT PRIVILEGES). PURE. */
+export function parseDumpDefaultAcl(dumpText, defaultOwner = SUPERUSER_ROLE) {
+  const out = []; const seen = new Set();
+  const re = /^ALTER DEFAULT PRIVILEGES\s+(?:FOR\s+(?:ROLE|USER)\s+("(?:[^"]|"")+"|\w+)\s+)?(?:IN\s+SCHEMA\s+("(?:[^"]|"")+"|\w+)\s+)?GRANT\s+[^;]*?\s+ON\s+(TABLES|SEQUENCES|FUNCTIONS|ROUTINES|TYPES|SCHEMAS)\s+TO\s+([^;]*?)(?:\s+WITH\s+GRANT\s+OPTION)?;/gim;
+  const unq = (v) => (v.startsWith('"') ? v.slice(1, -1).replace(/""/g, '"') : v.toLowerCase());
+  for (const m of String(dumpText ?? "").matchAll(re)) {
+    const owner = m[1] ? unq(m[1]) : defaultOwner;
+    const schema = m[2] ? unq(m[2]) : "";
+    for (const grantee of splitGrantees(m[4])) {
+      if (grantee === owner) continue;
+      const row = { owner, schema, objtype: DEFACL_WORDS[m[3].toUpperCase()], grantee };
+      const key = aclKey(row);
+      if (!seen.has(key)) { seen.add(key); out.push(row); }
+    }
+  }
+  return out;
+}
+
+function aclKey(r) { return [r.owner, r.schema, r.objtype, r.grantee].join(SEP); }
+
+/** The oracle's entries the dump never declared (extra) and the dump's entries the oracle lacks (missing). PURE. */
+export function compareDefaultAcl(oracleRows, declaredRows) {
+  const o = new Set(oracleRows.map(aclKey)); const d = new Set(declaredRows.map(aclKey));
+  return { extra: [...o].filter((k) => !d.has(k)).sort(), missing: [...d].filter((k) => !o.has(k)).sort() };
+}
+
+/** Build the report. PURE. Every error is fatal; a missing role is also named in `missing_roles`; a default-privilege entry the dump never declared is fatal. */
+export function buildReport({ errors, publicTables, startedAt, finishedAt, rolesApplied = false, rolesErrors = [], defaultAcl = null, defaultsErrors = [] }) {
   const missing = [...new Set(errors.map((e) => missingRole(e.message)).filter(Boolean))];
+  const extra = defaultAcl?.extra ?? [];
   return {
     schema: "chain-proof-schema-apply-report/1",
     started_at: startedAt,
     finished_at: finishedAt,
-    fatal_errors: errors.length + rolesErrors.length,
+    fatal_errors: errors.length + rolesErrors.length + defaultsErrors.length + extra.length,
     roles_applied: rolesApplied,
     roles_errors: rolesErrors.length,
     role_errors: errors.filter((e) => missingRole(e.message)).length,
     missing_roles: missing,
+    default_acl: defaultAcl,
     public_tables: publicTables,
-    errors: [...rolesErrors.map((e) => ({ ...e, phase: "roles" })), ...errors].slice(0, MAX_ERRORS_LISTED),
-    ok: errors.length === 0 && rolesErrors.length === 0 && (publicTables ?? 0) > 0,
+    errors: [
+      ...rolesErrors.map((e) => ({ ...e, phase: "roles" })),
+      ...defaultsErrors.map((e) => ({ ...e, phase: "default-privileges" })),
+      ...errors,
+      ...extra.map((k) => ({ line: 0, message: `default privilege entry the dump never declared: ${k}`, phase: "default-privileges" })),
+    ].slice(0, MAX_ERRORS_LISTED),
+    ok: errors.length === 0 && rolesErrors.length === 0 && defaultsErrors.length === 0 && extra.length === 0 && (publicTables ?? 0) > 0,
   };
 }
 
@@ -96,8 +176,15 @@ function applyFile({ dbUrl, filePath, psql, spawn }) {
   return errors;
 }
 
-/** Apply the roles file (when given) and then the dump. Everything external is injected. Returns the report. */
-export function applySchemaDump({ dbUrl, stackUrl = null, dumpPath, rolesPath = null, psql = "psql", spawn = spawnSync, now = () => new Date() }) {
+/** Read the oracle's non-owner default-privilege entries through psql. Returns { rows, errors }. */
+function readDefaultAcl({ dbUrl, psql, spawn }) {
+  const run = spawn(psql, [dbUrl, "-X", "-At", "-F", SEP, "-c", DEFAULT_ACL_QUERY], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
+  if (run.error || run.status !== 0) return { rows: [], errors: [{ line: 0, message: `could not read pg_default_acl: ${run.error ? run.error.message : `psql exited with status ${run.status}`}`.slice(0, MAX_TEXT) }] };
+  try { return { rows: parseDefaultAclRows(run.stdout), errors: [] }; } catch (e) { return { rows: [], errors: [{ line: 0, message: e.message.slice(0, MAX_TEXT) }] }; }
+}
+
+/** Apply the roles file (when given), clear the image's default privileges, apply the dump, and check pg_default_acl against what the dump declares. Everything external is injected. Returns the report. */
+export function applySchemaDump({ dbUrl, stackUrl = null, dumpPath, rolesPath = null, psql = "psql", spawn = spawnSync, now = () => new Date(), readText = (p) => readFileSync(p, "utf8") }) {
   assertOracleUrl(dbUrl, stackUrl);
   const startedAt = now().toISOString();
   let rolesErrors = [];
@@ -105,10 +192,25 @@ export function applySchemaDump({ dbUrl, stackUrl = null, dumpPath, rolesPath = 
     rolesErrors = applyFile({ dbUrl, filePath: rolesPath, psql, spawn });
     if (rolesErrors.length) return buildReport({ errors: [], publicTables: null, startedAt, finishedAt: now().toISOString(), rolesApplied: false, rolesErrors });
   }
+  // DRIFT-1b: empty the image's default privileges before any object exists (catalog-driven REVOKEs).
+  const before = readDefaultAcl({ dbUrl, psql, spawn });
+  const statements = clearDefaultAclStatements(before.rows);
+  const defaultsErrors = [...before.errors];
+  if (!defaultsErrors.length && statements.length) {
+    const run = spawn(psql, [dbUrl, "-X", "-v", "ON_ERROR_STOP=1", "-c", statements.join("\n")], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
+    defaultsErrors.push(...collectErrors(run.stderr));
+    if (run.error || (run.status !== 0 && defaultsErrors.length === 0)) defaultsErrors.push({ line: 0, message: `clearing default privileges failed: ${run.error ? run.error.message : `psql exited with status ${run.status}`}`.slice(0, MAX_TEXT) });
+  }
+  const cleared = { statements: statements.length, owners: [...new Set(before.rows.map((r) => r.owner))].sort(), grantees: [...new Set(before.rows.map((r) => r.grantee))].sort() };
+  if (defaultsErrors.length) return buildReport({ errors: [], publicTables: null, startedAt, finishedAt: now().toISOString(), rolesApplied: Boolean(rolesPath), rolesErrors, defaultsErrors, defaultAcl: { cleared, declared: 0, after: 0, extra: [], missing: [] } });
   const errors = applyFile({ dbUrl, filePath: dumpPath, psql, spawn });
   const probe = spawn(psql, [dbUrl, "-X", "-At", "-c", "select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'"], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
   const n = Number.parseInt(String(probe.stdout ?? "").trim(), 10);
-  return buildReport({ errors, publicTables: Number.isFinite(n) ? n : null, startedAt, finishedAt: now().toISOString(), rolesApplied: Boolean(rolesPath), rolesErrors });
+  const declared = parseDumpDefaultAcl(readText(dumpPath));
+  const after = readDefaultAcl({ dbUrl, psql, spawn });
+  const cmp = compareDefaultAcl(after.rows, declared);
+  const defaultAcl = { cleared, declared: declared.length, after: after.rows.length, extra: cmp.extra, missing: cmp.missing };
+  return buildReport({ errors: [...errors, ...after.errors], publicTables: Number.isFinite(n) ? n : null, startedAt, finishedAt: now().toISOString(), rolesApplied: Boolean(rolesPath), rolesErrors, defaultAcl });
 }
 
 function arg(name) { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; }
@@ -125,7 +227,7 @@ if (isMainModule(import.meta.url)) {
   mkdirSync(dirname(resolve(reportPath)), { recursive: true });
   const report = applySchemaDump({ dbUrl, stackUrl, dumpPath: resolve(dumpPath), rolesPath: rolesPath ? resolve(rolesPath) : null });
   writeFileSync(resolve(reportPath), JSON.stringify(report, null, 2) + "\n", "utf8");
-  console.log(`apply-schema-dump: ${report.ok ? "OK" : "FAILED"}; public tables ${report.public_tables}; roles applied ${report.roles_applied}; roles errors ${report.roles_errors}; fatal errors ${report.fatal_errors}; role errors ${report.role_errors}; missing roles ${report.missing_roles.join(", ") || "none"}`);
+  console.log(`apply-schema-dump: ${report.ok ? "OK" : "FAILED"}; public tables ${report.public_tables}; roles applied ${report.roles_applied}; roles errors ${report.roles_errors}; fatal errors ${report.fatal_errors}; role errors ${report.role_errors}; missing roles ${report.missing_roles.join(", ") || "none"}; default privileges cleared ${report.default_acl?.cleared.statements ?? 0} (owners ${report.default_acl?.cleared.owners.join(", ") || "none"}), declared by the dump ${report.default_acl?.declared ?? 0}, oracle after ${report.default_acl?.after ?? 0}, extra ${report.default_acl?.extra.length ?? 0}`);
   for (const e of report.errors.slice(0, 15)) console.error(`  line ${e.line}: ${e.message}`);
   process.exit(report.ok ? 0 : 1);
 }
