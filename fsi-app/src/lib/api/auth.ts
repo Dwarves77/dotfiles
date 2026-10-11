@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Verify the request is authenticated via Supabase JWT.
@@ -66,9 +66,18 @@ export async function resolveUserIdFromToken(
   return data.claims.sub;
 }
 
+/** What requireAuth resolves: the verified caller and the anon client bound to that caller's own bearer.
+ *  The client is the one requireAuth already builds to verify the JWT (SEC-10, B-0005/B-0006): reads made
+ *  through it run under the caller's RLS, so a user route needs no service-role client for caller-scoped
+ *  reads. It carries the anon key and the caller's token, nothing more. */
+export interface AuthContext {
+  userId: string;
+  supabase: SupabaseClient;
+}
+
 export async function requireAuth(
   request: NextRequest
-): Promise<{ userId: string } | NextResponse> {
+): Promise<AuthContext | NextResponse> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -104,7 +113,7 @@ export async function requireAuth(
       );
     }
 
-    return { userId };
+    return { userId, supabase };
   } catch {
     return NextResponse.json(
       { error: "Authentication failed" },

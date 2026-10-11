@@ -101,9 +101,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     request.headers.get("origin") ||
     "";
   const inviteUrl = `${baseUrl}/invitations/${data.token}`;
-  console.log(
-    `[invitation] org=${org_id} email=${email} role=${role} url=${inviteUrl}`
-  );
+  // No email, no URL, no token in the function log: the URL carries the bearer token (SEC-10, B-0004).
+  console.log(`[invitation] org=${org_id} invitation=${data.id} role=${role}`);
 
   // Email delivery through the single seam. The result is returned to the
   // inviter verbatim — a failed or unconfigured send is a visible state the

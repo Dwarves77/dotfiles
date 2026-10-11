@@ -43,11 +43,26 @@ test("requireUserRoute: a rate-limit refusal passes through with its status", as
   assert.equal(r.status, 429);
 });
 
-test("requireUserRoute: resolves the caller", async () => {
+test("requireUserRoute: resolves the caller and passes the bearer-bound client through as userClient", async () => {
   const seen = [];
-  const r = await requireUserRoute(request(), { authenticate: ok("u1"), rateLimit: (id) => { seen.push(id); return null; } });
-  assert.deepEqual(r, { userId: "u1" });
+  const bearerClient = { tag: "bearer-bound-client" };
+  const r = await requireUserRoute(request(), {
+    authenticate: async () => ({ userId: "u1", supabase: bearerClient }),
+    rateLimit: (id) => { seen.push(id); return null; },
+  });
+  assert.deepEqual(r, { userId: "u1", userClient: bearerClient });
+  assert.equal(r.userClient, bearerClient);
   assert.deepEqual(seen, ["u1"]);
+});
+
+test("requireAdminRoute: the service client stays `supabase`; the caller's bearer client rides as userClient", async () => {
+  const bearerClient = { tag: "bearer-bound-client" };
+  const r = await requireAdminRoute(request(), {
+    authenticate: async () => ({ userId: "a1", supabase: bearerClient }), rateLimit: () => null,
+    isAdmin: async () => true, serviceClient: () => stubClient, limitHeaders: () => ({}),
+  });
+  assert.equal(r.supabase, stubClient);
+  assert.equal(r.userId, "a1");
 });
 
 test("requireCommunityRoute: returns the community-auth result (cookie-bound client kept) after the rate limit", async () => {
