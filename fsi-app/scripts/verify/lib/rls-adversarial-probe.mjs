@@ -6,8 +6,8 @@
 // duplication landing on the branch -- extract-the-shared-home-and-import-it, not a second copy.
 //
 // Each per-table audit still owns its own fixture setup, its own probe call list (the columns/SQL are
-// table-specific), and its own CLI bootstrap message -- only the mechanical "run this inside
-// BEGIN..ROLLBACK and classify the outcome" primitive is shared.
+// table-specific), and its own CLI bootstrap message -- only the mechanical "run this inside a SAVEPOINT of
+// the caller's transaction and classify the outcome" primitive is shared.
 
 const DENY_SQLSTATE = "42501"; // insufficient_privilege
 
@@ -30,11 +30,21 @@ export function classifyServiceRoleRead(count) {
   return { ok: false, note: `service_role fixture read returned ${count} row(s), expected 1, legitimate path broken` };
 }
 
-/** Runs one probe inside BEGIN..ROLLBACK against `client`. `expect` is 'deny' | 'allow'. `pre` are
- *  statements (role/GUC setup) run inside the same transaction before `sql`. Always rolls back, no
- *  probe write persists regardless of verdict. Pushes {label, verdict, note} onto `results`. */
+let probeSeq = 0;
+
+/** Runs one probe inside the CALLER'S open transaction, fenced by a SAVEPOINT. `expect` is 'deny' | 'allow'.
+ *  `pre` are statements (role/GUC setup, SET LOCAL) run inside the same savepoint before `sql`. Always
+ *  rolls back to the savepoint (so SET LOCAL ROLE and any probe write are undone and the caller's
+ *  transaction, fixtures and all, stays usable), then releases it. Pushes {label, verdict, note} onto
+ *  `results`.
+ *
+ *  DATA-1 (2026-10-11): this used BEGIN/ROLLBACK. Postgres has no nested transactions: the callers
+ *  (derivation-edges and harness-runs adversarial audits) already hold an open fixture transaction, so the
+ *  inner ROLLBACK ended it and the next SAVEPOINT failed "can only be used in transaction blocks" (the
+ *  nightly ERROR). A SAVEPOINT is the nesting primitive. Must be called inside a transaction. */
 export async function probe(client, label, expect, sql, params, pre, results) {
-  await client.query("BEGIN");
+  const sp = `rls_probe_${++probeSeq}`;
+  await client.query(`SAVEPOINT ${sp}`);
   try {
     for (const p of pre) await client.query(p);
     await client.query(sql, params);
@@ -48,7 +58,8 @@ export async function probe(client, label, expect, sql, params, pre, results) {
       results.push({ label, verdict: "ERROR", note: `${e.code || "?"}: ${(e.message || "").split("\n")[0]}` });
     }
   } finally {
-    await client.query("ROLLBACK");
+    await client.query(`ROLLBACK TO SAVEPOINT ${sp}`);
+    await client.query(`RELEASE SAVEPOINT ${sp}`);
   }
 }
 

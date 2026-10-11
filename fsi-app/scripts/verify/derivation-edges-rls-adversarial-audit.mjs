@@ -79,7 +79,7 @@ export async function runAudit(client) {
     }
     await client.query(
       `INSERT INTO public.derivation_edges (from_table, from_pk, to_value_id, edge_kind)
-       VALUES ('derived_values', $1, $1, 'input')`,
+       VALUES ('derived_values', $1::text, $1::uuid, 'input')`,
       [dv],
     );
     // service_role (BYPASSRLS) fixture read, proves the legitimate path is intact BEFORE the attacks run.
@@ -89,12 +89,11 @@ export async function runAudit(client) {
     const fRead = classifyServiceRoleRead(n);
     results.push({ label: "F service_role fixture read (BYPASSRLS) sees its own row", verdict: fRead.ok ? "PASS" : "FAIL", note: fRead.note });
     fixtureOk = fRead.ok;
-
-    // ── A-E: unauthorized-role attacks, each its own nested probe (own BEGIN..ROLLBACK, run while the
-    // outer fixture transaction is still open so the fixture row/dv id are visible to name in probes) ────
+    // ── A-E: unauthorized-role attacks, each its own SAVEPOINT probe inside the outer fixture transaction
+    // (the fixture row and dv id stay visible to name in the probes) ────
     await probe(client, "A anon INSERT into derivation_edges DENIED", "deny",
       `INSERT INTO public.derivation_edges (from_table, from_pk, to_value_id, edge_kind)
-       VALUES ('derived_values', $1, $1, 'input')`, [dv],
+       VALUES ('derived_values', $1::text, $1::uuid, 'input')`, [dv],
       [`SET LOCAL ROLE anon`], results);
 
     await probe(client, "B anon UPDATE on derivation_edges DENIED", "deny",
@@ -107,7 +106,7 @@ export async function runAudit(client) {
 
     await probe(client, "D authenticated INSERT into derivation_edges DENIED", "deny",
       `INSERT INTO public.derivation_edges (from_table, from_pk, to_value_id, edge_kind)
-       VALUES ('derived_values', $1, $1, 'input')`, [dv],
+       VALUES ('derived_values', $1::text, $1::uuid, 'input')`, [dv],
       [`SET LOCAL ROLE authenticated`, `SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000000"}', true)`], results);
 
     // E, authenticated SELECT must see zero rows (deny-all, not merely write-deny).
