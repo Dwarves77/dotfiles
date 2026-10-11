@@ -605,7 +605,7 @@ export async function POST(request: NextRequest) {
   let auditLogError: string | undefined;
   if (auditErr) {
     auditLogError = `bulk_imports audit row failed to write: ${auditErr.message}`;
-    await supabase
+    const { error: flagErr } = await supabase
       .from("integrity_flags")
       .insert({
         category: "data_integrity",
@@ -620,11 +620,12 @@ export async function POST(request: NextRequest) {
         ],
         status: "open",
         created_by: "bulk-import-route",
-      })
-      .then(() => {}, () => {
-        // integrity_flags itself failed to accept the write — audit_log_error in
-        // the response body is still returned to the caller, so this is not silent.
       });
+    if (flagErr) {
+      // integrity_flags itself failed to accept the write; audit_log_error in the response body names both gaps.
+      console.warn("[bulk-import] integrity flag insert failed after audit insert failed: " + flagErr.message);
+      auditLogError += `; integrity flag also not recorded: ${flagErr.message}`;
+    }
   }
 
   const applied = {

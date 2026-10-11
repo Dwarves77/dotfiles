@@ -116,12 +116,15 @@ export async function DELETE(
 
   // Sanity check the caller has a membership row. RLS would let the
   // DELETE no-op silently, but a 404 makes the UI behaviour explicit.
-  const { data: existing } = await auth.supabase
+  const { data: existing, error: existingErr } = await auth.supabase
     .from("community_group_members")
     .select("role")
     .eq("group_id", groupId)
     .eq("user_id", auth.userId)
     .maybeSingle();
+  if (existingErr) {
+    return NextResponse.json({ error: existingErr.message }, { status: 500 });
+  }
 
   if (!existing) {
     return NextResponse.json(
@@ -133,11 +136,14 @@ export async function DELETE(
   // Guard rail: if the caller is the only admin, refuse to leave. The
   // group needs at least one admin or the surface becomes ungovernable.
   if (existing.role === "admin") {
-    const { count: adminCount } = await auth.supabase
+    const { count: adminCount, error: adminCountErr } = await auth.supabase
       .from("community_group_members")
       .select("user_id", { count: "exact", head: true })
       .eq("group_id", groupId)
       .eq("role", "admin");
+    if (adminCountErr) {
+      return NextResponse.json({ error: adminCountErr.message }, { status: 500 });
+    }
     if ((adminCount ?? 0) <= 1) {
       return NextResponse.json(
         {

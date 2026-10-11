@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
   // Resolve target sourceId: either an existing one or a new insert.
   let sourceId: string | null = body.existingSourceId || null;
   let createdSource = false;
+  const warnings: string[] = [];
 
   // Dedup guard (defect (a)): even without a client-supplied existingSourceId, a source with
   // this canonical URL may already exist. Resolve canonically (host-narrow + JS compare) before
@@ -191,9 +192,16 @@ export async function POST(request: NextRequest) {
     const canonCandUrl = canonicalizeUrl(cand.candidate_url);
     let canonHost = "";
     try { canonHost = new URL(canonCandUrl).host; } catch { /* non-URL candidate */ }
-    const { data: hostMatches } = canonHost
+    const { data: hostMatches, error: hostMatchErr } = canonHost
       ? await supabase.from("sources").select("id, url").ilike("url", `%${canonHost}%`)
-      : { data: [] };
+      : { data: [], error: null };
+    // A failed dedup read would fall through to the new-source INSERT and mint a duplicate. Fail closed.
+    if (hostMatchErr) {
+      return NextResponse.json(
+        { error: `Source registry lookup failed: ${hostMatchErr.message}` },
+        { status: 500 }
+      );
+    }
     const existingByUrl = (hostMatches || []).find((s) => canonicalizeUrl(s.url) === canonCandUrl);
     if (existingByUrl) sourceId = existingByUrl.id;
   }
@@ -264,7 +272,7 @@ export async function POST(request: NextRequest) {
     sourceId = inserted.id;
     createdSource = true;
 
-    await supabase.from("source_trust_events").insert({
+    const { error: trustErr } = await supabase.from("source_trust_events").insert({
       source_id: sourceId,
       event_type: "manual_review",
       details: {
@@ -284,6 +292,10 @@ export async function POST(request: NextRequest) {
       created_by: "human",
       reviewer_id: auth.userId,
     });
+    if (trustErr) {
+      console.warn("[decide] trust event insert failed after source insert: " + trustErr.message);
+      warnings.push("trust event not recorded");
+    }
   }
 
   // Update intelligence_items to point at the resolved source. Q10:
@@ -344,6 +356,7 @@ export async function POST(request: NextRequest) {
       candidateId: body.candidateId,
       sourceId,
       createdSource,
+      ...(warnings.length > 0 ? { warnings } : {}),
     },
     { headers: rateLimitHeaders(auth.userId) }
   );

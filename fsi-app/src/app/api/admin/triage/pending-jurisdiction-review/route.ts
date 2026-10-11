@@ -65,16 +65,21 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const { count: totalCount } = await supabase
+  const { count: totalCount, error: countErr } = await supabase
     .from("pending_jurisdiction_review")
     .select("id", { count: "exact", head: true })
     .is("resolved_at", null);
+  // The count only decorates the stat strip: on a read error total_unresolved is null (unknown), never 0.
+  if (countErr) {
+    console.warn("[pending-jurisdiction-review] unresolved count read failed: " + countErr.message);
+  }
 
   return NextResponse.json(
     {
       items: data || [],
       total_unresolved: totalCount ?? null,
       list_capped: typeof totalCount === "number" && totalCount > (data?.length ?? 0),
+      ...(countErr ? { warnings: ["unresolved total unavailable"] } : {}),
     },
     { headers: rateLimitHeaders(auth.userId) }
   );

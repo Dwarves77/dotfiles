@@ -41,12 +41,15 @@ export async function GET(
 
   // Pre-check: only admins/moderators/owners see invitations. RLS
   // already enforces this; the early 403 keeps the surface explicit.
-  const { data: callerMembership } = await auth.supabase
+  const { data: callerMembership, error: membershipErr } = await auth.supabase
     .from("community_group_members")
     .select("role")
     .eq("group_id", groupId)
     .eq("user_id", auth.userId)
     .maybeSingle();
+  if (membershipErr) {
+    return NextResponse.json({ error: membershipErr.message }, { status: 500 });
+  }
 
   if (
     !callerMembership ||

@@ -78,11 +78,15 @@ export async function POST(request: NextRequest) {
   // 4h cooldown gate. Migration 024 must be applied for this to be enforced.
   // If the table is missing (migration not yet applied), the cooldown is silently
   // skipped — the upsert at the end of a successful scan will also no-op.
-  const { data: cooldownRow } = await supabase
+  const { data: cooldownRow, error: cooldownErr } = await supabase
     .from("admin_action_cooldowns")
     .select("last_triggered_at")
     .eq("action_key", SCAN_COOLDOWN_KEY)
     .maybeSingle();
+  // A failed cooldown read must not disable the cooldown on a paid web_search scan. Fail closed.
+  if (cooldownErr) {
+    return NextResponse.json({ error: `cooldown check failed: ${cooldownErr.message}` }, { status: 500 });
+  }
 
   if (cooldownRow?.last_triggered_at) {
     const elapsed = Date.now() - new Date(cooldownRow.last_triggered_at).getTime();
@@ -462,12 +466,17 @@ Return ONLY the JSON object, no other text.`;
 
     // Stamp the cooldown ledger on success. If migration 024 hasn't been applied
     // yet, this no-ops silently — cooldown will activate once the table exists.
-    await supabase.from("admin_action_cooldowns").upsert({
+    const { error: cooldownStampErr } = await supabase.from("admin_action_cooldowns").upsert({
       action_key: SCAN_COOLDOWN_KEY,
       last_triggered_at: new Date().toISOString(),
       triggered_by: auth.userId,
       metadata: { topic: topic || null, jurisdiction: jurisdiction || null, staged: stagedItems.length },
     }, { onConflict: "action_key" });
+    const scanWarnings: string[] = [];
+    if (cooldownStampErr) {
+      console.warn("[scan] cooldown stamp failed after staging: " + cooldownStampErr.message);
+      scanWarnings.push("cooldown not recorded");
+    }
 
     await d3AuditEvent(supabase, { scope: "data", event: "ingest:scan" });
 
@@ -484,6 +493,7 @@ Return ONLY the JSON object, no other text.`;
       portal_class_titles: portalRejects.slice(0, 10),
       skipped_unrecognized_item_type: skippedUnknownType.length,
       skipped_titles: skippedUnknownType.slice(0, 10),
+      ...(scanWarnings.length > 0 ? { warnings: scanWarnings } : {}),
     }, { headers: rateLimitHeaders(auth.userId) });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });

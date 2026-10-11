@@ -141,11 +141,36 @@ function leftHandSide(c, awaitIdx) {
     while (s > 0 && /[\w$]/.test(c[s - 1])) s--;
     if (c.slice(s, j + 1) === 'else' || c.slice(s, j + 1) === 'do') return { kind: 'statement', start: awaitIdx };
   }
-  return { kind: 'flows' }; // return, arrow body, argument, ternary arm, object value: the result goes somewhere
+  if (ch === '?' || ch === ':' || ch === '&' || ch === '|') {
+    // `const { data } = cond ? await sb.from(...) : fallback`: the await is an arm of an expression whose own
+    // assignment binds the result. Find that statement's first top-level `=` and read the pattern before it.
+    let depth = 0;
+    let st = awaitIdx - 1;
+    for (; st >= 0; st--) {
+      if (CLOSE.includes(c[st])) depth++;
+      else if (OPEN.includes(c[st])) { depth--; if (depth < 0) break; }
+      else if (c[st] === ';' && depth === 0) break;
+    }
+    depth = 0;
+    for (let k = st + 1; k < awaitIdx; k++) {
+      if (OPEN.includes(c[k])) depth++;
+      else if (CLOSE.includes(c[k])) depth--;
+      else if (depth === 0 && c[k] === '=' && !'=>'.includes(c[k + 1] ?? '') && !'=!<>'.includes(c[k - 1] ?? '')) {
+        let e = k - 1;
+        while (e >= 0 && /\s/.test(c[e])) e--;
+        if (c[e] === '}' || c[e] === ']') {
+          const open = matchBackward(c, e);
+          if (open !== -1) return { kind: c[e] === '}' ? 'object' : 'array', text: c.slice(open, e + 1), start: open };
+        }
+        return { kind: 'ident', start: e };
+      }
+    }
+  }
+  return { kind: 'flows' }; // return, arrow body, argument, object value: the result goes somewhere
 }
 
 /** Pure: every unchecked Supabase result in `content`. Returns `[{ start, end, shape, detail }]` as character spans
- *  of the code view (`end` exclusive); `lineOf` maps an index to its line. */
+ *  of the code view (`end` exclusive). */
 export function findDroppedResults(content) {
   const c = views(content).code;
   const out = [];

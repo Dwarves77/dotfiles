@@ -116,18 +116,25 @@ export async function POST(
   const sourceUpdate: Record<string, string> = { last_checked: now };
   if (decision.stamp.inaccessible) sourceUpdate.last_inaccessible = now;
   if (decision.stamp.accessible) sourceUpdate.last_accessible = now;
-  await supabase.from("sources").update(sourceUpdate).eq("id", source.id);
+  const { error: stampErr } = await supabase.from("sources").update(sourceUpdate).eq("id", source.id);
+  const warnings: string[] = [];
+  if (stampErr) {
+    console.warn("[fetch-now] source check stamp failed after fetch: " + stampErr.message);
+    warnings.push("source check timestamps not recorded");
+  }
 
   if (decision.kind === "dead") {
     return NextResponse.json(
-      { success: false, dead: true, error: fetchError?.message, source: source.name, method: source.access_method },
+      { success: false, dead: true, error: fetchError?.message, source: source.name, method: source.access_method,
+        ...(warnings.length > 0 ? { warnings } : {}) },
       { status: decision.httpStatus, headers: rateLimitHeaders(auth.userId) }
     );
   }
   if (decision.kind === "inconclusive") {
     return NextResponse.json(
       { success: false, inconclusive: true, reason: decision.reason, error: fetchError?.message,
-        source: source.name, method, contentPreview: content ? content.slice(0, 300) : undefined },
+        source: source.name, method, contentPreview: content ? content.slice(0, 300) : undefined,
+        ...(warnings.length > 0 ? { warnings } : {}) },
       { status: decision.httpStatus, headers: rateLimitHeaders(auth.userId) }
     );
   }
@@ -148,6 +155,7 @@ export async function POST(
       contentHash,
       contentPreview: okContent.slice(0, 800),
       durationMs: Date.now() - startTime,
+      ...(warnings.length > 0 ? { warnings } : {}),
     },
     { headers: rateLimitHeaders(auth.userId) }
   );

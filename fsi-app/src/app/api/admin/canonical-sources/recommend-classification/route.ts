@@ -185,11 +185,15 @@ export async function POST(request: NextRequest) {
   }
 
   // Pull parent item for grounding context
-  const { data: item } = await supabase
+  const { data: item, error: itemErr } = await supabase
     .from("intelligence_items")
     .select("id, title, item_type, domain, jurisdictions, topic_tags")
     .eq("id", cand.intelligence_item_id)
     .single();
+  // The parent item only grounds the prompt; on a read error the prompt says "(unknown)" for it.
+  if (itemErr) {
+    console.warn("[recommend-classification] parent item read failed: " + itemErr.message);
+  }
 
   const userMessage = `Classify this canonical source candidate.
 

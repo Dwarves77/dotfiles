@@ -143,9 +143,15 @@ export async function POST(request: NextRequest) {
     });
 
   if (memberErr) {
-    await service.from("community_groups").delete().eq("id", group.id as string);
+    const { error: cleanupErr } = await service.from("community_groups").delete().eq("id", group.id as string);
+    if (cleanupErr) {
+      console.warn("[groups] orphan group cleanup failed after membership bootstrap failed: " + cleanupErr.message);
+    }
     return NextResponse.json(
-      { error: "Could not attach you to the new group; creation rolled back" },
+      {
+        error: "Could not attach you to the new group; creation rolled back",
+        ...(cleanupErr ? { warnings: ["orphan group not removed"] } : {}),
+      },
       { status: 500 }
     );
   }

@@ -54,12 +54,15 @@ export async function POST(
   // Verify caller is admin or moderator of this group. RLS on
   // community_group_members already gates SELECT to admins/moderators
   // (see migration 029) so a non-privileged caller will see 0 rows.
-  const { data: callerMembership } = await auth.supabase
+  const { data: callerMembership, error: membershipErr } = await auth.supabase
     .from("community_group_members")
     .select("role")
     .eq("group_id", groupId)
     .eq("user_id", auth.userId)
     .maybeSingle();
+  if (membershipErr) {
+    return NextResponse.json({ error: membershipErr.message }, { status: 500 });
+  }
 
   if (
     !callerMembership ||

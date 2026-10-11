@@ -80,11 +80,17 @@ export async function GET(request: NextRequest) {
   }
 
   const ids = disagreements.map((r) => r.target_source_id);
-  const { data: sources } = await supabase
+  const { data: sources, error: sourcesError } = await supabase
     .from("sources")
     .select("id, name, url, base_tier, effective_tier, tier_override, override_reason")
     // fitness-allow: F39 (ids is the request's own tier-opinion id list, admin-authored and small)
     .in("id", ids);
+  if (sourcesError) {
+    return NextResponse.json(
+      { error: sourcesError.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
 
   const byId = new Map<string, {
     id: string;

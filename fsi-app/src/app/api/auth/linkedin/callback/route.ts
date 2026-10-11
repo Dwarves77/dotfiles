@@ -256,19 +256,25 @@ export async function GET(request: NextRequest) {
   // onboarding" and route to /onboarding by default.
   let returnTo = "/onboarding";
   try {
-    const { data: membership } = await supabase
+    const { data: membership, error: membershipErr } = await supabase
       .from("org_memberships")
       .select("org_id")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
+    if (membershipErr) {
+      console.warn("[linkedin-oauth] membership read failed, routing to onboarding", { pgCode: membershipErr.code ?? "unknown" });
+    }
     const orgId = membership?.org_id ?? null;
     if (orgId) {
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsErr } = await supabase
         .from("workspace_settings")
         .select("sector_profile")
         .eq("org_id", orgId)
         .maybeSingle();
+      if (settingsErr) {
+        console.warn("[linkedin-oauth] workspace settings read failed, routing to onboarding", { pgCode: settingsErr.code ?? "unknown" });
+      }
       const sectors = (settings?.sector_profile as string[] | null) ?? null;
       if (Array.isArray(sectors) && sectors.length > 0) {
         returnTo = "/profile";

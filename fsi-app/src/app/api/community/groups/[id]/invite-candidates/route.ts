@@ -37,12 +37,15 @@ export async function GET(
   }
 
   // Pre-check admin role (mirrors the .../invite POST handler).
-  const { data: callerMembership } = await auth.supabase
+  const { data: callerMembership, error: membershipErr } = await auth.supabase
     .from("community_group_members")
     .select("role")
     .eq("group_id", groupId)
     .eq("user_id", auth.userId)
     .maybeSingle();
+  if (membershipErr) {
+    return NextResponse.json({ error: membershipErr.message }, { status: 500 });
+  }
   if (callerMembership?.role !== "admin") {
     return NextResponse.json(
       { error: "Only group admins can search invite candidates" },
@@ -60,7 +63,10 @@ export async function GET(
   }
 
   // Find members + pending invitees to exclude from candidate set.
-  const [{ data: existingMembers }, { data: pendingInvites }] =
+  const [
+    { data: existingMembers, error: existingMembersErr },
+    { data: pendingInvites, error: pendingInvitesErr },
+  ] =
     await Promise.all([
       auth.supabase
         .from("community_group_members")
@@ -72,6 +78,13 @@ export async function GET(
         .eq("group_id", groupId)
         .eq("status", "pending"),
     ]);
+  // A failed exclusion read would offer existing members and pending invitees as candidates. Fail closed.
+  if (existingMembersErr || pendingInvitesErr) {
+    return NextResponse.json(
+      { error: existingMembersErr?.message ?? pendingInvitesErr?.message },
+      { status: 500 }
+    );
+  }
 
   const excluded = new Set<string>();
   for (const m of existingMembers ?? []) excluded.add(m.user_id);

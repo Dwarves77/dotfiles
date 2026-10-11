@@ -47,16 +47,21 @@ export async function GET(request: NextRequest) {
 
   // Total counts (untriaged) for the stat strip. Cheap header-only count
   // so the UI can show "200 of 743" when the list is capped.
-  const { count: totalCount } = await supabase
+  const { count: totalCount, error: countErr } = await supabase
     .from("ingest_rejections")
     .select("id", { count: "exact", head: true })
     .is("triaged_at", null);
+  // The count only decorates the stat strip: on a read error total_untriaged is null (unknown), never 0.
+  if (countErr) {
+    console.warn("[ingest-rejections] untriaged count read failed: " + countErr.message);
+  }
 
   return NextResponse.json(
     {
       items: data || [],
       total_untriaged: totalCount ?? null,
       list_capped: typeof totalCount === "number" && totalCount > (data?.length ?? 0),
+      ...(countErr ? { warnings: ["untriaged total unavailable"] } : {}),
     },
     { headers: rateLimitHeaders(auth.userId) }
   );

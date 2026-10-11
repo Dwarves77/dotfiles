@@ -98,13 +98,19 @@ export async function GET(
     );
   }
 
-  const { data: events } = await supabase
+  const { data: events, error: eventsError } = await supabase
     .from("source_trust_events")
     .select("event_type, reviewer_id, created_at, details")
     .eq("source_id", id)
     .in("event_type", ["tier_override", "tier_override_revert"])
     .order("created_at", { ascending: false })
     .limit(20);
+  if (eventsError) {
+    return NextResponse.json(
+      { error: eventsError.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
 
   return NextResponse.json(
     {

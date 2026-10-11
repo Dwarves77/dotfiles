@@ -114,12 +114,19 @@ export async function POST(request: NextRequest) {
     const canonUrl = canonicalizeUrl(prov.url);
     let canonHost = "";
     try { canonHost = new URL(canonUrl).host; } catch { /* non-URL provisional URL */ }
-    const { data: hostMatches } = canonHost
+    const { data: hostMatches, error: hostMatchErr } = canonHost
       ? await supabase.from("sources").select("id, url").ilike("url", `%${canonHost}%`)
-      : { data: [] };
+      : { data: [], error: null };
+    // A failed dedup read would fall through to the INSERT and mint a duplicate source. Fail closed.
+    if (hostMatchErr) {
+      return NextResponse.json(
+        { error: `Source registry lookup failed: ${hostMatchErr.message}` },
+        { status: 500 }
+      );
+    }
     const existingSource = findExistingSourceByCanonicalUrl(hostMatches || [], canonUrl);
     if (existingSource) {
-      await supabase
+      const { error: reuseErr } = await supabase
         .from("provisional_sources")
         .update({
           status: PROVISIONAL_SOURCES_PROMOTED_STATUS,
@@ -129,6 +136,12 @@ export async function POST(request: NextRequest) {
             `${body.reviewerNotes || ""} [reused existing source ${existingSource.id.slice(0, 8)}: canonical URL already in registry, no duplicate created]`.trim(),
         })
         .eq("id", body.provisionalSourceId);
+      if (reuseErr) {
+        return NextResponse.json(
+          { error: `Failed to mark provisional promoted to the existing source: ${reuseErr.message}` },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
         {
           ok: true,
@@ -201,7 +214,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Audit trail
-    await supabase.from("source_trust_events").insert({
+    const warnings: string[] = [];
+    const { error: approveTrustErr } = await supabase.from("source_trust_events").insert({
       source_id: inserted.id,
       event_type: "manual_review",
       details: {
@@ -219,6 +233,10 @@ export async function POST(request: NextRequest) {
       created_by: "human",
       reviewer_id: auth.userId,
     });
+    if (approveTrustErr) {
+      console.warn("[promote] trust event insert failed after source insert: " + approveTrustErr.message);
+      warnings.push("trust event not recorded");
+    }
 
     // WIRE-ITEMS: write the Haiku bias-tag recommendation into source_bias_tags
     // now that a sources row exists. Best-effort: a malformed or absent
@@ -243,6 +261,7 @@ export async function POST(request: NextRequest) {
         success: true,
         decision: "approve",
         sourceId: inserted.id,
+        ...(warnings.length > 0 ? { warnings } : {}),
       },
       { headers: rateLimitHeaders(auth.userId) }
     );
@@ -265,7 +284,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await supabase.from("source_trust_events").insert({
+    const { error: rejectTrustErr } = await supabase.from("source_trust_events").insert({
       source_id: null,
       event_type: "manual_review",
       details: {
@@ -278,9 +297,14 @@ export async function POST(request: NextRequest) {
       created_by: "human",
       reviewer_id: auth.userId,
     });
+    const rejectWarnings: string[] = [];
+    if (rejectTrustErr) {
+      console.warn("[promote] trust event insert failed after reject: " + rejectTrustErr.message);
+      rejectWarnings.push("trust event not recorded");
+    }
 
     return NextResponse.json(
-      { success: true, decision: "reject" },
+      { success: true, decision: "reject", ...(rejectWarnings.length > 0 ? { warnings: rejectWarnings } : {}) },
       { headers: rateLimitHeaders(auth.userId) }
     );
   }

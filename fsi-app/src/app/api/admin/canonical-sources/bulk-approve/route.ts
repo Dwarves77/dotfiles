@@ -43,6 +43,7 @@ interface BulkResult {
   sourceId?: string | null;
   createdSource?: boolean;
   success?: boolean;
+  warnings?: string[];
 }
 
 interface ReviewItem {
@@ -131,6 +132,7 @@ export async function POST(request: NextRequest) {
     const canonCandidateUrl = canonicalizeUrl(cand.candidate_url);
     let sourceId = existingSources.get(canonCandidateUrl) || null;
     let createdSource = false;
+    const candWarnings: string[] = [];
 
     if (!sourceId) {
       // Need a cached classification for the source METADATA (domains/jurisdictions). Bulk doesn't call Haiku.
@@ -233,7 +235,7 @@ export async function POST(request: NextRequest) {
       // Add to lookup so later candidates with the same URL reuse it
       existingSources.set(canonCandidateUrl, sourceId);
 
-      await supabase.from("source_trust_events").insert({
+      const { error: trustErr } = await supabase.from("source_trust_events").insert({
         source_id: sourceId,
         event_type: "manual_review",
         details: {
@@ -247,6 +249,10 @@ export async function POST(request: NextRequest) {
         created_by: "human",
         reviewer_id: auth.userId,
       });
+      if (trustErr) {
+        console.warn("[bulk-approve] trust event insert failed after source insert: " + trustErr.message);
+        candWarnings.push("trust event not recorded");
+      }
     }
 
     // Update intelligence_items. Q10: write the canonical form so the
@@ -272,7 +278,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark approved
-    await supabase
+    const { error: approveErr } = await supabase
       .from("canonical_source_candidates")
       .update({
         decision: "approved",
@@ -283,6 +289,15 @@ export async function POST(request: NextRequest) {
         reviewed: true,
       })
       .eq("id", cand.id);
+    if (approveErr) {
+      results.push({
+        candidateId: cand.id,
+        itemId: cand.intelligence_item_id,
+        error: `Candidate decision update failed: ${approveErr.message}`,
+      });
+      failedCount++;
+      continue;
+    }
 
     results.push({
       candidateId: cand.id,
@@ -290,6 +305,7 @@ export async function POST(request: NextRequest) {
       sourceId,
       createdSource,
       success: true,
+      ...(candWarnings.length > 0 ? { warnings: candWarnings } : {}),
     });
     approvedCount++;
   }

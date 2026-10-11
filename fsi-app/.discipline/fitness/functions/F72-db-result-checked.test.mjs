@@ -76,6 +76,12 @@ test("GREEN: a result that is returned, kept whole or passed on is not a dropped
   assert.deepEqual(check('const out = cond ? await sb.from("x").select("id") : null;'), []);
 });
 
+test("RED DATA-ONLY: an await that is an arm of a ternary or logical expression is still bound by the statement's pattern", () => {
+  assert.deepEqual(shapes('const { data: hm } = host ? await sb.from("x").select("id") : { data: [] };'), ["DATA-ONLY"]);
+  assert.deepEqual(check('const { data: hm, error: hmErr } = host ? await sb.from("x").select("id") : { data: [], error: null };'), []);
+  assert.deepEqual(shapes('const { data } = (await ok()) && await sb.from("x").select("id");'), ["DATA-ONLY"]);
+});
+
 test("GREEN: a capitalised receiver (Array.from, Buffer.from) and non-Supabase awaits are never a query", () => {
   assert.deepEqual(check("const { data } = await Array.from(xs);"), []);
   assert.deepEqual(check("await Buffer.from(body).arrayBuffer();"), []);

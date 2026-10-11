@@ -261,12 +261,15 @@ export async function POST(request: NextRequest) {
   // group member" can report. (RLS on community_group_members SELECT
   // restricts the row read to self / admins, but a self-row read is
   // allowed, which is exactly what we need here.)
-  const { data: membership } = await auth.supabase
+  const { data: membership, error: membershipErr } = await auth.supabase
     .from("community_group_members")
     .select("user_id")
     .eq("group_id", post.group_id)
     .eq("user_id", auth.userId)
     .maybeSingle();
+  if (membershipErr) {
+    return NextResponse.json({ error: membershipErr.message }, { status: 500 });
+  }
   if (!membership) {
     return NextResponse.json(
       { error: "Only members of this group can file reports" },

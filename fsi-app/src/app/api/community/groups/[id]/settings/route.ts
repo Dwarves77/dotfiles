@@ -99,8 +99,8 @@ export async function PATCH(
   // community_groups already enforces this, but a 403 here is friendlier
   // than the generic 0-row response RLS would produce.
   const [
-    { data: callerMembership },
-    { data: groupRow },
+    { data: callerMembership, error: membershipErr },
+    { data: groupRow, error: groupErr },
   ] = await Promise.all([
     auth.supabase
       .from("community_group_members")
@@ -115,6 +115,12 @@ export async function PATCH(
       .maybeSingle(),
   ]);
 
+  if (membershipErr || groupErr) {
+    return NextResponse.json(
+      { error: membershipErr?.message ?? groupErr?.message },
+      { status: 500 }
+    );
+  }
   if (!groupRow) {
     return NextResponse.json({ error: "Group not found" }, { status: 404 });
   }

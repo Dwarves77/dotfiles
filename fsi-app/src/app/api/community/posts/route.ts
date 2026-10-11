@@ -184,11 +184,12 @@ async function loadAuthorIdentityInputs(
     return { memberProfilesById, identitiesById: new Map() };
   }
 
-  const { data: memberProfiles } = await supabase
+  const { data: memberProfiles, error: memberProfilesErr } = await supabase
     .from("community_member_profiles")
     .select("user_id, org_type, role, sector, region, verified")
     // fitness-allow: F39 (authorIds bounded by assertBound at the call site, MAX_LIMIT clamp)
     .in("user_id", authorIds);
+  if (memberProfilesErr) console.warn("community posts route: member profile lookup failed", memberProfilesErr.message);
   for (const p of (memberProfiles ?? []) as MemberIdentityRow[]) {
     memberProfilesById.set(p.user_id, p);
   }
@@ -376,11 +377,15 @@ export async function POST(request: NextRequest) {
   // their account-wide default afterward.
   let effectiveAnonymous = explicitAnonymous ?? false;
   if (explicitAnonymous === undefined) {
-    const { data: ownProfile } = await auth.supabase
+    const { data: ownProfile, error: ownProfileErr } = await auth.supabase
       .from("community_member_profiles")
       .select("default_anonymous")
       .eq("user_id", auth.userId)
       .maybeSingle();
+    // A failed read must not publish an anonymous-by-default author under their name. Fail closed.
+    if (ownProfileErr) {
+      return NextResponse.json({ error: ownProfileErr.message }, { status: 500 });
+    }
     effectiveAnonymous = resolveEffectiveAnonymous({
       postAnonymous: undefined,
       profileDefaultAnonymous: (ownProfile as { default_anonymous?: boolean } | null)?.default_anonymous,
@@ -436,10 +441,14 @@ export async function POST(request: NextRequest) {
     .insert(entityIds.map((entity_id) => ({ thread_id: row.id, entity_id })));
 
   if (entityLinkErr) {
-    await auth.supabase.from("community_posts").delete().eq("id", row.id);
+    const { error: compensateErr } = await auth.supabase.from("community_posts").delete().eq("id", row.id);
+    if (compensateErr) {
+      console.warn("[community-posts] unbound post cleanup failed after entity link failed: " + compensateErr.message);
+    }
     return NextResponse.json(
       {
         error: `Could not bind thread to entity_ids (post was not created): ${entityLinkErr.message}`,
+        ...(compensateErr ? { warnings: ["unbound post not removed"] } : {}),
       },
       { status: 400, headers: rateLimitHeaders(auth.userId) }
     );

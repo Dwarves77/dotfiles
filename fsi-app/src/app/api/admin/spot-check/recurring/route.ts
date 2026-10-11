@@ -267,11 +267,15 @@ export async function POST(request: NextRequest) {
   if (paused) return paused;
 
   // 2) 4h cooldown gate
-  const { data: cooldownRow } = await supabase
+  const { data: cooldownRow, error: cooldownErr } = await supabase
     .from("admin_action_cooldowns")
     .select("last_triggered_at")
     .eq("action_key", COOLDOWN_KEY)
     .maybeSingle();
+  // A failed cooldown read must not disable the cooldown on a Haiku-spending run. Fail closed.
+  if (cooldownErr) {
+    return NextResponse.json({ error: `cooldown check failed: ${cooldownErr.message}` }, { status: 500 });
+  }
 
   if (cooldownRow?.last_triggered_at) {
     const elapsed = Date.now() - new Date(cooldownRow.last_triggered_at).getTime();
@@ -301,7 +305,7 @@ export async function POST(request: NextRequest) {
 
   if (sample.length === 0) {
     // Stamp cooldown anyway so we don't try again for 4h.
-    await supabase.from("admin_action_cooldowns").upsert(
+    const { error: emptyStampErr } = await supabase.from("admin_action_cooldowns").upsert(
       {
         action_key: COOLDOWN_KEY,
         last_triggered_at: new Date().toISOString(),
@@ -310,7 +314,11 @@ export async function POST(request: NextRequest) {
       },
       { onConflict: "action_key" }
     );
+    if (emptyStampErr) {
+      console.warn("[spot-check] cooldown stamp failed on the empty-sample path: " + emptyStampErr.message);
+    }
     return NextResponse.json({
+      ...(emptyStampErr ? { warnings: ["cooldown not recorded"] } : {}),
       sample_size: 0,
       confirm_h: 0,
       should_be_m: 0,
@@ -338,6 +346,7 @@ export async function POST(request: NextRequest) {
     rationale: string;
   }> = [];
 
+  let auditRowFailures = 0;
   for (const row of sample) {
     const reach = await checkReachability(row.url);
     let contentText = "";
@@ -365,7 +374,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Forensic per-source row in source_trust_events.
-    await supabase
+    const { error: auditRowErr } = await supabase
       .from("source_trust_events")
       .insert({
         source_id: row.source_id,
@@ -390,11 +399,12 @@ export async function POST(request: NextRequest) {
           head_status: reach.status,
         },
         created_by: "system",
-      })
-      .then(
-        () => undefined,
-        () => undefined
-      ); // best-effort — don't fail the run for an audit-log write blip
+      });
+    // best-effort — don't fail the run for an audit-log write blip, but never drop it silently
+    if (auditRowErr) {
+      auditRowFailures++;
+      console.warn(`[spot-check] audit row insert failed for source ${row.source_id}: ${auditRowErr.message}`);
+    }
 
     results.push({
       source_id: row.source_id,
@@ -440,7 +450,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 6) Stamp cooldown ledger with summary metadata.
-  await supabase.from("admin_action_cooldowns").upsert(
+  const { error: stampErr } = await supabase.from("admin_action_cooldowns").upsert(
     {
       action_key: COOLDOWN_KEY,
       last_triggered_at: new Date().toISOString(),
@@ -454,6 +464,12 @@ export async function POST(request: NextRequest) {
     },
     { onConflict: "action_key" }
   );
+  const warnings: string[] = [];
+  if (auditRowFailures > 0) warnings.push(`${auditRowFailures} per-source audit row(s) not recorded`);
+  if (stampErr) {
+    console.warn("[spot-check] cooldown stamp failed after the run: " + stampErr.message);
+    warnings.push("cooldown not recorded");
+  }
 
   const responseBody = {
     sample_size: results.length,
@@ -463,6 +479,7 @@ export async function POST(request: NextRequest) {
     unreachable: counts.unreachable,
     false_positive_rate_pct: fpRateRounded,
     recommendations,
+    ...(warnings.length > 0 ? { warnings } : {}),
     results: results.map((r) => ({
       source_id: r.source_id,
       name: r.name,

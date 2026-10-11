@@ -55,7 +55,8 @@ export async function commitSeededTierChange(
   sourceId: string,
   tier: number
 ): Promise<CommitTierChangeResult> {
-  const { data: prior } = await supabase.from("sources").select("id, base_tier, tier_override").eq("id", sourceId).maybeSingle();
+  const { data: prior, error: priorErr } = await supabase.from("sources").select("id, base_tier, tier_override").eq("id", sourceId).maybeSingle();
+  if (priorErr) return { status: 500, body: { error: `source read failed: ${priorErr.message}` } };
   if (!prior) return { status: 404, body: { error: "source not found" } };
   if (prior.tier_override != null) return overrideRefusal(sourceId, prior.tier_override);
 

@@ -88,11 +88,14 @@ export async function GET(request: NextRequest) {
   const itemIds = [...new Set((candidates || []).map((c) => c.intelligence_item_id))];
   let items: ParentItemRow[] = [];
   if (itemIds.length > 0) {
-    const { data: itemRows } = await supabase
+    const { data: itemRows, error: itemsErr } = await supabase
       .from("intelligence_items")
       .select("id, legacy_id, title, item_type, domain, jurisdictions, topic_tags, source_id, source_url")
       // fitness-allow: F39 (itemIds/candidateUrls derive from one page of the pending-candidates queue, not the full corpus)
       .in("id", itemIds);
+    if (itemsErr) {
+      return NextResponse.json({ error: itemsErr.message }, { status: 500 });
+    }
     items = (itemRows as ParentItemRow[] | null) || [];
   }
 
@@ -106,11 +109,14 @@ export async function GET(request: NextRequest) {
   const candidateUrls = [...new Set((candidates || []).map((c) => canonicalizeUrl(c.candidate_url)))];
   let existingSources = new Map<string, string>(); // canonical-url → source.id
   if (candidateUrls.length > 0) {
-    const { data: srcRows } = await supabase
+    const { data: srcRows, error: srcErr } = await supabase
       .from("sources")
       .select("id, url")
       // fitness-allow: F39 (itemIds/candidateUrls derive from one page of the pending-candidates queue, not the full corpus)
       .in("url", candidateUrls);
+    if (srcErr) {
+      return NextResponse.json({ error: srcErr.message }, { status: 500 });
+    }
     existingSources = new Map((srcRows || []).map((s) => [canonicalizeUrl(s.url), s.id]));
   }
 

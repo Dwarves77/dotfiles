@@ -63,10 +63,15 @@ async function getPerBriefFlags(
     );
   }
 
-  const { count: totalFlagged } = await supabase
+  const { count: totalFlagged, error: totalErr } = await supabase
     .from("intelligence_items")
     .select("id", { count: "exact", head: true })
     .eq("agent_integrity_flag", true);
+  // The all-time count only decorates the stats strip; on a read error the existing unresolved-count fallback
+  // below applies and the response says so.
+  if (totalErr) {
+    console.warn("[integrity-flags] total flagged count read failed: " + totalErr.message);
+  }
 
   type FlaggedItemRow = {
     id: string;
@@ -113,6 +118,7 @@ async function getPerBriefFlags(
         totalFlagged: totalFlagged ?? items.length,
         oldestAgeDays,
       },
+      ...(totalErr ? { warnings: ["total flagged count unavailable; showing the unresolved count"] } : {}),
     },
     { headers: rateLimitHeaders(userId) }
   );

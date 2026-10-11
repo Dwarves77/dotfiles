@@ -184,11 +184,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
   }
 
-  const { data: candidates } = await supabase
+  const { data: candidates, error: candidatesErr } = await supabase
     .from("canonical_source_candidates")
     .select("id, candidate_url, candidate_title, candidate_publisher, rationale, intelligence_item_id, recommended_classification")
     // fitness-allow: F39 (body.candidateIds is validated to <= 30 above (explicit length check))
     .in("id", body.candidateIds);
+  if (candidatesErr) {
+    return NextResponse.json({ error: candidatesErr.message }, { status: 500 });
+  }
 
   const cands = candidates || [];
 
@@ -198,20 +201,28 @@ export async function POST(request: NextRequest) {
   // not produce a redundant Haiku classification on what is already a
   // registered source.
   const urls = [...new Set(cands.map((c) => canonicalizeUrl(c.candidate_url)))];
-  const { data: existingSources } = await supabase
+  const { data: existingSources, error: existingSourcesErr } = await supabase
     .from("sources")
     .select("url")
     // fitness-allow: F39 (derives from the same request's candidateIds, already validated <= 30 above)
     .in("url", urls);
+  // A failed registry read would classify (and spend on) URLs that are already registered. Fail closed.
+  if (existingSourcesErr) {
+    return NextResponse.json({ error: existingSourcesErr.message }, { status: 500 });
+  }
   const existingUrlSet = new Set((existingSources || []).map((s: { url: string }) => canonicalizeUrl(s.url)));
 
   // Pre-load parent items for grounding context (one batched query)
   const parentIds = [...new Set(cands.map((c) => c.intelligence_item_id))];
-  const { data: parents } = await supabase
+  const { data: parents, error: parentsErr } = await supabase
     .from("intelligence_items")
     .select("id, title, item_type, domain, jurisdictions, topic_tags")
     // fitness-allow: F39 (derives from the same request's candidateIds, already validated <= 30 above)
     .in("id", parentIds);
+  // Parent items only ground the prompt; on a read error the prompt says "(unknown)" for them.
+  if (parentsErr) {
+    console.warn("[bulk-classify] parent item read failed: " + parentsErr.message);
+  }
   const parentById = new Map(
     (parents || []).map((p: ParentItemForClassify) => [p.id, p])
   );

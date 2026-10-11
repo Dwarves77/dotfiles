@@ -134,7 +134,7 @@ export async function POST(
 
   // ── Caller-role read (for a precise 403 only; RLS is the true gate) ──
   // The admin bit comes from the is_platform_admin rpc (migration 375: the column is not selectable).
-  const [{ data: meProfile }, adminRead] = await Promise.all([
+  const [{ data: meProfile, error: meProfileErr }, adminRead] = await Promise.all([
     auth.supabase
       .from("profiles")
       .select("verifier_status")
@@ -142,6 +142,10 @@ export async function POST(
       .maybeSingle(),
     readOwnPlatformAdmin(auth.supabase),
   ]);
+  // A failed caller-role read must not be reported to a legitimate verifier as "not a verifier" (403).
+  if (meProfileErr) {
+    return NextResponse.json({ error: meProfileErr.message }, { status: 500 });
+  }
   const isActiveVerifier =
     (meProfile as { verifier_status?: string | null } | null)?.verifier_status ===
     "active";
@@ -177,11 +181,14 @@ export async function POST(
     // No row updated: either the request no longer exists, or it is no longer
     // pending. A verifier can read all requests (signoff_select), so a
     // follow-up read distinguishes the two for a clear message.
-    const { data: existing } = await auth.supabase
+    const { data: existing, error: existingErr } = await auth.supabase
       .from("community_post_signoff_requests")
       .select("id, status")
       .eq("id", requestId)
       .maybeSingle();
+    if (existingErr) {
+      return NextResponse.json({ error: existingErr.message }, { status: 500 });
+    }
     if (!existing) {
       return NextResponse.json(
         { error: "Sign-off request not found" },

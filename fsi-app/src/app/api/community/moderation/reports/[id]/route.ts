@@ -163,12 +163,18 @@ export async function GET(
     body: string;
     created_at: string;
   } | null = null;
+  const warnings: string[] = [];
   if (report.target_kind === "post") {
-    const { data } = await auth.supabase
+    const { data, error: postErr } = await auth.supabase
       .from("community_posts")
       .select("id, group_id, author_user_id, title, body, created_at")
       .eq("id", report.target_id)
       .maybeSingle();
+    // The embedded post decorates the report detail; on a read error it is null and the response says why.
+    if (postErr) {
+      console.warn("[moderation-report] post read failed: " + postErr.message);
+      warnings.push("reported post unavailable");
+    }
     post = data ?? null;
   }
 
@@ -200,6 +206,7 @@ export async function GET(
             }
           : null,
       },
+      ...(warnings.length > 0 ? { warnings } : {}),
     },
     { headers: rateLimitHeaders(auth.userId) }
   );
@@ -260,11 +267,15 @@ export async function POST(
     author_user_id: string | null;
   } | null = null;
   if (report.target_kind === "post") {
-    const { data } = await auth.supabase
+    const { data, error: postErr } = await auth.supabase
       .from("community_posts")
       .select("id, group_id, author_user_id")
       .eq("id", report.target_id)
       .maybeSingle();
+    // The post decides the reviewer gate and every side effect: a read error is not "post gone".
+    if (postErr) {
+      return NextResponse.json({ error: postErr.message }, { status: 500 });
+    }
     post = data ?? null;
   }
 

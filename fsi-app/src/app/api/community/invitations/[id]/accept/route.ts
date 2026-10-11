@@ -100,11 +100,20 @@ export async function POST(
   if (insErr && insErr.code !== "23505") {
     // Membership insert failed for a non-duplicate reason — roll back
     // the invitation status so the user can retry.
-    await service
+    const { error: rollbackErr } = await service
       .from("community_group_invitations")
       .update({ status: "pending" })
       .eq("id", invitationId);
-    return NextResponse.json({ error: insErr.message }, { status: 500 });
+    if (rollbackErr) {
+      console.warn("[invitation-accept] status rollback failed after membership insert failed: " + rollbackErr.message);
+    }
+    return NextResponse.json(
+      {
+        error: insErr.message,
+        ...(rollbackErr ? { warnings: ["invitation status not restored to pending"] } : {}),
+      },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json(

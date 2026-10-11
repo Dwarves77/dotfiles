@@ -63,12 +63,15 @@ export async function POST(
   }
 
   // 3. Already-a-member short-circuit (idempotent).
-  const { data: existing } = await auth.supabase
+  const { data: existing, error: existingErr } = await auth.supabase
     .from("community_group_members")
     .select("group_id")
     .eq("group_id", groupId)
     .eq("user_id", auth.userId)
     .maybeSingle();
+  if (existingErr) {
+    return NextResponse.json({ error: existingErr.message }, { status: 500 });
+  }
   if (existing) {
     return NextResponse.json(
       { ok: true, state: "already-member" },
@@ -104,15 +107,20 @@ export async function POST(
   //    strictly required (the partial unique index allows only one
   //    pending row anyway), but cleaner than leaving stale 'pending' rows
   //    behind once the user is a member.
-  await service
+  const { error: clearErr } = await service
     .from("community_group_invitations")
     .update({ status: "accepted" })
     .eq("group_id", groupId)
     .eq("invitee_user_id", auth.userId)
     .eq("status", "pending");
+  const warnings: string[] = [];
+  if (clearErr) {
+    console.warn("[group-join] pending invitation clear failed after membership insert: " + clearErr.message);
+    warnings.push("pending invitation not cleared");
+  }
 
   return NextResponse.json(
-    { ok: true, state: "joined" },
+    { ok: true, state: "joined", ...(warnings.length > 0 ? { warnings } : {}) },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }
