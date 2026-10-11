@@ -141,10 +141,11 @@ export function buildRegister({ uiSelected, rpcCalls, writerColumns, opaqueWrite
   const rows = [];
   const seen = new Set();
   let outOfScope = 0;
-  for (const { table, column, file } of uiSelected) {
+  for (const { table, column, file, alias } of uiSelected) {
     const boundColumn = `${table}.${column}`;
     if (!scopedKeys.has(boundColumn)) { outOfScope++; continue; }
-    const rowKey = `${file}\u0000${boundColumn}`;
+    const prop = alias || column; // the name the component reads (alias:column), else the column itself
+    const rowKey = `${file}\u0000${boundColumn}\u0000${prop}`;
     if (seen.has(rowKey)) continue;
     seen.add(rowKey);
     let producer; let basis;
@@ -152,7 +153,7 @@ export function buildRegister({ uiSelected, rpcCalls, writerColumns, opaqueWrite
     else if (Object.prototype.hasOwnProperty.call(allowlist, boundColumn)) { producer = 'no'; basis = 'allowlisted'; }
     else if (opaqueWriteTables.has(table)) { producer = 'yes'; basis = 'opaque-table-write'; }
     else { producer = 'no'; basis = 'none'; }
-    rows.push({ component: file, prop: column, boundColumn, producer, basis });
+    rows.push({ component: file, prop, boundColumn, producer, basis });
   }
   rows.sort((a, b) => (a.producer === b.producer ? 0 : a.producer === 'no' ? -1 : 1)
     || a.boundColumn.localeCompare(b.boundColumn) || a.component.localeCompare(b.component));

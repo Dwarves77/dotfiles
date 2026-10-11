@@ -130,6 +130,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## plans
 
+- [ci-minutes-plan-2026-10-10](./plans/ci-minutes-plan-2026-10-10.md) - zero-cost CI on the private repository: Phase 0 (WIP skip ci, one run per PR, master push runs less), Phase 1 (jobs scoped to inputs), measurement, production budget of 500 minutes per month; decision in ADR-047
 - [complete-build-plan-2026-10-01](./plans/complete-build-plan-2026-10-01.md) - Lane COMPLETE-BUILD: the gap-free spec-to-built register for specs 00 to 10 (every requirement, state, proving artifact, gap), 18 new lanes L1-L18 ordered R14 on top of the already-approved remediation plan's Wave 0, the R14 lift checklist gating population, finish-line waves with no dates, and the explicitly superseded/still-open items carried forward rather than silently dropped. Answers the operator's "why is research have a design but not a build" ruling directly in Wave 2.
 - [buildout-plan-2026-10-04](./plans/buildout-plan-2026-10-04.md) - the coordinator's buildout plan written from the system map: operator rulings of 2026-10-03/04, how model judgement runs, stages 0 to 9 (source loop, typed connections, cross-page analysis, learning loop, growth, gates removed, admin override, workspace and pages, prove then populate).
 - [system-map-2026-10-04](./plans/system-map-2026-10-04.md) - every subsystem with what is designed, built, run, connected and missing, live counts read 2026-10-04, element placement and the line-by-line addendum.

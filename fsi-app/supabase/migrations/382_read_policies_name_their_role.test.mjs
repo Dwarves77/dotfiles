@@ -144,7 +144,7 @@ function bodyOf(name) {
   return body.split("\n").map((l) => l.replace(/\/\/.*$/, "")).join("\n");
 }
 
-for (const fn of ["fetchSources", "fetchResearchSourceCoverage", "fetchSourceCitationStatsByIds", "fetchResearchPipelineRows"]) {
+for (const fn of ["fetchSources", "fetchResearchSourceCoverage", "fetchResearchPipelineRows"]) {
   test(`src: ${fn} reads through the service client, never the anon key`, () => {
     const body = bodyOf(fn);
     assert.match(body, /getServiceSupabase\(\)/, `${fn} uses getServiceSupabase()`);

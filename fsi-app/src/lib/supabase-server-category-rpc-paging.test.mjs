@@ -32,24 +32,12 @@ test("fetchAllRows is imported from the shared paginate.mjs helper — no second
   );
 });
 
-// Lane L36 (2026-09-17): runCategoryRpc and runCategoryRpcPublic used to each inline their own
+// Lane L36 (2026-09-17): runCategoryRpc (deleted, DEAD-1d: no caller) and runCategoryRpcPublic used to each inline their own
 // try/catch/fetchAllCategoryRows/map/enrich sequence (the "repeated RPC-paging block" the system-health
 // audit's section 2 named); now both route through one shared runCategoryRpcCore, which is the function
 // that actually calls fetchAllCategoryRows. The per-function bodies below only need to prove they DELEGATE
 // to that shared core with the right rpcArgs shape, and never fall back to a bare serviceClient.rpc() call
 // themselves; the deeper "actually paginates" proof moved to the runCategoryRpcCore test below.
-test("runCategoryRpc (org-scoped) routes through the shared runCategoryRpcCore with p_org_id, not a bare serviceClient.rpc() call", () => {
-  const m = CODE.match(/async function runCategoryRpc\(([\s\S]*?)\n\}/);
-  assert.ok(m, "runCategoryRpc not found");
-  const body = m[1];
-  assert.match(body, /runCategoryRpcCore\(rpcName, \{ p_org_id: orgId \}, opts\)/);
-  assert.doesNotMatch(
-    body,
-    /const \{ data: rows, error \} = await serviceClient\.rpc/,
-    "runCategoryRpc must not call serviceClient.rpc() directly — that was the unranged, cap-vulnerable call this fix removes"
-  );
-});
-
 test("runCategoryRpcPublic routes through the shared runCategoryRpcCore with no org arg, not a bare serviceClient.rpc() call", () => {
   const m = CODE.match(/async function runCategoryRpcPublic\(([\s\S]*?)\n\}/);
   assert.ok(m, "runCategoryRpcPublic not found");

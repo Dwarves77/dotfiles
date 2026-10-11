@@ -247,9 +247,19 @@ function scanArgv(cmd) {
   let i = 0;
   while (i < n) {
     const c = s[i];
-    if (c === "\\") { // escaped char (or line continuation): not an operator
-      out += " ";
-      i += 2;
+    if (c === "\\") {
+      // GATE-FIX-2 (register residue, 2026-10-09): the old rule dropped the character after EVERY backslash, so a
+      // Windows path `git -C C:\work\x merge` read as `C: ork x` and its subcommand was not seen. Now: a line
+      // continuation is a space; a backslash before a shell-special character (space, quote, operator, `$`, `#`,
+      // another backslash) escapes it, so that character is literal and never an operator (rendered `_`, or `/`
+      // for an escaped backslash: a UNC or doubled separator); a backslash before anything else is a Windows path
+      // separator and is rendered `/`, keeping the next character in the token.
+      const nx = s[i + 1];
+      if (nx === undefined || nx === "\n" || nx === "\r") { out += " "; i += 2; continue; }
+      if (nx === "\\") { out += "/"; i += 2; continue; }
+      if (/[\s"'`$;&|()<>#]/.test(nx)) { out += "_"; i += 2; continue; }
+      out += "/";
+      i += 1;
       continue;
     }
     if (c === "'") { // single quote: literal to the next single quote
@@ -623,6 +633,174 @@ function laneContractForm(inv, ctx, argv, raw) {
   return isInLaneWorktree(inv.dir ? resolve(ctx.cwd, inv.dir) : ctx.cwd);
 }
 
+// ── BASH EDITS OF GOVERNED FILES (lane GATE-FIX-2, 2026-10-10; register aud-at3 A-PT-B24 to B27) ──────────────
+// The Edit and Write tools demand the governing skill for a skill-mapped file; the same file edited through the
+// shell did not (`sed -i`, a `>` or `>>` redirect, `tee`, `cp` or `mv` onto it, `git apply` of a patch that names
+// it, an inline `python -c` or `node -e` write). This reads the command's own argv for the PATHS it writes, and
+// resolves each through governedPath and skillsForFile, the very resolver the Edit and Write branch uses, so the
+// two routes cannot disagree about which files are governed. `sed` without -i reads, it does not write.
+// Mistake-catcher for a cooperating session (ADR-046), not an intent barrier. Known gaps, by design: a path built
+// at run time (`$VAR`, command substitution) cannot be resolved and is skipped; a script FILE that writes
+// (`python x.py`) is out of the gate's reach (scriptFileRun counts it); an inline write is a heuristic (a string
+// literal that names a governed path in a payload carrying a write call).
+const STRING_LITERAL_RE = /(["'`])((?:\\.|(?!\1)[^\\])*)\1/g;
+const WRITE_CALL_RE = new RegExp(
+  [
+    String.raw`\bopen\s*\([^)]*,\s*['"][^'"]*[wax+]`,
+    String.raw`\bmode\s*=\s*['"][^'"]*[wax+]`,
+    String.raw`\.write_(?:text|bytes)\s*\(`,
+    String.raw`\.write\s*\(`,
+    String.raw`\b(?:writeFile|writeFileSync|appendFile|appendFileSync|copyFile|copyFileSync|cpSync|renameSync|createWriteStream|truncateSync)\b`,
+    String.raw`\bshutil\.(?:copy|copy2|copyfile|move)\b`,
+    String.raw`\bos\.(?:replace|rename)\b`,
+  ].join("|"),
+);
+const PS_WRITERS = new Set(["set-content", "add-content", "out-file", "copy-item", "move-item", "new-item"]);
+const READONLY_APPLY_FLAGS = new Set(["--check", "--stat", "--numstat", "--summary"]);
+const MAX_PATCH_BYTES = 2000000;
+
+function isDirectory(path, cwd) {
+  try { return statSync(resolve(cwd || ".", path)).isDirectory(); } catch { return false; }
+}
+
+/** Paths a unified diff or git patch names (the files `git apply` and `patch` would write). */
+function patchPaths(text) {
+  const out = new Set();
+  const strip = (p) => p.replace(/^[ab]\//, "");
+  for (const line of String(text).split(/\r?\n/)) {
+    let m = /^diff --git\s+(\S+)\s+(\S+)/.exec(line);
+    if (m) { out.add(strip(m[1])); out.add(strip(m[2])); continue; }
+    m = /^(?:\+\+\+|---)\s+(\S+)/.exec(line);
+    if (m && m[1] !== "/dev/null") { out.add(strip(m[1])); continue; }
+    m = /^rename (?:to|from) (.+)$/.exec(line);
+    if (m) out.add(m[1].trim());
+  }
+  return [...out];
+}
+
+/**
+ * The raw paths a shell command line writes, by form: redirect targets, `sed -i` and `perl -i` files, `tee`
+ * files, the destination of `cp` `mv` `install` (and the source of `mv`), the files named by a patch handed to
+ * `git apply` or `patch`, PowerShell writers, and the string literals of an inline python or node write.
+ * PURE apart from reading a patch file and probing whether a destination is a directory.
+ * @param {string} cmd the RAW command @param {string} [cwd] @returns {string[]}
+ */
+export function bashEditTargets(cmd, cwd = "") {
+  const scan = scanArgv(cmd);
+  const un = (t) => String(t).replace(PLACEHOLDER_RE, (m) => scan.quoted[Number(m.slice(1, -1))] ?? "");
+  const targets = [];
+  const add = (p) => {
+    const v = un(p).trim();
+    if (v && !v.startsWith("/dev/") && !/[$`]/.test(v)) targets.push(v.replace(/[*?]+/g, "x"));
+  };
+
+  // Redirect targets: > >> >| and the fd and &> forms. `>&2` and `2>&1` name no file.
+  for (const m of scan.text.matchAll(/(?<![-=<>])(?:>>|>\||>)[ \t]*([^\s;&|()<>]+)/g)) add(m[1]);
+
+  for (const segment of scan.text.split(SEGMENT_SPLIT)) {
+    const t = segment.trim().split(/\s+/).filter(Boolean);
+    const k = unwrap(t);
+    if (k >= t.length) continue;
+    const prog = progName(t[k]);
+    const raw = t.slice(k + 1);
+    const args = [];
+    for (let i = 0; i < raw.length; i++) { // drop redirections and the word after a bare operator
+      if (REDIRECT_RE.test(raw[i])) { if (/^\d*[<>]+$/.test(raw[i])) i++; continue; }
+      args.push(raw[i]);
+    }
+    // Split args into options and positionals; `valueOpts` take the next token as their value.
+    const split = (valueOpts) => {
+      const pos = [];
+      const opts = [];
+      let done = false;
+      for (let i = 0; i < args.length; i++) {
+        const a = args[i];
+        if (!done && a === "--") { done = true; continue; }
+        if (!done && a.startsWith("-") && a.length > 1) {
+          opts.push(a);
+          if (valueOpts.has(a)) i++;
+          continue;
+        }
+        pos.push(a);
+      }
+      return { pos, opts };
+    };
+
+    if (prog === "sed" || prog === "gsed" || prog === "perl") {
+      const inPlace = args.some((a) => /^--in-place(?:=|$)/.test(a) || (/^-[^-]/.test(a) && /^-[nElrsuzpaF0]*i/.test(a)));
+      if (!inPlace) continue;
+      const scriptOpt = (a) => /^(?:--expression|--file)(?:=|$)/.test(a) || (/^-[a-zA-Z]*[ef]$/.test(a) && !a.includes("i"));
+      const { pos, opts } = split(new Set(args.filter((a) => scriptOpt(a) && !a.includes("="))));
+      if (!opts.some(scriptOpt)) pos.shift(); // no -e or -f: the first positional is the script
+      pos.forEach(add);
+    } else if (prog === "tee") {
+      split(new Set()).pos.forEach(add);
+    } else if (prog === "cp" || prog === "mv" || prog === "install") {
+      const { pos, opts } = split(new Set(["-t", "-S", "--suffix"]));
+      const joined = opts.find((o) => o.startsWith("--target-directory="));
+      const ti = args.indexOf("-t");
+      const tdir = joined ? joined.slice("--target-directory=".length) : ti !== -1 ? args[ti + 1] : null;
+      const base = (s) => un(s).replace(/[\\/]+$/, "").split(/[\\/]/).pop();
+      const into = (dir, s) => `${un(dir).replace(/[\\/]+$/, "")}/${base(s)}`;
+      let sources = pos;
+      if (tdir) pos.forEach((s) => add(into(tdir, s)));
+      else if (pos.length >= 2) {
+        const dest = pos[pos.length - 1];
+        sources = pos.slice(0, -1);
+        if (/[\\/]$/.test(un(dest)) || isDirectory(un(dest), cwd) || sources.length > 1) sources.forEach((s) => add(into(dest, s)));
+        else add(dest);
+      }
+      if (prog === "mv") sources.forEach(add);
+    } else if ((prog === "git" && gitInvocations(segment)[0]?.sub === "apply") || prog === "patch") {
+      const isGit = prog === "git";
+      const inv = isGit ? gitInvocations(segment)[0] : null;
+      const a = isGit ? inv.args.filter((x) => !(x.startsWith("-") && x.length > 1)) : [];
+      if (isGit && inv.args.some((x) => READONLY_APPLY_FLAGS.has(x))) continue;
+      const files = [];
+      if (isGit) files.push(...a);
+      else {
+        const { pos } = split(new Set(["-i", "--input", "-p", "-d", "-o", "-r"]));
+        pos.forEach(add); // `patch <file>` writes that file
+        const ii = args.findIndex((x) => x === "-i" || x === "--input");
+        if (ii !== -1 && args[ii + 1]) files.push(args[ii + 1]);
+      }
+      for (const m of segment.matchAll(/(?<![<>])<[ \t]*([^\s;&|()<>]+)/g)) files.push(m[1]);
+      for (const f of files) {
+        try {
+          const text = readFileSync(resolve(cwd || ".", un(f)), "utf8");
+          if (text.length <= MAX_PATCH_BYTES) patchPaths(text).forEach(add);
+        } catch { /* an unreadable patch (stdin, a pipe, a missing file) is read from the command's own text below */ }
+      }
+      for (const b of scan.bodies) patchPaths(b.content).forEach(add);
+      for (const q of scan.quoted) patchPaths(q).forEach(add);
+    } else if (PS_WRITERS.has(prog)) {
+      split(new Set()).pos.forEach(add);
+    }
+  }
+
+  for (const p of interpreterPayloads(cmd)) {
+    if (p.kind !== "code" || !WRITE_CALL_RE.test(p.content)) continue;
+    for (const m of p.content.matchAll(STRING_LITERAL_RE)) add(m[2]);
+  }
+  return targets;
+}
+
+/**
+ * The governed files a shell command line writes and the skills that govern them (the Edit and Write route's own
+ * resolver). @returns {{ targets: string[], skills: string[] }}
+ */
+export function bashGovernedEdits(cmd, cwd = "") {
+  const hits = [];
+  const skills = new Set();
+  for (const raw of bashEditTargets(cmd, cwd)) {
+    const governing = skillsForFile(governedPath(raw, cwd));
+    if (!governing.length) continue;
+    hits.push(raw);
+    for (const g of governing) skills.add(g.skill);
+  }
+  return { targets: hits, skills: [...skills] };
+}
+
 /**
  * SQL with comments removed and string literals, quoted identifiers and dollar-quoted bodies replaced by empty
  * ones, in ONE pass (GATE-7, register attacks A-PT-M3 to M5). The old two-step removed comments first, so a
@@ -870,7 +1048,16 @@ function evaluateCore(payload) {
         `pre-commit hooks catch a sub-agent's; approve only if this honors worktree isolation.)`,
         "worktree-isolation");
     }
-    if (!dangerIn(cmd, 0, { cwd: payload?.cwd || "" })) return decision("allow", "", "bash-read");
+    // A shell edit of a governed file demands the same governing skill as the Edit and Write tools (GATE-FIX-2).
+    const shellEdit = bashGovernedEdits(cmd, payload?.cwd || "");
+    let editOk = false;
+    if (shellEdit.skills.length) {
+      const gated = gateWrite(transcriptPath, shellEdit.skills, "bash-edit-governed",
+        `Shell edit of a GOVERNED file (${shellEdit.targets.slice(0, 3).join(", ")}): the same rule as the Edit and Write tools.`, () => null);
+      if (gated && gated.permissionDecision !== "allow") return gated;
+      editOk = true;
+    }
+    if (!dangerIn(cmd, 0, { cwd: payload?.cwd || "" })) return decision("allow", "", editOk ? "bash-edit-governed-ok" : "bash-read");
     const skills = skillsForOp(cmd).map((s) => s.skill);
     const required = skills.length ? skills : ["remediation-discipline", "environmental-policy-and-innovation"];
     return gateWrite(transcriptPath, required, "bash-write", "Data write (prod effect).", () => decision("ask",
