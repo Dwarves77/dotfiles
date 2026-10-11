@@ -31,7 +31,7 @@ Read: COMMON, the REG-1 brief, the 2A and 2B registers, the C-list, `fitness/run
 - The database functions `acquire_funded_pass_lock`, `heartbeat_funded_pass_lock`, `release_funded_pass_lock` (migration 205) have no caller since the golden and `scripts/lib/funded-pass-lock.mjs` were deleted; F14 holds them in a dated allowlist. A migration that drops them is owed. [WORK: owed]
 - Layer C (`guard_data_audit_block`, migration 240, and the `DATA_AUDIT_BLOCK` reader in `audit-gate.ts`) has no writer now that read-only mode never reflects into `integrity_flags`; the block row can never open. Retiring that trigger and reader is owed. [WORK: owed]
 - Stale mentions of deleted audits in `fsi-app/.claude/CLAUDE.md`, three skill reference files and workflow comments (`F68`, `data-audit-lane.yml`) remain; they are outside the write set. [WORK: owed]
-- The new live-smoke step relies on the Playwright install step leaving `node_modules` in `fsi-app`; the first Production `deployment_status` run after merge is its first execution. [HYPOTHESIS: unverified until that run]
+- The new live-smoke step relies on the Playwright install step leaving `node_modules` in `fsi-app`; the first Production `deployment_status` run after merge is its first execution. [HYPOTHESIS: unverified until that run] [WORK: reg1b-one-registry-spine]
 - Invariants cited only by deleted audits or migration-presence checks are retired, not re-attacked; their skill statements stand. [NOT-WORK: the evidence rule in the brief]
 - Four closure-gate tests fail on the main checkout at this base as well as here (reproduced there). [NOT-WORK: pre-existing, unrelated to this lane]
 
