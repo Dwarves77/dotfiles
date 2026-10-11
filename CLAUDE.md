@@ -6,8 +6,7 @@ This repo is the source of truth for the Caro's Ledge product (Freight Sustainab
 
 | Location | Purpose |
 |---|---|
-| `fsi-app/` | The product: Next.js app, Supabase schema + migrations, workers, discipline engine |
-| `fsi-app/STATUS.md` | **HISTORICAL** (April 2026, `redesign/full-migration`). Not the resume state, not in Loading Priority. Retained as a record only |
+| `fsi-app/` | The product: Next.js app, Supabase schema + migrations, workers |
 | `docs/PROGRAM-BOARD.md` | **The resume state**: thread table with state, evidence, deferrals. Read this, not STATUS.md |
 | `.claude/hooks/` | SessionStart + PreCompact hooks that emit the vault read-path into a session (wired in `.claude/settings.json`) |
 | `docs/` | Project memory (the brain). Read in Obsidian; maintained by agents |
@@ -15,11 +14,8 @@ This repo is the source of truth for the Caro's Ledge product (Freight Sustainab
 | `docs/specs/` | The current surface-spec set (00-10): what each of the five surfaces is and why. The product definition |
 | `docs/decisions/` | ADRs (ADR-NNN-kebab.md, frontmatter per ADR-009). Decisions with reasoning |
 | `docs/inventories/` | Living inventories: components, discipline, migrations, worktrees |
-| `docs/doctrine/` | Doctrine seeds: standing rules extracted from rulings, cited by ID |
 | `docs/runbooks/` | Procedures and playbooks that get re-executed |
 | `docs/plans/` | Specs, prework, proposals, frameworks |
-| `docs/dispatches/` | Briefs written for another agent to execute; dated, scoped, authority-bounded |
-| `docs/census/` | Corpus-wide enumerations backed by a DB table (e.g. `census_worklist`) |
 | `docs/audits/` | Dated audits, investigations, verifications |
 | `docs/ops/` | Followups, session-log.md, operational logs |
 | `docs/archive/` | Superseded working notes; `archive/logs/` machine evidence. Not indexed, not loaded |

@@ -177,7 +177,7 @@ NONE: migrations 001-011, 013-130 and the data-only reclassifications (019, 045,
 
 ## Not found in the registers
 
-Old files in the CLEAN-3 deleted set that no register row names (path, repo-relative path or basename searched across all 41 registers): 437 of 1869.
+Old files in the CLEAN-3 deleted set that no register row names (path, repo-relative path or basename searched across all 41 registers): 442 of 1859.
 
 - docs/runbooks/maintenance.d/01-community-topics-seed.md
 - docs/runbooks/maintenance.d/02-tier-opinions.md
@@ -574,6 +574,11 @@ Old files in the CLEAN-3 deleted set that no register row names (path, repo-rela
 - fsi-app/.discipline/rules/017-generation-config-no-raw-env.mjs
 - fsi-app/.discipline/rules/019-source-reclassify-not-archive.mjs
 - fsi-app/.discipline/rules/021-cached-shape-key.mjs
+- fsi-app/scripts/producers/oem/fixtures/eea-hdv-sample.header.json
+- fsi-app/scripts/producers/operations/fixtures/ukpn-capacity-heatmap-sample.header.md
+- fsi-app/scripts/producers/regional/fixtures/neso-carbon-intensity-sample.header.md
+- fsi-app/scripts/turns/question-answers/fixtures/question-answers-000.fixture.json
+- fsi-app/scripts/turns/theme-briefs/fixtures/theme-briefs-000.fixture.json
 - fsi-app/scripts/verify/no-personal-identifiers.test.mjs
 - fsi-app/src/__tests__/market-eu-oil-bulletin-parser.fixtures.mjs
 - fsi-app/src/__tests__/market-series-registry.test.mjs
