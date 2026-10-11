@@ -1,4 +1,4 @@
-// 385_schema_oracle_repair_replay_only_indexes.test.mjs -- static proof of migration 385 (lane DRIFT-1): the five CREATE INDEX statements equal the
+// 385_schema_drift_repair_replay_only_indexes.test.mjs -- static proof of migration 385 (lane DRIFT-1): the five CREATE INDEX statements equal the
 // definitions in the files that create them (009 and 271), are all IF NOT EXISTS (idempotent), and nothing else is written. The behavioural proof is
 // the self-check plus the migration-proof job, which applies the file twice on a local stack.
 
@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
-const FILE = "385_schema_oracle_repair_replay_only_indexes.sql";
+const FILE = "385_schema_drift_repair_replay_only_indexes.sql";
 const RAW = readFileSync(join(HERE, FILE), "utf8");
 const strip = (raw) => raw.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const SQL = strip(RAW);

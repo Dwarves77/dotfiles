@@ -144,7 +144,7 @@ jobs:
           . "$MP_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/schema-diff.mjs --catalog-only --db-url "$PROOF_DB_URL" --out "$RUNNER_TEMP/catalog-before.json"
-          for f in supabase/migrations/384_schema_oracle_reconcile_production_only.sql supabase/migrations/385_schema_oracle_repair_replay_only_indexes.sql; do
+          for f in supabase/migrations/384_schema_drift_reconcile_production_only.sql supabase/migrations/385_schema_drift_repair_replay_only_indexes.sql; do
             echo "second apply: $f" | tee -a "$GITHUB_STEP_SUMMARY"
             psql "$PROOF_DB_URL" -X -v ON_ERROR_STOP=1 --single-transaction -f "$f"
           done

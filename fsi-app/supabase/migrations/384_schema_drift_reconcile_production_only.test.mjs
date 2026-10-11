@@ -1,4 +1,4 @@
-// 384_schema_oracle_reconcile_production_only.test.mjs -- static proof of migration 384 (lane DRIFT-1) by parsing the SQL file and the
+// 384_schema_drift_reconcile_production_only.test.mjs -- static proof of migration 384 (lane DRIFT-1) by parsing the SQL file and the
 // files it cites: no database, no SQL parser dependency. The behavioural proof is the migration's own self-check plus the migration-proof
 // job on the PR, which applies the file TWICE on a local stack (the second apply must change nothing). This file proves the file says
 // what the lane report says, that every statement is guarded (a no-op on production by construction), that the object lists equal what
@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
-const FILE = "384_schema_oracle_reconcile_production_only.sql";
+const FILE = "384_schema_drift_reconcile_production_only.sql";
 const RAW = readFileSync(join(HERE, FILE), "utf8");
 const strip = (raw) => raw.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const SQL = strip(RAW);

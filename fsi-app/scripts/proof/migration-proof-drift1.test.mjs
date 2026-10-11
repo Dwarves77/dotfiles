@@ -28,7 +28,7 @@ export function verify(text) {
   const first = s.body.indexOf("schema-diff.mjs");
   if (!(src >= 0 && pre > src && first > pre)) bad.push("it does not source the env and preflight before it reads the database");
   if (!/set -o pipefail/.test(s.body)) bad.push("no pipefail");
-  for (const f of ["384_schema_oracle_reconcile_production_only.sql", "385_schema_oracle_repair_replay_only_indexes.sql"]) {
+  for (const f of ["384_schema_drift_reconcile_production_only.sql", "385_schema_drift_repair_replay_only_indexes.sql"]) {
     if (!s.body.includes(f)) bad.push(`${f} is not applied twice`);
   }
   if (!/psql "\$PROOF_DB_URL" -X -v ON_ERROR_STOP=1 --single-transaction -f "\$f"/.test(s.body)) bad.push("the second apply is not a stop-on-error single-transaction psql run against PROOF_DB_URL");
@@ -49,7 +49,7 @@ test("ATTACK: the verifier is red against each way the step could be weakened", 
   assert.match(verify(cut(/ {6}- name: Apply the schema reconciliation migrations a second time[\s\S]*?(?= {6}- name: Upload)/)).join(";"), /absent/);
   assert.match(verify(cut(/cmp "\$RUNNER_TEMP\/catalog-before\.json" "\$RUNNER_TEMP\/catalog-after\.json"\n/)).join(";"), /cmp/);
   assert.match(verify(cut(/ --single-transaction -f "\$f"/, ' -f "$f"')).join(";"), /single-transaction/);
-  assert.match(verify(cut(/384_schema_oracle_reconcile_production_only\.sql /, "")).join(";"), /384_schema_oracle_reconcile_production_only\.sql is not applied twice/);
+  assert.match(verify(cut(/384_schema_drift_reconcile_production_only\.sql /, "")).join(";"), /384_schema_drift_reconcile_production_only\.sql is not applied twice/);
   assert.match(verify(cut(/(second time[^\n]*\n)\s+if: steps\.scope\.outputs\.touched == 'true'\n/, "$1")).join(";"), /touched/);
   assert.match(verify(cut(/\$RUNNER_TEMP\/catalog-after\.json"\n {10}cmp/, '$MP_OUT_DIR/catalog-after.json"\n          cmp')).join(";"), /cmp|uploaded|read before and after/);
 });
