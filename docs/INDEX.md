@@ -1,6 +1,6 @@
 # INDEX  -  Caro's Ledge project memory
 
-One line per living doc. archive/ holds superseded notes and machine evidence and is not indexed.
+One line per living doc. docs/archive/ holds only the 41 audit registers of 2026-10-11 (evidence out of the finding gate) and is not indexed.
 
 ## board
 
