@@ -37,6 +37,13 @@
 // consults the result. A false "governing" costs one heavy run, while a false "docs-only" skips the gate that
 // reads the file (an edit to a read doc that classed as docs-only and then failed the suite it had skipped).
 //
+// CIFIX-2 (2026-10-10): that scan is token based, not line based. It walks every string and template literal of the
+// scanned modules (the one source lexer classifies comments, strings and regex bodies; lexJs below groups them), so a
+// docs path read through a template with a variable prefix (`${root}/docs/x.md`), on a later line of a read call, in
+// a join() spread over lines, or bound to a name in one statement and read in a later one, is governing. An
+// interpolation inside the path becomes a one-segment `*`. Array elements, fixture object fields, prose and
+// non-read call arguments are still not reads.
+//
 // CLI: node docs-only-range.mjs --range=<git-range>
 //   exit 0  = every changed file in the range is docs-only (see isDocsOnlyPath)
 //   exit 1  = at least one changed file is outside that set (not docs-only) -- including an EMPTY diff,
@@ -52,6 +59,7 @@ import { getRepoRoot } from '../lib/context.mjs';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
 import { DOCTRINE_FILES } from './doctrine-contradiction.mjs';
 import { TEST_FILE_RE } from '../lib/test-discovery.mjs';
+import { classifySource, CODE, LIT } from './source-lexer.mjs';
 
 /** Code-like extensions: a file with one of these is run, imported or executed by something. */
 const CODE_EXTENSION_RE = /\.(?:[cm]?[jt]sx?|sh|bash|yml|yaml|sql|py)$/i;
@@ -82,8 +90,6 @@ const DOCS_FILE_RE = /\.(?:md|json|txt)$/;
 const PLAIN_DOC_PATH_RE = /^(?:\.\/)?([\w.-]+(?:\/[\w.-]+)+\.(?:md|json|txt))$/;
 /** The scan's own files are excluded: their fixture literals name paths the tests assert are docs-only. */
 const SCAN_SELF_RE = /(?:^|\/)docs-only-range(?:\.test)?\.mjs$/;
-/** A word after which a `/` begins a regular expression, not a division. */
-const REGEX_AFTER_WORD = new Set(['return', 'typeof', 'case', 'do', 'else', 'in', 'of', 'instanceof', 'new', 'delete', 'void', 'throw', 'yield', 'await']);
 /** An interpolation inside a template literal, in the literal's static text. */
 const HOLE = '\0';
 const HOLE_PREFIX_RE = new RegExp(`^${HOLE}/?`);
@@ -92,102 +98,82 @@ const HOLE_ALL_RE = new RegExp(HOLE, 'g');
 const GLOB_PATH_RE = /^[\w.\-/*]+$/;
 
 /**
- * CIFIX-2 (2026-10-10): a dependency-free JavaScript tokenizer, enough to walk every string literal and template
- * literal of a module without mistaking a comment, a regular expression or prose for code. The docs-only classifier
- * runs before `npm ci`, so it cannot import a parser; this lexer reads strings (with escapes), templates (with nested
- * `${}` expressions lexed recursively), comments, regular expressions, identifiers and punctuation. PURE.
+ * CIFIX-2 (2026-10-10): the token stream the read scan walks. It does NOT re-answer "is this a comment, a string or a
+ * regular expression?": that is the one source lexer's job (source-lexer.mjs, GATE-8), and this reads its per
+ * character classes. What it adds is the grouping the classes do not carry: a string literal's content as one token,
+ * a template literal as one token whose interpolations are lexed as nested token lists, plus identifiers, numbers and
+ * punctuation from the CODE characters. Dependency-free (the docs-only classifier runs before `npm ci`). PURE.
  * @param {string} src
- * @param {number} [start]
- * @param {boolean} [nested] stop at the `}` that closes a template interpolation
- * @returns {{tokens: object[], end: number}}
+ * @returns {object[]} tokens: {t:'str', v, inner?} {t:'id'|'num', v} {t:'p', v} {t:'re'}
  */
-export function lexJs(src, start = 0, nested = false) {
-  const tokens = [];
+function lexJs(src) {
+  const cls = classifySource(src);
   const n = src.length;
-  let i = start;
-  let depth = 0;
-  const regexAllowed = () => {
-    const p = tokens[tokens.length - 1];
-    if (!p) return true;
-    if (p.t === 'str' || p.t === 'num' || p.t === 're') return false;
-    if (p.t === 'id') return REGEX_AFTER_WORD.has(p.v);
-    return !(p.v === ')' || p.v === ']' || p.v === '}');
+  let i = 0;
+  const readLit = () => {
+    let v = '';
+    while (i < n && cls[i] === LIT) {
+      if (src[i] === '\\') { v += src[i + 1] ?? ''; i += 2; } else v += src[i++];
+    }
+    return v;
   };
-  while (i < n) {
-    const c = src[i];
-    if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
-    if (c === '/' && src[i + 1] === '/') { while (i < n && src[i] !== '\n') i++; continue; }
-    if (c === '/' && src[i + 1] === '*') { const e = src.indexOf('*/', i + 2); i = e < 0 ? n : e + 2; continue; }
-    if (c === '"' || c === "'") {
-      let j = i + 1;
-      let v = '';
-      while (j < n && src[j] !== c && src[j] !== '\n') {
-        if (src[j] === '\\') { v += src[j + 1] ?? ''; j += 2; continue; }
-        v += src[j++];
+  const run = (nested) => {
+    const tokens = [];
+    let depth = 0;
+    while (i < n) {
+      const c = src[i];
+      if (cls[i] !== CODE || /\s/.test(c)) { i++; continue; }
+      if (c === '"' || c === "'") {
+        i++;
+        const v = readLit();
+        if (src[i] === c) i++;
+        tokens.push({ t: 'str', v });
+        continue;
       }
-      tokens.push({ t: 'str', v });
-      i = j + 1;
-      continue;
-    }
-    if (c === '`') {
-      let j = i + 1;
-      let v = '';
-      const inner = [];
-      while (j < n && src[j] !== '`') {
-        if (src[j] === '\\') { v += src[j + 1] ?? ''; j += 2; continue; }
-        if (src[j] === '$' && src[j + 1] === '{') {
-          const r = lexJs(src, j + 2, true);
-          inner.push(r.tokens);
-          v += HOLE;
-          j = r.end;
-          continue;
+      if (c === '`') {
+        i++;
+        let v = '';
+        const inner = [];
+        while (i < n) {
+          v += readLit();
+          if (src[i] === '$' && src[i + 1] === '{') { i += 2; inner.push(run(true)); v += HOLE; continue; }
+          if (src[i] === '`') i++;
+          break;
         }
-        v += src[j++];
+        tokens.push({ t: 'str', v, inner });
+        continue;
       }
-      tokens.push({ t: 'str', v, inner });
-      i = j + 1;
-      continue;
-    }
-    if (/[A-Za-z_$]/.test(c)) {
-      let j = i + 1;
-      while (j < n && /[\w$]/.test(src[j])) j++;
-      tokens.push({ t: 'id', v: src.slice(i, j) });
-      i = j;
-      continue;
-    }
-    if (/[0-9]/.test(c)) {
-      let j = i + 1;
-      while (j < n && /[\w.]/.test(src[j])) j++;
-      tokens.push({ t: 'num', v: src.slice(i, j) });
-      i = j;
-      continue;
-    }
-    if (c === '/' && regexAllowed()) {
-      let j = i + 1;
-      let inClass = false;
-      while (j < n && src[j] !== '\n') {
-        const ch = src[j];
-        if (ch === '\\') { j += 2; continue; }
-        if (ch === '[') inClass = true;
-        else if (ch === ']') inClass = false;
-        else if (ch === '/' && !inClass) break;
-        j++;
+      if (c === '/' && cls[i + 1] === LIT) {
+        i++;
+        while (i < n && cls[i] === LIT) i++;
+        if (src[i] === '/') i++;
+        while (i < n && /[a-z]/i.test(src[i])) i++;
+        tokens.push({ t: 're' });
+        continue;
       }
-      j++;
-      while (j < n && /[a-z]/i.test(src[j])) j++;
-      tokens.push({ t: 're' });
-      i = j;
-      continue;
+      if (/[A-Za-z_$]/.test(c)) {
+        const from = i++;
+        while (i < n && cls[i] === CODE && /[\w$]/.test(src[i])) i++;
+        tokens.push({ t: 'id', v: src.slice(from, i) });
+        continue;
+      }
+      if (/[0-9]/.test(c)) {
+        const from = i++;
+        while (i < n && cls[i] === CODE && /[\w.]/.test(src[i])) i++;
+        tokens.push({ t: 'num', v: src.slice(from, i) });
+        continue;
+      }
+      if (c === '{') depth++;
+      if (c === '}') {
+        if (nested && depth === 0) { i++; return tokens; }
+        depth--;
+      }
+      tokens.push({ t: 'p', v: c });
+      i++;
     }
-    if (c === '{') depth++;
-    if (c === '}') {
-      if (nested && depth === 0) return { tokens, end: i + 1 };
-      depth--;
-    }
-    tokens.push({ t: 'p', v: c });
-    i++;
-  }
-  return { tokens, end: i };
+    return tokens;
+  };
+  return run(false);
 }
 
 const isP = (tok, v) => tok?.t === 'p' && tok.v === v;
@@ -284,7 +270,7 @@ export function extractReadDocPaths(sources) {
   for (const src of sources ?? []) {
     if (SCAN_SELF_RE.test(String(src?.path ?? '').replace(/\\/g, '/'))) continue;
     const ctx = { out, bindings: new Map(), readIds: new Set() };
-    collectReadDocs(lexJs(String(src?.text ?? '')).tokens, ctx);
+    collectReadDocs(lexJs(String(src?.text ?? '')), ctx);
     for (const [name, paths] of ctx.bindings) if (ctx.readIds.has(name)) for (const p of paths) out.add(p);
   }
   return out;
