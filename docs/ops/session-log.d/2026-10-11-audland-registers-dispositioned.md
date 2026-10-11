@@ -8,6 +8,8 @@
 4. **66 dash and section-sign glyphs** replaced (aud-sys-2a 51, aud-sys-2b 11, aud-sys-3 4; the 21 in the archived absent-list too). Section sign became `S`, dash became a plain hyphen.
 5. **Proof**: `node fsi-app/scripts/verify/audit-finding-status.mjs --strict` on the worktree: 0 unlabeled, 0 undispositioned, exit 0.
 
+Checks before the final push, on the tree merged with origin/master 086724bfc: the strict audit-finding-status run (exit 0) and the fitness runner (44 functions checked, 0 violations).
+
 ## Read and reused
 
 Read: the brief, COMMON.md, the failures list, `audit-finding-status.mjs` (the scanner: tables are not scanned, which is why the 865 undispositioned rows of the failures list were the two machine lists, now archived, plus 29 register lines), `fsi-app/.discipline/registry.mjs` (REGISTRY_ROWS ids, `carries`, RETIRED keys, imported, not parsed by hand), PIPE-1's file list (`git show --name-status 0b439ff0a`) for the eight deleted PR workflows, the master branch protection contexts (`gh api`, now `inputs, static, schema, app, master`). Reused: the registers' own evidence cells for status tokens; nothing built.
