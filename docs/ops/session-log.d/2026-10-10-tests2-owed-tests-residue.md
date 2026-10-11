@@ -1,6 +1,6 @@
 # 2026-10-10, lane TESTS-2 (tests2-owed-tests-residue): routes ATTACKED and the owed test residue
 
-Rows: the `[WORK: TESTS-2]` lines on origin/master (AUD-AT-1 to AUD-AT-5 owed legs, r11-checks, s8b, s8c, audit-catalogue, daudit1, daudit2, routes1, sec4). Write set held: new `*.test.mjs`, `fsi-app/scripts/verify/attacks/**`, `fsi-app/scripts/verify/fixtures/**`, workflow files that only add a job or step, this log. One interrupt killed the first run; this entry covers both runs (the branch carries every WIP commit).
+Rows: the `[CLOSED: PR 1101]` lines on origin/master (AUD-AT-1 to AUD-AT-5 owed legs, r11-checks, s8b, s8c, audit-catalogue, daudit1, daudit2, routes1, sec4). Write set held: new `*.test.mjs`, `fsi-app/scripts/verify/attacks/**`, `fsi-app/scripts/verify/fixtures/**`, workflow files that only add a job or step, this log. One interrupt killed the first run; this entry covers both runs (the branch carries every WIP commit).
 
 ## Accomplished
 

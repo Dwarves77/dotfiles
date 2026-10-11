@@ -25,7 +25,7 @@
 
 - Not applied, no live check. The read counts in the header are operator-supplied, not read by this lane. Not run: the SQL has been read and statically tested, never executed, so [HYPOTHESIS] the recreated function body parses as the live one did (it is 335's text minus three tokens, which 335 applied live). [CLOSED: PR 1013]
 - The skill-gate demanded the sprint-followups-discipline, remediation-discipline and environmental-policy-and-innovation skills before the writes; loaded as approved. No `.tsx`, no code deletion (DEAD-1's). [NOT-WORK: fact, no action]
-- Not changed, outside the write set (none blocks CI): `src/app/api/search/route.npmtest.mjs` (fixture column set still lists the three dropped intelligence_items columns), `fsi-app/.discipline/governance/db-catalog.json` (still lists `acquisition_backlog_v`), `fsi-app/docs/inventories/db-check-constraints.json` (regenerated from live after apply). [WORK: DEAD-1d]
+- Not changed, outside the write set (none blocks CI): `src/app/api/search/route.npmtest.mjs` (fixture column set still lists the three dropped intelligence_items columns), `fsi-app/.discipline/governance/db-catalog.json` (still lists `acquisition_backlog_v`), `fsi-app/docs/inventories/db-check-constraints.json` (regenerated from live after apply). [CLOSED: PR 1093]
 
 ## Open items
 
