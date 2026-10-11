@@ -236,6 +236,14 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      # Lane TESTS-2 (2026-10-10, CLAUDE.md rule 15): the audit's D-M4 forbid rows attacked in this container's chromium. A forbid
+      # that matches nothing reports MATCH forever; this step proves the selector fires on a row with two absence tokens and stays
+      # quiet on a row with one. It follows the upload so a red attack never loses the audit artifact, and it is a real gate: it
+      # exits non-zero (1) when a forbid is vacuous or blanket, (2) when the harness cannot run it.
+      - name: Attack the D-M4 forbid rows (a forbid that matches nothing is vacuous)
+        working-directory: fsi-app
+        run: node scripts/verify/attacks/forbid-fires-attack.mjs
+
   # Lane DORMANT-1 (2026-10-09): this workflow records its own harness run (CLAUDE.md rule 17). A separate job that
   # runs after every other job whatever their result, so the row lands on every path, including a kill-switch early exit,
   # and the service credential is held by this job alone. Family: scripts/harness-runs/design-audit/.
