@@ -149,7 +149,7 @@ The same lane-conduct rule is stated in up to four places: lane-common-contract.
 | X37 | Authority of artboards/previews. PR-20 and MSD-1 (artboards fix visual layout, spacing, type, colour; the build matches them for look) vs FA-15 (preview files are exploration, not authority; the live surface is authoritative and the preview is updated to match it). | FA-15 |
 | X38 | FA-20 sends the reader to STATUS.md for the canonical surfaces; PR-W1 and LG-18 say STATUS.md is retired and historical and must not be used. [CONFIRMED: fsi-app/.claude/CLAUDE.md:189; STATUS.md header] | FA-20 |
 | X39 | Integrity-flag channel vs lane limits. FA-29: an agent writes an integrity_flags row by service-role INSERT and never reports the concern in chat; LC-07, CM-05: a lane has no DB credentials and never writes the live DB, and CM-13/LC-45 require reporting to the coordinator. EP-R16(c) also routes obligations through integrity_flags. [CONFIRMED] | FA-29 |
-| X40 | Who authorizes writes. FA-5: writes wait on the operator authorization (Jason) after the investigation; MAM-1, MAM-2, MRB-3: apply and dispatch without waiting, stop only for data-deleting statements and operator-only rulings. [CONFIRMED: fsi-app/.claude/CLAUDE.md:24-36; memory 2026-10-06/08] | FA-5 |
+| X40 | Who authorizes writes. FA-5: writes wait on the operator authorization (the operator) after the investigation; MAM-1, MAM-2, MRB-3: apply and dispatch without waiting, stop only for data-deleting statements and operator-only rulings. [CONFIRMED: fsi-app/.claude/CLAUDE.md:24-36; memory 2026-10-06/08] | FA-5 |
 
 ### 6. Rules that refer to things that no longer exist, or are not as stated (each checked this lane)
 
@@ -210,7 +210,7 @@ Not read: references/ of any skill (D2), fsi-app/.claude/PLUGIN-NOTES.md. Not ve
 
 ## Register
 
-### GL: C:\Users\jason\.claude\CLAUDE.md (global, 18 lines)
+### GL: <home>\.claude\CLAUDE.md (global, 18 lines)
 
 | ID | RULE | GOVERNS | ORIGIN | DUPLICATES | CONTRADICTS | STILL TRUE | CLASS |
 |---|---|---|---|---|---|---|---|
@@ -222,7 +222,7 @@ Not read: references/ of any skill (D2), fsi-app/.claude/PLUGIN-NOTES.md. Not ve
 | GL-6 (:17) | At the end of every session when I say /done, update the project CLAUDE.md with progress and next steps | session close target | none cited | K26: PR-6, PR-C1, PR-S1, PR-S2, PR-S3, CM-11, LC-34, DN-1, DN-2, DN-3, DN-4, DN-5, DN-6, DN-7 | X8 | PARTLY: project CLAUDE.md :61 and :117 send session state to docs/ops/session-log.md, never into CLAUDE.md [CONFIRMED: cat -n CLAUDE.md] | SELF-MAINTENANCE |
 | GL-7 (:18) | Keep CLAUDE.md concise, bullet points not paragraphs | CLAUDE.md form | none cited | none | X9 | NO for the project file: 120 lines, rules 13 to 20 are multi-line paragraphs [CONFIRMED: wc -l, cat -n] | NONE |
 
-### PR: C:\Users\jason\dotfiles\CLAUDE.md (120 lines)
+### PR: <repo>\CLAUDE.md (120 lines)
 
 | ID | RULE | GOVERNS | ORIGIN | DUPLICATES | CONTRADICTS | STILL TRUE | CLASS |
 |---|---|---|---|---|---|---|---|
@@ -263,7 +263,7 @@ Not read: references/ of any skill (D2), fsi-app/.claude/PLUGIN-NOTES.md. Not ve
 | PR-S3 (:118) | New living doc gets an INDEX line; new debt goes to docs/tech-debt-log.md | doc registry | none | K26: GL-6, PR-6, PR-C1, PR-S1, PR-S2, CM-11, LC-34, DN-1, DN-2, DN-3, DN-4, DN-5, DN-6, DN-7 | - | YES tech-debt-log.md exists [CONFIRMED: ls] | SELF-MAINTENANCE |
 | PR-S4 (:120) | Nothing breaks the same way twice; every failure becomes an edit to the system | self-annealing | none | K25: PR-S2, MCC-1, MCC-2, MCC-3, MLC-1, MLC-2, MFE-2, MWM-1, MWM-2, MWM-3, CM-19, FA-12 | - | n/a principle | SELF-MAINTENANCE |
 
-### MEM: C:\Users\jason\.claude\projects\C--Users-jason-dotfiles\memory\ (44 files: MEMORY.md index + 43 topic files; MEMORY.md itself states no rule of its own, only 43 pointers; see index drift in summary)
+### MEM: <home>\.claude\projects\<repo-slug>\memory\ (44 files: MEMORY.md index + 43 topic files; MEMORY.md itself states no rule of its own, only 43 pointers; see index drift in summary)
 
 | ID | RULE | GOVERNS | ORIGIN | DUPLICATES | CONTRADICTS | STILL TRUE | CLASS |
 |---|---|---|---|---|---|---|---|
@@ -713,7 +713,7 @@ Not read: references/ of any skill (D2), fsi-app/.claude/PLUGIN-NOTES.md. Not ve
 | FA-2 (:10-17) | The product is a source-monitoring system feeding five surfaces: Layer 1 sources, Layer 2 intelligence items inside them; manual entry is not the model | architecture | April 2026 renovation | K45: MCR-1 | - | YES: sources and intelligence_items used across fsi-app/src | CAPABILITY |
 | FA-3 (:19) | Source trust is a 7-tier hierarchy with trust scoring accuracy 40% / timeliness 20% / reliability 20% / citation 20% | trust scoring | April 2026 | K32: PR-18, MRD-24, MRD-42, EP-16, EP-R2, CR-2, CR-3, CR-6, CR-7, CR-8, CR-9, CR-10, CR-11 | - | PARTLY: trust.ts:41-47 sums accuracy+timeliness+reliability+citation; the 40/20/20/20 weights not read [HYPOTHESIS] | CAPABILITY |
 | FA-4 (:20) | Promotion needs ALL criteria, demotion ANY one condition, both evaluated autonomously by evaluatePromotion / evaluateDemotion; the operator gets visibility, not a gate; critical_conflict and paywall_introduced removed from the demotion vocabulary 2026-08-31 | source lifecycle | Wave A3 2026-08-31 | none | - | YES: both functions referenced in src/app/api/admin/recompute-trust/route.ts and trust-evaluators.npmtest.mjs [CONFIRMED: git grep -l] | LEARNING |
-| FA-5 (:22-36) | Dispatch discipline: any dispatch with a downstream effect defines its verification check inline before it is authorized; read-only investigation first when state is uncertain; per-step verification; report divergence between findings and premises; writes wait on Jason's authorization after investigation | dispatch design | 2026-05-06 PR-A1 California test (80% of dispatched writes already done, duplicate or wrong) | K5+K4+K23: PR-15a, PR-17, MNB-2, MTW-1, MTW-2, MRD-4, MRD-14, MRD-31, CM-10, LC-01, LC-02, LC-03, LC-11, LC-37, DC-1, DC-3, EP-R16, AC-06, FA-39, GL-2, PR-14, MNG-1, MNG-2, MWM-3, MRD-0, MRD-15, LC-24, LG-9, LG-10, LG-11, LG-13, LG-14, LG-17, LG-25, RM-6, FA-11, FA-17, FA-41, MAM-1, MAM-2 (+18 more, full list in the cluster table) | X40 | PARTLY: pr-a1-investigate.mjs and its two JSON artifacts are not in the tree [CONFIRMED: git ls-files] | SELF-MAINTENANCE |
+| FA-5 (:22-36) | Dispatch discipline: any dispatch with a downstream effect defines its verification check inline before it is authorized; read-only investigation first when state is uncertain; per-step verification; report divergence between findings and premises; writes wait on the operator's authorization after investigation | dispatch design | 2026-05-06 PR-A1 California test (80% of dispatched writes already done, duplicate or wrong) | K5+K4+K23: PR-15a, PR-17, MNB-2, MTW-1, MTW-2, MRD-4, MRD-14, MRD-31, CM-10, LC-01, LC-02, LC-03, LC-11, LC-37, DC-1, DC-3, EP-R16, AC-06, FA-39, GL-2, PR-14, MNG-1, MNG-2, MWM-3, MRD-0, MRD-15, LC-24, LG-9, LG-10, LG-11, LG-13, LG-14, LG-17, LG-25, RM-6, FA-11, FA-17, FA-41, MAM-1, MAM-2 (+18 more, full list in the cluster table) | X40 | PARTLY: pr-a1-investigate.mjs and its two JSON artifacts are not in the tree [CONFIRMED: git ls-files] | SELF-MAINTENANCE |
 | FA-6 (:38-65) | Every dispatch begins with a skill-inventory pass: scan the when_to_load blocks of the 6 custom skills (+ superpowers), load every skill whose triggers fire, list loaded and considered-not-loaded skills with the trigger in the pre-work report | skill loading | 2026-05-20 3-axis skill audit | K41: MCE-2, MRD-36, MRD-40, MRD-43, CM-13, LC-32, LG-22, EP-0, PI-1, PI-2, PI-4, PI-5, PI-6, PI-8, PI-9, PI-12, PI-13, AC-01, RM-1, CR-1, SF-1, SF-2, SF-3, SF-14, FA-21, FA-37 | - | PARTLY: the tree has 8 custom skills (surface-contracts and done are not in the "6"); ADR-032 now enforces loading mechanically for governed paths [CONFIRMED: ls skills] | SELF-MAINTENANCE |
 | FA-7 (:67-85) | Code state and data state are separate: code lands via PR merge, data is durable on script execution; rollback of data needs a separate reversing script; writes scripts stay in the repo as the audit record | change model | 2026-05-06 PR-A1 #31 | K14: PR-1, PR-3, MNW-2, MRA-3, MRD-26, CM-10, CM-14, LC-07, LC-40 | - | n/a; consistent with lanes-never-write-data (CM-05) | SELF-MAINTENANCE |
 | FA-8 (:87-106) | Reuse-before-construction: search the codebase before building a component; construct only when none serves, scope mismatches, or adapting costs more | reuse | 2026-05-07 Wave 2 (UserMenu, BackToTop, ALL_SECTORS already existed) | K3: GL-4, PR-C1, MDA-1, MDA-2, MFW-3, MRA-1, MRA-2, MRA-3, MRS-1, MRS-2, MRD-0, MRD-5, MRD-6, MRD-14, MRD-25, CM-01, CM-08, LC-04, LC-13, LC-14, LC-15, LC-16, LC-18, LC-19, LC-22, LC-31, DC-4, LG-7, PI-5, SF-6, FA-9, FA-23, FA-37, FA-38 | - | n/a behavioural | SELF-MAINTENANCE |
