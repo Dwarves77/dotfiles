@@ -36,4 +36,4 @@
 
 ## Open items
 
-- None beyond the NOT done lines above.
+- None beyond the NOT done lines above. [NOT-WORK: no open item; the line states that the NOT done list above is complete]

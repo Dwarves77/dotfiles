@@ -138,7 +138,7 @@ export const GOVERNED = [
       'fsi-app/.discipline/lib/',
       'fsi-app/.discipline/runner.mjs',
       'fsi-app/.discipline/manifest.mjs',
-      '.github/workflows/discipline.yml',
+      '.github/workflows/ci.yml',
       '.claude/hooks/',
     ],
     // delete / archive operations on existing rows

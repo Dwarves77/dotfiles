@@ -55,7 +55,7 @@ Every new test file has an attack on the attacker (a scripted leak turns the att
 
 ## Open items
 
-- Register row P18 in `docs/audits/aud-at2-route-guard-register-2026-10-08.md` is stale and must be corrected in place by the executor after merge (F51 forbids a lane editing docs/audits). Replace the last cell `[CONFIRMED: decideRoute executed at dfb215db plus static trace]` with `[REFUTED: /auth/reset-password is in PUBLIC_ROUTES by design (fsi-app/src/lib/auth/route-policy.ts:27); the page is public, not leaked]`, keeping the row. The attack already treats the page as public through `fixtures/route-attack-expected-open.json` (entry P18, with a test that pins it to PUBLIC_ROUTES). [WORK: owed]
+- Register row P18 in `docs/audits/aud-at2-route-guard-register-2026-10-08.md` is stale and must be corrected in place by the executor after merge (F51 forbids a lane editing docs/audits). Replace the last cell `[CONFIRMED: decideRoute executed at dfb215db plus static trace]` with `REFUTED: /auth/reset-password is in PUBLIC_ROUTES by design (fsi-app/src/lib/auth/route-policy.ts:27); the page is public, not leaked`, keeping the row. The attack already treats the page as public through `fixtures/route-attack-expected-open.json` (entry P18, with a test that pins it to PUBLIC_ROUTES). [CLOSED: PR 1108]
 
 - [auth.email] enable_signup=false in fsi-app/supabase/config.toml disables email password sign-in on the local stack (auth 422); whether production's auth settings match is unverified [WORK: owed]
 
