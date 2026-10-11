@@ -4033,6 +4033,923 @@
           }
         }
       ]
+    },
+    {
+      "id": "sec9-anon-select-grants-have-an-anon-policy",
+      "group": "SEC-9 dead anon grants",
+      "kind": "sql",
+      "invariant": "Every SELECT privilege anon holds on a public relation is justified by a SELECT or ALL policy that applies to anon or public, the set of such relations is exactly the kept set (13 by design, 30 behind an authenticated-only predicate), and anon holds no SELECT on the 49 relations no policy applies to.",
+      "expected": "Each anonymous read of a revoked relation is refused 42501 naming the relation; each kept authenticated-only table answers anon with zero rows or 42501; each by-design table is still readable by anon; the three catalog counts are 0.",
+      "reference": "migration 384 (lane SEC-9); migration 382 (SEC-8) for the grant-follows-policy form; migration 369 (grant hygiene left anon SELECT untouched); ADR-046",
+      "steps": [
+        {
+          "label": "attack: count public relations where anon holds SELECT and no SELECT or ALL policy applies to anon or public",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM pg_class c WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f') AND has_table_privilege('anon', c.oid, 'SELECT') AND NOT EXISTS (SELECT 1 FROM pg_policies p WHERE p.schemaname = 'public' AND p.tablename = c.relname AND p.cmd IN ('SELECT', 'ALL') AND p.roles && ARRAY['anon', 'public']::name[])",
+          "expect": {
+            "equals": {
+              "n": "0"
+            }
+          }
+        },
+        {
+          "label": "attack: count the revoked relations on which anon still holds SELECT (table or column level)",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM unnest(ARRAY['admin_action_cooldowns', 'agent_run_searches', 'agent_runs', 'assumption_register', 'brief_apply_runs', 'census_rollup_by_surface', 'census_worklist', 'claim_versions', 'corpus_census', 'corpus_turn_requests', 'coverage_gap_candidates', 'coverage_gap_census_findings', 'data_sources', 'derived_values', 'derived_values_admissible', 'disposition_ledger', 'emission_factor_candidates', 'emission_factors', 'error_events', 'estimated_values', 'funded_pass_runlock', 'gate_a_health_cache', 'grid_connection_queues', 'inference_records', 'institutions', 'intelligence_item_citations', 'intelligence_item_versions', 'item_correction_evidence', 'item_corrections', 'item_gate_a_state', 'item_type_required_slots', 'licence_clear_sources', 'market_series', 'mutation_leases', 'oem_tech_roadmaps', 'portal_link_candidates', 'propagation_events', 'propagation_queue_depth', 'published_price_statistics', 'raw_fetches', 'reroute_events', 'research_assessments', 'section_claim_provenance', 'source_bias_tags', 'source_reliability_ledger', 'staged_updates', 'statutory_computations', 'system_state', 'system_state_flag_audit']) AS t(name) WHERE has_any_column_privilege('anon', ('public.' || t.name)::regclass, 'SELECT')",
+          "expect": {
+            "equals": {
+              "n": "0"
+            }
+          }
+        },
+        {
+          "label": "attack: count the public relations anon can SELECT that are not in the kept set",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM pg_class c WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f') AND has_table_privilege('anon', c.oid, 'SELECT') AND NOT (c.relname = ANY (ARRAY['community_groups', 'community_posts', 'community_thread_entities', 'intelligence_changes', 'intelligence_item_sections', 'intelligence_items', 'item_changelog', 'item_cross_references', 'item_disputes', 'item_forward_events', 'item_supersessions', 'item_timelines', 'obligations', 'auxiliary_energy_profiles', 'bulk_imports', 'canonical_source_candidates', 'community_group_invitations', 'community_group_members', 'community_post_signoff_requests', 'community_topic_groups', 'community_topics', 'holdings_quality', 'indexation_clauses', 'ingest_rejections', 'integrity_flags', 'intelligence_summaries', 'item_workspace_tags', 'moderation_reports', 'notification_preferences', 'notifications', 'org_invitations', 'org_member_bans', 'org_watchlist', 'pending_jurisdiction_review', 'provisional_sources', 'sector_contexts', 'source_tier_opinions', 'user_item_state', 'user_watchlist', 'vocabulary_mentions', 'vocabulary_terms', 'workspace_item_overrides', 'workspace_tags']))",
+          "expect": {
+            "equals": {
+              "n": "0"
+            }
+          }
+        },
+        {
+          "label": "attack: anon reads admin_action_cooldowns",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.admin_action_cooldowns LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table admin_action_cooldowns"
+          }
+        },
+        {
+          "label": "attack: anon reads agent_run_searches",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.agent_run_searches LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table agent_run_searches"
+          }
+        },
+        {
+          "label": "attack: anon reads agent_runs",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.agent_runs LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table agent_runs"
+          }
+        },
+        {
+          "label": "attack: anon reads assumption_register",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.assumption_register LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table assumption_register"
+          }
+        },
+        {
+          "label": "attack: anon reads brief_apply_runs",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.brief_apply_runs LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table brief_apply_runs"
+          }
+        },
+        {
+          "label": "attack: anon reads census_rollup_by_surface",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.census_rollup_by_surface LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "census_rollup_by_surface"
+          }
+        },
+        {
+          "label": "attack: anon reads census_worklist",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.census_worklist LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table census_worklist"
+          }
+        },
+        {
+          "label": "attack: anon reads claim_versions",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.claim_versions LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table claim_versions"
+          }
+        },
+        {
+          "label": "attack: anon reads corpus_census",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.corpus_census LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table corpus_census"
+          }
+        },
+        {
+          "label": "attack: anon reads corpus_turn_requests",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.corpus_turn_requests LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table corpus_turn_requests"
+          }
+        },
+        {
+          "label": "attack: anon reads coverage_gap_candidates",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.coverage_gap_candidates LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table coverage_gap_candidates"
+          }
+        },
+        {
+          "label": "attack: anon reads coverage_gap_census_findings",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.coverage_gap_census_findings LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table coverage_gap_census_findings"
+          }
+        },
+        {
+          "label": "attack: anon reads data_sources",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.data_sources LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table data_sources"
+          }
+        },
+        {
+          "label": "attack: anon reads derived_values",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.derived_values LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table derived_values"
+          }
+        },
+        {
+          "label": "attack: anon reads derived_values_admissible",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.derived_values_admissible LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "derived_values_admissible"
+          }
+        },
+        {
+          "label": "attack: anon reads disposition_ledger",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.disposition_ledger LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table disposition_ledger"
+          }
+        },
+        {
+          "label": "attack: anon reads emission_factor_candidates",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.emission_factor_candidates LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "emission_factor_candidates"
+          }
+        },
+        {
+          "label": "attack: anon reads emission_factors",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.emission_factors LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table emission_factors"
+          }
+        },
+        {
+          "label": "attack: anon reads error_events",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.error_events LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table error_events"
+          }
+        },
+        {
+          "label": "attack: anon reads estimated_values",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.estimated_values LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table estimated_values"
+          }
+        },
+        {
+          "label": "attack: anon reads funded_pass_runlock",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.funded_pass_runlock LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table funded_pass_runlock"
+          }
+        },
+        {
+          "label": "attack: anon reads gate_a_health_cache",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.gate_a_health_cache LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table gate_a_health_cache"
+          }
+        },
+        {
+          "label": "attack: anon reads grid_connection_queues",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.grid_connection_queues LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table grid_connection_queues"
+          }
+        },
+        {
+          "label": "attack: anon reads inference_records",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.inference_records LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table inference_records"
+          }
+        },
+        {
+          "label": "attack: anon reads institutions",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.institutions LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table institutions"
+          }
+        },
+        {
+          "label": "attack: anon reads intelligence_item_citations",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.intelligence_item_citations LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table intelligence_item_citations"
+          }
+        },
+        {
+          "label": "attack: anon reads intelligence_item_versions",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.intelligence_item_versions LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table intelligence_item_versions"
+          }
+        },
+        {
+          "label": "attack: anon reads item_correction_evidence",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_correction_evidence LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table item_correction_evidence"
+          }
+        },
+        {
+          "label": "attack: anon reads item_corrections",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_corrections LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table item_corrections"
+          }
+        },
+        {
+          "label": "attack: anon reads item_gate_a_state",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_gate_a_state LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table item_gate_a_state"
+          }
+        },
+        {
+          "label": "attack: anon reads item_type_required_slots",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_type_required_slots LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table item_type_required_slots"
+          }
+        },
+        {
+          "label": "attack: anon reads licence_clear_sources",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.licence_clear_sources LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "licence_clear_sources"
+          }
+        },
+        {
+          "label": "attack: anon reads market_series",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.market_series LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table market_series"
+          }
+        },
+        {
+          "label": "attack: anon reads mutation_leases",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.mutation_leases LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table mutation_leases"
+          }
+        },
+        {
+          "label": "attack: anon reads oem_tech_roadmaps",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.oem_tech_roadmaps LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table oem_tech_roadmaps"
+          }
+        },
+        {
+          "label": "attack: anon reads portal_link_candidates",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.portal_link_candidates LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table portal_link_candidates"
+          }
+        },
+        {
+          "label": "attack: anon reads propagation_events",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.propagation_events LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table propagation_events"
+          }
+        },
+        {
+          "label": "attack: anon reads propagation_queue_depth",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.propagation_queue_depth LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "propagation_queue_depth"
+          }
+        },
+        {
+          "label": "attack: anon reads published_price_statistics",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.published_price_statistics LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table published_price_statistics"
+          }
+        },
+        {
+          "label": "attack: anon reads raw_fetches",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.raw_fetches LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table raw_fetches"
+          }
+        },
+        {
+          "label": "attack: anon reads reroute_events",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.reroute_events LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table reroute_events"
+          }
+        },
+        {
+          "label": "attack: anon reads research_assessments",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.research_assessments LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table research_assessments"
+          }
+        },
+        {
+          "label": "attack: anon reads section_claim_provenance",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.section_claim_provenance LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table section_claim_provenance"
+          }
+        },
+        {
+          "label": "attack: anon reads source_bias_tags",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.source_bias_tags LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table source_bias_tags"
+          }
+        },
+        {
+          "label": "attack: anon reads source_reliability_ledger",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.source_reliability_ledger LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table source_reliability_ledger"
+          }
+        },
+        {
+          "label": "attack: anon reads staged_updates",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.staged_updates LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table staged_updates"
+          }
+        },
+        {
+          "label": "attack: anon reads statutory_computations",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.statutory_computations LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table statutory_computations"
+          }
+        },
+        {
+          "label": "attack: anon reads system_state",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.system_state LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table system_state"
+          }
+        },
+        {
+          "label": "attack: anon reads system_state_flag_audit",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.system_state_flag_audit LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table system_state_flag_audit"
+          }
+        },
+        {
+          "label": "attack: anon reads auxiliary_energy_profiles (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.auxiliary_energy_profiles LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads bulk_imports (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.bulk_imports LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads canonical_source_candidates (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.canonical_source_candidates LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads community_group_invitations (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.community_group_invitations LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads community_group_members (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.community_group_members LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads community_post_signoff_requests (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.community_post_signoff_requests LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads community_topic_groups (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.community_topic_groups LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads community_topics (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.community_topics LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads holdings_quality (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.holdings_quality LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads indexation_clauses (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.indexation_clauses LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads ingest_rejections (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.ingest_rejections LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads integrity_flags (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.integrity_flags LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads intelligence_summaries (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.intelligence_summaries LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads item_workspace_tags (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_workspace_tags LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads moderation_reports (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.moderation_reports LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads notification_preferences (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.notification_preferences LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads notifications (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.notifications LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads org_invitations (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.org_invitations LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads org_member_bans (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.org_member_bans LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads org_watchlist (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.org_watchlist LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads pending_jurisdiction_review (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.pending_jurisdiction_review LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads provisional_sources (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.provisional_sources LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads sector_contexts (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.sector_contexts LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads source_tier_opinions (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.source_tier_opinions LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads user_item_state (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.user_item_state LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads user_watchlist (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.user_watchlist LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads vocabulary_mentions (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.vocabulary_mentions LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads vocabulary_terms (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.vocabulary_terms LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads workspace_item_overrides (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.workspace_item_overrides LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: anon reads workspace_tags (kept, authenticated-only predicate)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.workspace_tags LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "control: anon still reads community_groups (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.community_groups LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads community_posts (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.community_posts LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads community_thread_entities (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.community_thread_entities LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads intelligence_changes (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.intelligence_changes LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads intelligence_item_sections (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.intelligence_item_sections LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads intelligence_items (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.intelligence_items LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads item_changelog (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_changelog LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads item_cross_references (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_cross_references LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads item_disputes (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_disputes LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads item_forward_events (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_forward_events LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads item_supersessions (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_supersessions LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads item_timelines (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.item_timelines LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: anon still reads obligations (kept by design)",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.obligations LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        }
+      ]
     }
   ]
 }
