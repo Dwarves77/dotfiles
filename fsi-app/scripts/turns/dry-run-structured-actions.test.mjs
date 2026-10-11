@@ -70,3 +70,42 @@ test("runExtractionPass: an all-empty population reports zero without throwing",
   assert.equal(metrics.total_actions, 0);
   assert.deepEqual(sampleActions, []);
 });
+
+// ── HARNESS-1 (2026-10-10): the artifact this script writes is findable from its ledger row ────────────
+// [CONFIRMED] a local run wrote structured-actions-run-003.json while the ledger stored run-001 (renumbered).
+import { mkdtempSync, rmSync, writeFileSync, readdirSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { runDryRun } from "./dry-run-structured-actions.mjs";
+
+function fakeLedger({ rows = [] } = {}) {
+  const inserted = [];
+  return {
+    inserted,
+    from() {
+      return {
+        select() { const q = { order() { return q; }, eq() { return q; }, then(r) { r({ data: rows, error: null }); } }; return q; },
+        async insert(row) { inserted.push(row); return { error: null }; },
+      };
+    },
+  };
+}
+
+test("runDryRun: a pre-existing run-002 file plus a new run yields the SAME id on the ledger row, the returned run_id and the file name", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "sa-"));
+  try {
+    writeFileSync(join(dir, "structured-actions-run-002.json"), JSON.stringify({ run_id: "structured-actions-run-002" }));
+    const ledger = fakeLedger();
+    const items = [{ id: "a1", item_type: "regulation", full_brief: REG_BRIEF_WITH_ACTION }];
+    const r = await runDryRun({}, { readAllFn: async () => items, sb: {}, familyDir: dir, harnessRunsClient: ledger });
+    assert.equal(ledger.inserted.length, 1);
+    const ledgerId = ledger.inserted[0].run_id;
+    assert.equal(ledgerId, "structured-actions-run-001", "the empty ledger says 001 and 001 is free in the directory");
+    assert.equal(r.runId, ledgerId);
+    assert.deepEqual(readdirSync(dir).filter((f) => f.endsWith(".json")).sort(), ["structured-actions-run-001.json", "structured-actions-run-002.json"]);
+    assert.equal(JSON.parse(readFileSync(r.artifactPath, "utf8")).run_id, ledgerId);
+    assert.ok(r.artifactPath.endsWith(`${ledgerId}.json`));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

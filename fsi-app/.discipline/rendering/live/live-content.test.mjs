@@ -264,6 +264,68 @@ test("a candidate path is matched ignoring percent-encoding, and a candidate pag
   assert.match(f[0].text, /no candidate page was checked at 1440px/);
 });
 
+// ---------------------------------------------------------------- the list-side chooser (lane SMOKE-4)
+/** Resolved candidates whose list-kind classes carry `listVisit`, the filtered list URLs that must hold a candidate row. */
+const listCands = (count, listVisit) => ({
+  resolved: true,
+  classes: Object.fromEntries(["inference", "record", "bias"].map((c) => [c, { count, visit: [], sample: [], listVisit }])),
+});
+const onlyGrade = (r) => r.findings.filter((f) => f.invariant === INVARIANTS.GRADE_CHIP);
+const GRADE = "grade-chip@list";
+const candList = (path, key, absent, over = {}) => (absent ? without("list", path, key, { candidateList: true, ...over }) : page("list", path, { candidateList: true, ...over }));
+
+test("list chooser: a list requirement is judged ONLY on the candidate list pages (an unfiltered list can neither rescue nor fail it)", () => {
+  const c = listCands(2, ["/regulations?q=alpha"]);
+  // The plain list lacks the grade chip, the candidate list (a row that must carry it) has it: PASS.
+  assert.deepEqual(onlyGrade(judgeContentRun([without("list", "/regulations", GRADE), candList("/regulations?q=alpha", GRADE, false)], c)), []);
+  // The plain list carries a chip, the candidate list does not: FAIL once per viewport, naming the candidate list.
+  const f = onlyGrade(judgeContentRun([page("list", "/regulations"), candList("/regulations?q=alpha", GRADE, true)], c));
+  assert.equal(f.length, 1);
+  assert.match(f[0].text, /missing grade chip/);
+  assert.match(f[0].text, /2 record candidate item\(s\) exist/);
+  assert.match(f[0].text, /\/regulations/);
+});
+
+test("list chooser: ATTACK a candidate list page that was never visited is a FAIL, not a pass", () => {
+  const f = onlyGrade(judgeContentRun([page("list", "/regulations"), page("detail", "/regulations/a")], listCands(1, ["/regulations?q=alpha"])));
+  assert.equal(f.length, 1);
+  assert.match(f[0].text, /no candidate page was checked at 1440px/);
+  assert.match(f[0].text, /\/regulations\?q=alpha/);
+});
+
+test("list chooser: the candidate list URL is matched ignoring percent-encoding and including its query", () => {
+  const c = listCands(1, ["/market?q=carbon border"]);
+  assert.deepEqual(onlyGrade(judgeContentRun([candList("/market?q=carbon%20border", GRADE, false)], c)), []);
+  // A different query on the same list path is a different page: not the candidate list.
+  assert.equal(onlyGrade(judgeContentRun([page("list", "/market?q=other", { candidateList: true })], c)).length, 1);
+});
+
+test("list chooser: candidates exist but no list page could be chosen is a named HOLD (carrying the count), never a pass or a fail", () => {
+  const { findings, holds } = judgeContentRun([page("list", "/regulations"), page("detail", "/regulations/a")], listCands(3, []));
+  assert.deepEqual(findings.filter((f) => f.invariant === INVARIANTS.GRADE_CHIP), []);
+  const h = holds.find((x) => x.key === GRADE);
+  assert.deepEqual([h.state, h.candidates], ["hold", 3]);
+  assert.match(h.reason, /no list page/);
+});
+
+test("list chooser: a candidate file without listVisit (an older file) is judged over every list page as before", () => {
+  const legacy = cands(2, ["/regulations/a"]);
+  assert.equal(onlyGrade(judgeContentRun([without("list", "/regulations", GRADE), without("list", "/market", GRADE)], legacy)).length, 1);
+  assert.deepEqual(onlyGrade(judgeContentRun([without("list", "/regulations", GRADE), page("list", "/market")], legacy)), []);
+});
+
+test("list chooser: zero candidates is still a HOLD whatever listVisit says", () => {
+  const { findings, holds } = judgeContentRun(bareRun(), listCands(0, []));
+  assert.deepEqual(findings.filter(isConditional), []);
+  assert.equal(holds.length, CONDITIONAL.length);
+});
+
+test("list chooser: a candidate list page is exempt from the `each` list requirements (a filtered list need not show a tier square) but not from the rest", () => {
+  const filtered = without("list", "/regulations?q=alpha", "tier-square@list", { candidateList: true });
+  assert.deepEqual(checkContentSnapshot(filtered), []);
+  assert.equal(checkContentSnapshot({ ...filtered, candidateList: false }).length, 1, "the same page unflagged still fails the tier square");
+});
+
 test("formatSummary prints each hold as a HOLD line naming the invariant and the count; the totals line carries the hold count; buildReport records them", () => {
   const { findings, holds } = judgeContentRun(bareRun(), cands(0));
   const lines = formatSummary(findings, holds);
