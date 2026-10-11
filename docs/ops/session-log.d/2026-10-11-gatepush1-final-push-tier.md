@@ -7,6 +7,7 @@
 - New helper `fsi-app/.discipline/hooks/lib/final-push-tier.sh` (skip-token test, final-push resolution, changed-file list, ESLint over a file list).
 - Tests added to `pre-push-tmpdir.test.mjs`: 12 new (real hook in a throwaway repository with stubbed gated scripts: WIP skips, final runs both, token in body, 3d fail, 3e fail, no lintable files, docs-only, deletion and empty push, source order, token matcher, and a real-ESLint attack where an unused variable fails the 3d command and a clean file passes). Red against the old hook: 8 failed, 4 passed (the attack and docs-only ones passed because they assert absence or the helper alone). Green after the hook edit: 24 of 24 across `pre-push-tmpdir.test.mjs` and `pre-push-honest-forms.test.mjs`.
 - Measured: step 3d on a 3-file change 5 to 6 s; step 3e (fitness runner) 50 s, under the 180 s line.
+- Rule 17 checks before the final push: eslint on the changed files exit 0, fitness runner 52 functions 0 violations, touched hook tests plus install-hooks and invariant-coverage tests 60 of 60.
 - ADR-040 gained a dated amendment paragraph (what runs on which push, the measured times, the three CI reds that motivated it).
 
 ### Read and reused
