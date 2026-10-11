@@ -132,6 +132,9 @@ test("the composite action starts the stack from a scratch directory holding onl
   assert.match(ACTION, /cd "\$STACK_DIR"\n\s+supabase start/);
   assert.doesNotMatch(ACTION, /supabase\/migrations/, "the stack must never be started from, or pointed at, the migrations directory");
   // the action writes the env file, then preflights it, in that order, and is free of any secret
+  // TESTS-2 (AUD-AT-5 OWED-8 CS8): an absent writer has lastIndexOf -1, which sorts before any preflight and passed the order
+  // check below; the writer must be PRESENT, found by workflow-mutation-attacks.test.mjs.
+  assert.ok(ACTION.includes("write-local-env.mjs"), "the action must call the env writer");
   assert.ok(ACTION.lastIndexOf("write-local-env.mjs") < ACTION.lastIndexOf("scripts/proof/preflight.mjs"));
   assert.doesNotMatch(ACTION, /secrets\./);
   const code = ACTION.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
