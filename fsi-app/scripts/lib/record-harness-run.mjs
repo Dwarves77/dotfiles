@@ -62,7 +62,7 @@
 // intent: diagnosable, never a false red, for the case that was never going to try). `isGitHubActions`
 // is deps-injectable so both branches are proven without depending on the real process environment.
 
-import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { formatRunId, nextRunNumberFromHarnessRuns } from "./harness-run-number.mjs";
 

@@ -344,7 +344,7 @@ test('runCli: --file is the artifact path, so a renumbered landing renames that 
       log: () => {}, errorLog: () => {}, envUrl: 'https://example.supabase.co', envKey: 'k',
       createClientFn: () => Object.assign(fakeSb(), {
         // the default reader selects from harness_runs; an empty table is enough to make the ledger id 001
-        from(table) {
+        from() {
           return {
             select() { const q = { order() { return q; }, eq() { return q; }, then(r) { r({ data: [], error: null }); } }; return q; },
             async insert() { return { error: null }; },
