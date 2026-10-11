@@ -68,7 +68,8 @@ function hookRepo() {
   git(['config', 'user.email', 't@example.com']);
   git(['config', 'commit.gpgsign', 'false']);
   git(['config', 'core.autocrlf', 'false']);
-  for (const rel of [`${HOOKS}/pre-push`, `${HOOKS}/lib/prepush-logdir.sh`]) {
+  // every library the hook sources is copied: a missing one stops the hook at step 0e (GATE-PUSH-1 added final-push-tier.sh)
+  for (const rel of [`${HOOKS}/pre-push`, `${HOOKS}/lib/prepush-logdir.sh`, `${HOOKS}/lib/final-push-tier.sh`]) {
     mkdirSync(dirname(join(dir, rel)), { recursive: true });
     copyFileSync(join(REPO, rel), join(dir, rel));
   }
@@ -97,11 +98,12 @@ function hookRepo() {
   return { dir, git };
 }
 
-function runHook(dir, env = {}) {
+/** `refs` is git's pre-push stdin (`<local ref> <local sha> <remote ref> <remote sha>`); '' is an empty push, which step 0e classes as no tier. */
+function runHook(dir, env = {}, refs = '') {
   const trace = join(dir, '.git', 'pp-trace');
   const e = { ...process.env, DISCIPLINE_HOOK_TRAMPOLINE: '1', DISCIPLINE_PREPUSH_FULL: '1', PP_FAIL: '', PP_TRACE: trace, ...env };
   for (const k of Object.keys(e)) if (k.startsWith('NODE_TEST')) delete e[k];
-  const r = spawnSync('sh', [join(dir, HOOKS, 'pre-push')], { cwd: dir, encoding: 'utf8', input: '', env: e });
+  const r = spawnSync('sh', [join(dir, HOOKS, 'pre-push')], { cwd: dir, encoding: 'utf8', input: refs, env: e });
   const ran = existsSync(trace) ? readFileSync(trace, 'utf8').split('\n').filter(Boolean) : [];
   return { code: r.status, out: `${r.stdout}${r.stderr}`, ran };
 }
@@ -163,6 +165,40 @@ test('by design (R22): a docs-only push skips steps 3 to 4 even in the full run,
     const r = runHook(dir, { PP_DOCS_ONLY: '1', PP_FAIL: 'suite' });
     assert.equal(r.code, 0, r.out);
     assert.match(r.out, /step 0c \(docs-only fast path\): every changed file is docs/);
+    assert.deepEqual(r.ran, ['consistency', 'memory']);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// GATE-PUSH-1 (2026-10-11, amends ADR-040): a push whose tip carries no skip token runs the final tier (3d, 3e) even without
+// DISCIPLINE_PREPUSH_FULL; a WIP tip runs neither. The pushed tip is fed through git's stdin lines, as git does.
+function tipRefs(git) {
+  const sha = git(['rev-parse', 'HEAD']).trim();
+  return `refs/heads/x ${sha} refs/heads/x ${'0'.repeat(40)}\n`;
+}
+
+test('GATE-PUSH-1: without the opt-in, a final push (tip has no skip token) runs steps 2, 2b, 3d, 3e only; a failing 3d or 3e blocks', () => {
+  const { dir, git } = hookRepo();
+  try {
+    const refs = tipRefs(git);
+    const ok = runHook(dir, { DISCIPLINE_PREPUSH_FULL: '0' }, refs);
+    assert.equal(ok.code, 0, ok.out);
+    assert.match(ok.out, /step 0e: final push, running the final tier/);
+    assert.deepEqual(ok.ran, ['consistency', 'memory', 'lint', 'fitness'], 'the final tier is 3d then 3e; the heavy steps stay skipped');
+    for (const [stepId, id] of [['3d', 'lint'], ['3e', 'fitness']]) {
+      const r = runHook(dir, { DISCIPLINE_PREPUSH_FULL: '0', PP_FAIL: id }, refs);
+      assert.equal(r.code, 1, r.out);
+      assert.match(r.out, new RegExp(`STEP ${stepId} FAIL`), r.out);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('GATE-PUSH-1: a WIP tip (skip token) runs neither 3d nor 3e even when they would fail', () => {
+  const { dir, git } = hookRepo();
+  try {
+    git(['commit', '-q', '--allow-empty', '-m', 'WIP lane: step [skip ci]']);
+    const r = runHook(dir, { DISCIPLINE_PREPUSH_FULL: '0', PP_FAIL: 'lint,fitness' }, tipRefs(git));
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /step 0e: WIP push \(skip token\), final tier skipped/);
     assert.deepEqual(r.ran, ['consistency', 'memory']);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
