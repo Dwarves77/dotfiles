@@ -24,10 +24,15 @@
 // DRIFT-1b (2026-10-10): the oracle image carries DEFAULT PRIVILEGES (pg_default_acl) that grant anon, authenticated and
 // service_role on every object created in public; pg_dump emits no REVOKE for a role absent from an object's ACL, so
 // every object the dump creates picked up grants production does not have (342 grants in fire 9, DRIFT-1 session log).
-// Rule: the oracle's pg_default_acl must equal what the dump declares. So, after the roles file and BEFORE the dump, the
-// wrapper reads the oracle's own pg_default_acl, REVOKEs every non-owner grantee entry (catalog-driven, never a hand
-// list), applies the dump (whose own `ALTER DEFAULT PRIVILEGES` statements, emitted after the objects, then declare
-// production's), and reads pg_default_acl back: an entry the dump never declared is red (`default_acl.extra`).
+// Rule: the oracle's default privileges in the schemas the migrations govern ('' and public) must equal what the dump
+// declares; extension-internal entries (cron, pgsodium) are outside the migrations and are counted, never compared. So,
+// after the roles file and BEFORE the dump, the wrapper reads the oracle's own pg_default_acl, REVOKEs every non-owner
+// grantee entry catalog-wide (catalog-driven, never a hand list), applies the dump (whose own `ALTER DEFAULT PRIVILEGES`
+// statements, emitted after the objects, then declare production's), and reads pg_default_acl back: an entry in the
+// governed scope the dump never declared is red (`default_acl.extra`). DRIFT-2 (2026-10-11): chain proof fire 10 found 8
+// extras, all created by an extension's own install script while the dump ran (cron, pgsodium_masks, pgsodium); pg_dump
+// never emits those, so the comparison was red by construction. The report names the scope (`default_acl.scope`) and
+// counts the oracle rows it excluded (`default_acl.out_of_scope`), so the exclusion is visible in every run.
 // Exit: 0 = applied with no error; 1 = an error (the report lists it); 2 = cannot run.
 
 import { spawnSync } from "node:child_process";
@@ -133,10 +138,18 @@ export function parseDumpDefaultAcl(dumpText, defaultOwner = SUPERUSER_ROLE) {
 
 function aclKey(r) { return [r.owner, r.schema, r.objtype, r.grantee].join(SEP); }
 
-/** The oracle's entries the dump never declared (extra) and the dump's entries the oracle lacks (missing). PURE. */
-export function compareDefaultAcl(oracleRows, declaredRows) {
-  const o = new Set(oracleRows.map(aclKey)); const d = new Set(declaredRows.map(aclKey));
-  return { extra: [...o].filter((k) => !d.has(k)).sort(), missing: [...d].filter((k) => !o.has(k)).sort() };
+/** The schemas the migrations govern: cluster-wide entries (empty schema) and public. */
+export const DEFAULT_ACL_SCOPE = Object.freeze(["", "public"]);
+
+/**
+ * The oracle's entries the dump never declared (extra) and the dump's entries the oracle lacks (missing), compared only in
+ * the schemas the migrations govern; `out_of_scope` counts the oracle rows excluded from the comparison. PURE.
+ */
+export function compareDefaultAcl(oracleRows, declaredRows, { schemas = DEFAULT_ACL_SCOPE } = {}) {
+  const inScope = (r) => schemas.includes(r.schema);
+  const governed = oracleRows.filter(inScope);
+  const o = new Set(governed.map(aclKey)); const d = new Set(declaredRows.filter(inScope).map(aclKey));
+  return { extra: [...o].filter((k) => !d.has(k)).sort(), missing: [...d].filter((k) => !o.has(k)).sort(), out_of_scope: oracleRows.length - governed.length };
 }
 
 /** Build the report. PURE. Every error is fatal; a missing role is also named in `missing_roles`; a default-privilege entry the dump never declared is fatal. */
@@ -202,15 +215,21 @@ export function applySchemaDump({ dbUrl, stackUrl = null, dumpPath, rolesPath = 
     if (run.error || (run.status !== 0 && defaultsErrors.length === 0)) defaultsErrors.push({ line: 0, message: `clearing default privileges failed: ${run.error ? run.error.message : `psql exited with status ${run.status}`}`.slice(0, MAX_TEXT) });
   }
   const cleared = { statements: statements.length, owners: [...new Set(before.rows.map((r) => r.owner))].sort(), grantees: [...new Set(before.rows.map((r) => r.grantee))].sort() };
-  if (defaultsErrors.length) return buildReport({ errors: [], publicTables: null, startedAt, finishedAt: now().toISOString(), rolesApplied: Boolean(rolesPath), rolesErrors, defaultsErrors, defaultAcl: { cleared, declared: 0, after: 0, extra: [], missing: [] } });
+  if (defaultsErrors.length) return buildReport({ errors: [], publicTables: null, startedAt, finishedAt: now().toISOString(), rolesApplied: Boolean(rolesPath), rolesErrors, defaultsErrors, defaultAcl: { cleared, declared: 0, after: 0, scope: [...DEFAULT_ACL_SCOPE], out_of_scope: 0, extra: [], missing: [] } });
   const errors = applyFile({ dbUrl, filePath: dumpPath, psql, spawn });
   const probe = spawn(psql, [dbUrl, "-X", "-At", "-c", "select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'"], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
   const n = Number.parseInt(String(probe.stdout ?? "").trim(), 10);
   const declared = parseDumpDefaultAcl(readText(dumpPath));
   const after = readDefaultAcl({ dbUrl, psql, spawn });
   const cmp = compareDefaultAcl(after.rows, declared);
-  const defaultAcl = { cleared, declared: declared.length, after: after.rows.length, extra: cmp.extra, missing: cmp.missing };
+  const defaultAcl = { cleared, declared: declared.length, after: after.rows.length, scope: [...DEFAULT_ACL_SCOPE], out_of_scope: cmp.out_of_scope, extra: cmp.extra, missing: cmp.missing };
   return buildReport({ errors: [...errors, ...after.errors], publicTables: Number.isFinite(n) ? n : null, startedAt, finishedAt: now().toISOString(), rolesApplied: Boolean(rolesPath), rolesErrors, defaultAcl });
+}
+
+/** The one-line console summary of a report. PURE. */
+export function summaryLine(report) {
+  const a = report.default_acl;
+  return `apply-schema-dump: ${report.ok ? "OK" : "FAILED"}; public tables ${report.public_tables}; roles applied ${report.roles_applied}; roles errors ${report.roles_errors}; fatal errors ${report.fatal_errors}; role errors ${report.role_errors}; missing roles ${report.missing_roles.join(", ") || "none"}; default privileges cleared ${a?.cleared.statements ?? 0} (owners ${a?.cleared.owners.join(", ") || "none"}), declared by the dump ${a?.declared ?? 0}, oracle after ${a?.after ?? 0}, out of scope ${a?.out_of_scope ?? 0} (compared in: ${(a?.scope ?? DEFAULT_ACL_SCOPE).map((s) => s || "cluster-wide").join(", ")}), extra ${a?.extra.length ?? 0}`;
 }
 
 function arg(name) { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; }
@@ -227,7 +246,7 @@ if (isMainModule(import.meta.url)) {
   mkdirSync(dirname(resolve(reportPath)), { recursive: true });
   const report = applySchemaDump({ dbUrl, stackUrl, dumpPath: resolve(dumpPath), rolesPath: rolesPath ? resolve(rolesPath) : null });
   writeFileSync(resolve(reportPath), JSON.stringify(report, null, 2) + "\n", "utf8");
-  console.log(`apply-schema-dump: ${report.ok ? "OK" : "FAILED"}; public tables ${report.public_tables}; roles applied ${report.roles_applied}; roles errors ${report.roles_errors}; fatal errors ${report.fatal_errors}; role errors ${report.role_errors}; missing roles ${report.missing_roles.join(", ") || "none"}; default privileges cleared ${report.default_acl?.cleared.statements ?? 0} (owners ${report.default_acl?.cleared.owners.join(", ") || "none"}), declared by the dump ${report.default_acl?.declared ?? 0}, oracle after ${report.default_acl?.after ?? 0}, extra ${report.default_acl?.extra.length ?? 0}`);
+  console.log(summaryLine(report));
   for (const e of report.errors.slice(0, 15)) console.error(`  line ${e.line}: ${e.message}`);
   process.exit(report.ok ? 0 : 1);
 }

@@ -282,7 +282,7 @@ test("DRIFT-1b: parseDumpDefaultAcl reads what the dump declares: owner, schema,
 
 test("DRIFT-1b: the oracle's entries after the dump must equal the dump's declarations (compareDefaultAcl)", () => {
   const d = parseDumpDefaultAcl(DUMP);
-  assert.deepEqual(compareDefaultAcl(d, d), { extra: [], missing: [] });
+  assert.deepEqual(compareDefaultAcl(d, d), { extra: [], missing: [], out_of_scope: 0 });
   const c = compareDefaultAcl([...d, { owner: "postgres", schema: "public", objtype: "r", grantee: "anon" }], d.slice(0, 4));
   assert.deepEqual(c.extra, ["postgres|public|r|anon", "supabase_admin||r|Odd Role"].sort());
   assert.equal(compareDefaultAcl([], d).missing.length, 5);
