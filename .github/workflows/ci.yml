@@ -36,10 +36,10 @@ name: CI
 # stack here, once in `app` with placeholders), which is the price of not starting Docker in a browser container.
 #
 # THE DESIGN AUDIT IS SOFT (register AUD-SYS-2B: it never gated; design-audit.yml said so itself). It reports and exits 0
-# whenever the audit ran, and fails only when the harness cannot run. A workflow_dispatch refreshes the committed
-# CI-generated pair (results.json and the audit document, lane DAUDIT-3) and lands the harness-run row of family
-# design-audit; a pull request never commits and never holds the service credential (only the dispatch-only step
-# below names a secret).
+# whenever the audit ran, and fails only when the harness cannot run. Its two outputs (results.json and the audit
+# document) are gitignored and uploaded as an artifact; nothing in this file commits (CLEAN-1). A workflow_dispatch lands
+# the harness-run row of family design-audit; a pull request never holds the service credential (only the dispatch-only
+# step below names a secret).
 #
 # CONCURRENCY. One group per pull request; a superseded pull request run is cancelled (it is pure waste, ADR-047). A
 # push to master is never cancelled: every merged commit must be validated on its own, and a blanket true would let a
@@ -626,11 +626,6 @@ jobs:
     needs: inputs
     if: (github.event_name == 'pull_request' && needs.inputs.outputs.app == 'true') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    # The one write permission in the file, for the workflow_dispatch commit-back step below. The pull_request path never
-    # uses it: the commit-back step is guarded to workflow_dispatch (a fork pull request token is read-only whatever is
-    # declared here). Nothing else in this file may grant a write permission.
-    permissions:
-      contents: write
     # CONTAINER, NOT AN INSTALL (lane GATE-6, 2026-10-08). The job runs in the official Playwright image, so chromium and
     # its OS libraries are already present and `playwright install --with-deps` is not run at all (four rendering guard
     # runs were cancelled at the 10 minute limit while the install stalled on apt downloads). The image tag below is the
@@ -713,7 +708,7 @@ jobs:
         run: |
           set -euo pipefail
           results=".discipline/rendering/audit/results.json"
-          document="../docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md"
+          document=".discipline/rendering/audit/AUDIT-2026-09-07.md"
           rm -f "$results" "$document"
           # Stamped into results.json and the audit document as generated_on.container_image. The job context does not
           # expose the container image, so it is read out of this file with the install step's own pattern.
@@ -770,20 +765,6 @@ jobs:
           }
           NODE
 
-      # WORKFLOW_DISPATCH ONLY (lane DAUDIT-3). Commits results.json and the audit document back to the dispatched ref, so
-      # the committed oracle is the one CI generated (a computed style depends on the machine that measured it). The
-      # document is staged here and results.json is staged by the script, so the pair lands as ONE commit. A protected
-      # ref (master) degrades to a warning inside the script and never fails the run. It runs only after the summary step,
-      # so a run whose harness errored never commits its partial result. To refresh the pair:
-      # `gh workflow run ci.yml --ref <branch>`, then pull.
-      - name: Commit the audit result back to the dispatched ref (workflow_dispatch only)
-        if: github.event_name == 'workflow_dispatch'
-        working-directory: fsi-app
-        run: |
-          set -euo pipefail
-          git add "../docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md"
-          bash scripts/maintenance/commit-worklist-artifact.sh             "$GITHUB_REF_NAME"             "${{ github.run_id }}"             ".discipline/rendering/audit/results.json"             "design audit results (CI-generated)"
-
       - name: Upload the audit result (results.json and the audit document)
         if: always()
         uses: actions/upload-artifact@v4
@@ -791,7 +772,7 @@ jobs:
           name: design-audit-results
           path: |
             fsi-app/.discipline/rendering/audit/results.json
-            docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md
+            fsi-app/.discipline/rendering/audit/AUDIT-2026-09-07.md
           if-no-files-found: ignore
           retention-days: 7
 

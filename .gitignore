@@ -77,3 +77,7 @@ fsi-app/scripts/_diag/
 .claude/settings.local.json
 .claude/launch.json
 Claude outputs/
+
+# CLEAN-1 (2026-10-11): machine output is generated at run time and never committed
+fsi-app/.discipline/rendering/audit/results.json
+fsi-app/.discipline/rendering/audit/AUDIT-2026-09-07.md
