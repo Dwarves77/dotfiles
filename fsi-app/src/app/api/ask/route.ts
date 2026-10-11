@@ -336,7 +336,9 @@ async function handlePOST(request: NextRequest) {
     // Phase 1.5: project base_tier + effective_tier per Q2 split; render
     // effective_tier per Assistant signal set (skill Section 8). Order by
     // base_tier for stable list ordering through Q7 recomputes.
-    const { data: sources } = await sourcesPromise;
+    const { data: sources, error: sourcesErr } = await sourcesPromise;
+    // The source list only frames credibility; on a read error the prompt says "No sources available" and this logs.
+    if (sourcesErr) console.warn(`[ask] top sources fetch failed: ${sourcesErr.message}`);
 
     // WO-11: normalize the three Operations reads into the plain-object shape
     // operations-ask-context.mjs's pure formatters expect (a sibling module to this
