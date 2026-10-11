@@ -201,3 +201,16 @@ test('REGISTRATION: the data-audit lane derives ui-orphan as a HARD audit pointi
   assert.equal(entry[2], true, 'must be hard=true');
   assert.match(readFileSync(resolve(HERE, 'ui-orphan-audit.mjs'), 'utf8').split('\n')[0], /^\/\/ data-audit: label=ui-orphan hard=true$/);
 });
+
+test('GATE-FIX-2 ATTACK: an aliased select reports the prop the component reads, bound to the real column, still a finding when unwritten', () => {
+  const ui = { file: 'src/components/Aliased.tsx', content: 'await supabase.from("orphan_facts").select("amount:value_numeric, value_numeric");' };
+  const { selected, rpcCalls } = scanUiSelects([ui]);
+  const idx = buildWriterIndex({ codeTexts: [], sqlTexts: [] });
+  const scopedKeys = new Set(['orphan_facts.value_numeric']);
+  const { rows, findings } = buildRegister({ uiSelected: selected, rpcCalls, ...idx, scopedKeys, allowlist: {} });
+  assert.deepEqual(rows.map((r) => [r.prop, r.boundColumn, r.producer]).sort(), [
+    ['amount', 'orphan_facts.value_numeric', 'no'],
+    ['value_numeric', 'orphan_facts.value_numeric', 'no'],
+  ], 'one row per prop name, both bound to the real column');
+  assert.ok(findings.some((f) => f.column === 'value_numeric'), 'the alias does not hide the orphan');
+});

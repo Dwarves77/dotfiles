@@ -25,9 +25,11 @@
 
 ## NOT done
 
-- Three rows tagged GATE-FIX-2 are outside this lane's write set and were not touched (NEEDS WRITE-SET EXPANSION): `2026-10-03-l13.md:203` (add `LabourChain.tsx` to F35 `ROW_COMPONENTS`), `2026-10-08-audwire1-orphan-audit.md:27` (`scanUiSelects` / `parseSelectList` in `scripts/verify/lib/ui-orphan-scan.mjs` drop `alias:column`), `2026-10-08-gate8-fitness-honest-forms.md:44` (the accepted fitness-function forms, each a function on the shared lexer). [WORK: owed]
+- l13:203: `LabourChain.tsx` added to F35 `ROW_COMPONENTS` (coordinator grant); `labour-chain-smoke.mjs` already mounts it and its title is the shared SectionHeading (delegated `data-guard-title`); `F35-row-ux-coverage.test.mjs` passes. [CLOSED: PR 1096]
+- audwire1:27: `parseSelectList` now returns `alias` (the prop the component reads) beside `column`; `scanUiSelects` carries it; the register row `prop` is the alias. A `col::text` cast is no longer read as an alias separator (the old split on any colon read it as the column `text`). Tests in `ui-orphan-scan.test.mjs` and `ui-orphan-audit.test.mjs`. [CLOSED: PR 1096]
+- gate8:44 is about 110 accepted attack ids over about 35 functions (F6 to F68, closure, memory, invariant coverage, C-checks), each one function on the shared lexer with its own attack; not built in this lane. Quoted row: "Not in the brief's BUILD list, still ACCEPTED, mechanical on the shared lexer (the work is one function each): F6 B3-02; F10 B3-06; F11 B3-08, B3-10; ... invariant coverage B7-18, B9-02 to B9-05; skill contract map B7-24 to B7-26; C3 B7-32, B7-33; execution wiring B7-22". [WORK: GATE-FIX-3]
+- The advertised override text is corrected in `hooks/pre-push`, `consistency/README.md`, `sprint-followups-discipline/SKILL.md` and its `engine-state-and-secrets-consistency.md` reference. [CLOSED: PR 1096]
 - A script FILE that writes a governed path (`python x.py`, `bash x.sh`) stays outside the skill gate (ADR-046 addendum; `scriptFileRun` counts it as a firing note). [NOT-WORK: ADR-046 addendum, script files are an intent form]
-- The advertised override text in `fsi-app/.discipline/hooks/pre-push`, `fsi-app/.discipline/consistency/README.md` and the `sprint-followups-discipline` SKILL still says "non-empty rationale, future deadline"; the enforced rule is now stricter. Those files are outside this write set. [WORK: owed]
 - PowerShell writers are read by the same argv scan (`Set-Content`, `Add-Content`, `Out-File`, `Copy-Item`, `Move-Item`, `New-Item`), but the matcher in the user-level hook settings that routes PowerShell to the gate is out of repo. [NOT-WORK: out-of-repo boundary, see OUT-OF-REPO-BOUNDARY.md]
 
 ## Open items
