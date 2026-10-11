@@ -10,9 +10,9 @@
 //   NOT BUILT    the spec's selector matched nothing in the mounted tree
 //   NOT IN SPEC  a `forbid` selector matched — the design does not have this element
 //
-// It then regenerates ./AUDIT-2026-09-07.md IN FULL from those results (the seed document's source-level
-// A-list is preserved verbatim as its own section, read from ./seed-2026-09-07.md) and writes ./results.json.
-// Both outputs are gitignored: CI generates them each run and uploads them as an artifact (CLEAN-1, 2026-10-11).
+// It then regenerates docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md IN FULL from those results
+// (the seed document's source-level A-list is preserved verbatim as its own section, read from
+// ./seed-2026-09-07.md) and writes ./results.json.
 //
 // Run: npm run audit:design   (from fsi-app/), or
 //      node fsi-app/.discipline/rendering/audit/run-audit.mjs
@@ -30,6 +30,7 @@ import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getRepoRoot } from '../../lib/context.mjs';
 import { bundleEntry, newSmokePage, mountBundle } from '../smoke/harness.mjs';
 import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 import { AUDIT_MOUNTS, mountExtraCss } from './mounts.mjs';
@@ -349,7 +350,8 @@ function esc(v) {
 
 // THE ONE SITE THAT STAMPS WHERE A RESULT WAS GENERATED (lane DAUDIT-3, 2026-10-08). A computed style depends on the
 // machine that measured it (the ch width of a vendored font, a 44px target), so results.json is only an oracle if it
-// says which machine produced it. Neither output is committed (CLEAN-1): the CI run's artifact is the oracle.
+// says which machine produced it. generated-on.test.mjs refuses a committed results.json whose platform is not
+// linux: the committed copy is CI's (design-audit.yml, workflow_dispatch commit-back), never a developer's.
 // container_image is set by the workflow (AUDIT_CONTAINER_IMAGE); a run outside a container records "none".
 function generatedOn(env = process.env, proc = process) {
   return { platform: proc.platform, node: proc.version, container_image: env.AUDIT_CONTAINER_IMAGE || 'none' };
@@ -454,6 +456,7 @@ async function main() {
     process.exit(2);
   }
 
+  const repoRoot = getRepoRoot();
   const browser = await chromium.launch(
     process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
@@ -561,7 +564,7 @@ async function main() {
     runAt: results.runAt,
     seed,
   };
-  const docPath = join(HERE, `AUDIT-${AUDIT_DATE}.md`);
+  const docPath = join(repoRoot, 'docs/design/handoff-2026-09-06', `AUDIT-${AUDIT_DATE}.md`);
   writeFileSync(docPath, renderDocument(results, meta));
 
   const counts = rows.reduce((acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }), {});

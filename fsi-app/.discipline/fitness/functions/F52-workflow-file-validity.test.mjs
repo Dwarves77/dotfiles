@@ -1036,10 +1036,10 @@ function ciShapeProblems(text) {
     const days = u.body.match(/retention-days:\s*(\d+)/);
     if (!days || Number(days[1]) > 7) problems.push(`upload ${nm}: retention within the F68 budget`);
   }
-  // no write permission anywhere (CLEAN-1: nothing in the workflow commits) and the one place a secret is named (the app job's dispatch-only steps)
+  // the one write permission and the one place a secret is named (the app job's dispatch-only steps)
   if (!/^permissions:\n {2}contents: read\n/m.test(text)) problems.push('the workflow permissions must be contents: read (PERM-1)');
   const writes = [...code.matchAll(/^\s*([a-z-]+): write$/gm)].map((m) => m[1]);
-  if (writes.length !== 0) problems.push(`the only write permission allowed is none (nothing in this workflow commits), found ${JSON.stringify(writes)} (PERM-1)`);
+  if (JSON.stringify(writes) !== JSON.stringify(['contents'])) problems.push(`the only write permission allowed is the app job's contents: write, found ${JSON.stringify(writes)} (PERM-1)`);
   const secretJobs = jobs.filter((j) => /secrets\./.test(codeLines(lines.slice(j.startLine, j.endLine + 1).join('\n')).map(({ l }) => l).join('\n'))).map((j) => j.id);
   if (JSON.stringify(secretJobs) !== JSON.stringify(['app'])) problems.push(`secrets may be named only in the app job's dispatch-only step, found in ${JSON.stringify(secretJobs)} (PERM-2)`);
   return problems;

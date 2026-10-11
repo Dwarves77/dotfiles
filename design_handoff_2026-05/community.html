@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Community — Caro's Ledge</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-bg-base); color: var(--color-text-primary); font-family: var(--font-sans); }
+.top-line { height: 4px; background: linear-gradient(90deg, #1E3A8A 0%, #DC2626 100%); }
+.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.side { background: var(--color-surface); border-right: 1px solid var(--color-border-subtle); position: sticky; top: 0; height: 100vh; padding: 18px 0; display: flex; flex-direction: column; }
+.brand { padding: 0 22px 18px; border-bottom: 1px solid var(--color-border-subtle); }
+.brand .n { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.03em; line-height: 1; }
+.brand .t { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 6px; }
+.side nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.side nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; font-size: 13.5px; font-weight: 500; color: var(--color-text-secondary); border-radius: var(--radius-sm); text-decoration: none; }
+.side nav a:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.side nav a.active { background: var(--color-active-bg); color: var(--color-active-solid); font-weight: 600; }
+.side nav .ico { width: 16px; height: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.side-foot { padding: 14px 22px 4px; border-top: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
+.side-foot .av { width: 22px; height: 22px; border-radius: 999px; background: var(--color-surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+.side-foot .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-error); margin-left: auto; }
+
+.main { min-width: 0; }
+.masthead { background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); padding: 26px 40px 20px; }
+.mh-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #1E3A8A; margin-bottom: 8px; }
+.mh-title { font-family: var(--font-display); font-size: 44px; letter-spacing: 0.025em; text-transform: uppercase; margin: 0 0 6px; line-height: 1; font-weight: 400; }
+.mh-meta { font-size: 13px; color: var(--color-text-secondary); }
+.mh-meta b { color: var(--color-text-primary); font-weight: 600; }
+.body { padding: 22px 40px 60px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--color-border); margin-bottom: 22px; }
+.tabs a { padding: 12px 0; margin-right: 30px; font-size: 13px; font-weight: 700; color: var(--color-text-secondary); border-bottom: 2px solid transparent; cursor: pointer; text-decoration: none; }
+.tabs a.on { color: var(--color-secondary); border-bottom-color: var(--color-secondary); }
+.tabs a .cnt { font-family: var(--font-display); font-size: 12px; margin-left: 4px; color: var(--color-text-muted); }
+
+/* Region overview cards */
+.region-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.region-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 18px 20px; cursor: pointer; box-shadow: var(--shadow-card); transition: box-shadow var(--transition-base); }
+.region-card:hover { box-shadow: var(--shadow-card-hover); }
+.region-card.active { border-top: 3px solid var(--color-primary); }
+.region-card .h { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.region-card .h .name { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.04em; text-transform: uppercase; }
+.region-card .h .n { font-family: var(--font-display); font-size: 26px; color: var(--color-primary); }
+.region-card .meta { font-size: 11.5px; color: var(--color-text-muted); margin-bottom: 10px; }
+.region-card .meta b { color: var(--color-text-primary); }
+.region-card .topics { display: flex; gap: 4px; flex-wrap: wrap; }
+.region-card .topic { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: var(--radius-pill); background: var(--color-surface-raised); color: var(--color-text-primary); border: 1px solid var(--color-border); }
+.region-card .topic.hot { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+
+/* Topic-by-region matrix */
+.topic-row { display: grid; grid-template-columns: 180px 1fr 60px; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--color-border-subtle); align-items: center; font-size: 12.5px; }
+.topic-row:last-child { border-bottom: 0; }
+.topic-row .t-name { font-weight: 700; color: var(--color-text-primary); }
+.topic-row .t-name .sub { display: block; font-size: 11px; color: var(--color-text-muted); font-weight: 500; margin-top: 2px; }
+.topic-row .reg-dist { display: flex; gap: 4px; flex-wrap: wrap; }
+.topic-row .reg-pill { font-size: 11px; padding: 3px 9px; background: var(--color-surface-raised); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
+.topic-row .reg-pill b { font-family: var(--font-display); font-weight: 400; color: var(--color-primary); margin-left: 3px; }
+.topic-row .total { text-align: right; font-family: var(--font-display); font-size: 18px; color: var(--color-text-primary); }
+
+/* Layout */
+.layout { display: grid; grid-template-columns: 1fr 320px; gap: 28px; align-items: start; }
+
+/* Section heading */
+.section-h { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-text-primary); }
+.section-h h2 { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; font-weight: 400; }
+.section-h .right { font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em; }
+.section-h .right a { color: var(--color-primary); text-decoration: none; font-weight: 700; margin-left: 12px; }
+
+/* Group section — replaces single-thread flat list */
+.group-sec { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 14px; box-shadow: var(--shadow-card); overflow: hidden; }
+.group-sec-head { padding: 14px 22px; background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); }
+.group-sec-head .top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.group-sec-head .name { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-primary); flex: 1; }
+.group-sec-head .privacy { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; }
+.group-sec-head .privacy.priv { background: var(--color-active-bg); color: var(--color-active-solid); }
+.group-sec-head .privacy.pub  { background: var(--color-low-bg); color: var(--color-low); }
+.group-sec-head .meta { font-size: 12px; color: var(--color-text-secondary); }
+.group-sec-head .meta b { color: var(--color-text-primary); }
+.group-sec-head .topics { margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
+.group-sec-head .topic-chip { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text-primary); border: 1px solid var(--color-border); }
+.group-sec-head .topic-chip.hot { color: var(--color-critical); border-color: var(--color-critical-border); background: var(--color-critical-bg); }
+.group-sec-body { padding: 4px 0; }
+.thread-row { padding: 12px 22px; border-bottom: 1px solid var(--color-border-subtle); display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; align-items: start; cursor: pointer; }
+.thread-row:last-child { border-bottom: 0; }
+.thread-row:hover { background: var(--color-surface-raised); }
+.thread-row.urgent { border-left: 3px solid var(--color-critical); padding-left: 19px; }
+.thread-row .av { width: 36px; height: 36px; border-radius: 999px; background: var(--color-surface-raised); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 13px; color: var(--color-text-primary); border: 1px solid var(--color-border); }
+.thread-row .av.verified { background: var(--color-text-primary); color: #fff; border-color: var(--color-text-primary); }
+.thread-row .content h4 { font-size: 14.5px; font-weight: 700; margin: 0 0 4px; line-height: 1.4; color: var(--color-text-primary); }
+.thread-row .content .who { font-size: 11.5px; color: var(--color-text-secondary); }
+.thread-row .content .who .name { font-weight: 700; color: var(--color-text-primary); }
+.thread-row .content .who .org { color: var(--color-primary); font-weight: 700; }
+.thread-row .content .who .role { color: var(--color-text-secondary); }
+.thread-row .content .tags { margin-top: 6px; display: flex; gap: 5px; flex-wrap: wrap; }
+.thread-row .content .topic { font-size: 10px; padding: 1px 7px; border-radius: var(--radius-pill); background: var(--color-surface-raised); border: 1px solid var(--color-border); font-weight: 600; }
+.thread-row .content .xref { font-size: 10px; padding: 1px 7px; border-radius: var(--radius-pill); background: rgba(232,97,10,0.08); color: var(--color-primary); border: 1px solid var(--color-border-ai); font-weight: 700; }
+.thread-row .stat { text-align: right; font-size: 11px; color: var(--color-text-muted); white-space: nowrap; }
+.thread-row .stat b { display: block; color: var(--color-text-primary); font-weight: 700; font-family: var(--font-display); font-size: 18px; line-height: 1; }
+.group-sec-foot { padding: 10px 22px; background: var(--color-surface-raised); border-top: 1px solid var(--color-border-subtle); font-size: 11.5px; }
+.group-sec-foot a { color: var(--color-primary); font-weight: 700; text-decoration: none; }
+
+/* Right rail */
+.rail-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-card); margin-bottom: 14px; }
+.rail-card.accent { border-left: 3px solid var(--color-primary); }
+.rail-card .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; }
+.rail-card ul, .rail-card ol { padding: 0; margin: 0; list-style: none; }
+.rail-card li { padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle); font-size: 12.5px; line-height: 1.5; }
+.rail-card li:last-child { border-bottom: 0; }
+.rail-card li b { color: var(--color-text-primary); font-weight: 700; display: block; }
+.rail-card li .meta { color: var(--color-text-muted); font-size: 11px; margin-top: 2px; }
+.rail-card .num { font-family: var(--font-display); font-size: 16px; color: var(--color-primary); float: right; }
+.rail-card .editor-pick h4 { font-size: 14px; font-weight: 700; margin: 0 0 6px; color: var(--color-text-primary); line-height: 1.35; }
+.rail-card .editor-pick p { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.55; margin: 0 0 8px; }
+.rail-card a.link { color: var(--color-primary); font-weight: 700; font-size: 11.5px; text-decoration: none; letter-spacing: 0.04em; }
+
+.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+</style>
+</head>
+<body>
+
+<div class="top-line"></div>
+
+<div class="app">
+
+  <aside class="side">
+    <div class="brand"><div class="n">CARO'S LEDGE</div><div class="t">Freight Sustainability Intelligence</div></div>
+        <nav>
+      <a href="#"><span class="ico">⊡</span>Dashboard</a>
+      <a href="regulations.html"><span class="ico">▤</span>Regulations</a>
+      <a href="market-intel.html"><span class="ico">▦</span>Market Intel</a>
+      <a href="research.html"><span class="ico">◉</span>Research</a>
+      <a href="operations.html"><span class="ico">◐</span>Operations</a>
+      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <div class="nav-divider"></div>
+      <a href="community.html" class="active"><span class="ico">♥</span>Community</a>
+    </nav>
+    <div class="side-foot"><div class="av">JL</div><span>jasonlosh</span><span class="dot"></span></div>
+  </aside>
+
+  <main class="main">
+
+    <div class="masthead">
+      <div class="mh-eyebrow">Vol IV · No. 21 · Sunday</div>
+      <h1 class="mh-title">Community</h1>
+      <div class="mh-meta">Peer information sharing across regions and groups. · <b>147</b> active threads · <b>23</b> organizations · <b>4</b> of your groups · <b>96</b> public forums</div>
+    </div>
+
+    <div class="body">
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <a class="on">By Region &amp; Group</a>
+        <a>Industry Pulse <span class="cnt">147</span></a>
+        <a>Hot Topics</a>
+        <a>People <span class="cnt">412</span></a>
+        <a>Editorial Picks <span class="cnt">8</span></a>
+      </div>
+
+      <!-- — REGION OVERVIEW — -->
+      <div class="section-h"><h2>Activity by region</h2><div class="right">Click a region to drill in <a href="#">View all regions →</a></div></div>
+      <div class="region-grid">
+
+        <div class="region-card active">
+          <div class="h"><div class="name">Europe</div><div class="n">47</div></div>
+          <div class="meta">threads this week · <b>14</b> groups · <b>11</b> orgs active</div>
+          <div class="topics">
+            <span class="topic hot">CBAM · 23</span>
+            <span class="topic">SAF · 8</span>
+            <span class="topic">PPWR · 6</span>
+            <span class="topic">CSRD · 4</span>
+          </div>
+        </div>
+
+        <div class="region-card">
+          <div class="h"><div class="name">Americas</div><div class="n">38</div></div>
+          <div class="meta">threads this week · <b>9</b> groups · <b>8</b> orgs active</div>
+          <div class="topics">
+            <span class="topic hot">NEM 3.0 · 8</span>
+            <span class="topic">EPA HD3 · 6</span>
+            <span class="topic">Trucking · 9</span>
+            <span class="topic">CARB ACT · 3</span>
+          </div>
+        </div>
+
+        <div class="region-card">
+          <div class="h"><div class="name">APAC</div><div class="n">14</div></div>
+          <div class="meta">threads this week · <b>4</b> groups · <b>3</b> orgs active</div>
+          <div class="topics">
+            <span class="topic">SG Maritime · 5</span>
+            <span class="topic">HK FiT · 3</span>
+            <span class="topic">CN ETS · 2</span>
+          </div>
+        </div>
+
+        <div class="region-card">
+          <div class="h"><div class="name">MEAF</div><div class="n">3</div></div>
+          <div class="meta">threads this week · <b>1</b> group · <b>1</b> org active</div>
+          <div class="topics">
+            <span class="topic">DEWA solar · 2</span>
+            <span class="topic">UAE bunkering · 1</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- — TOPIC BREAKDOWN — -->
+      <div class="section-h"><h2>Topics this week, by region</h2><div class="right">Where the conversations live</div></div>
+      <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 4px 22px; margin-bottom: 24px; box-shadow: var(--shadow-card);">
+
+        <div class="topic-row">
+          <div class="t-name">CBAM Article 30<span class="sub">indirect-importer · charter filing</span></div>
+          <div class="reg-dist">
+            <span class="reg-pill">EU <b>18</b></span>
+            <span class="reg-pill">UK <b>4</b></span>
+            <span class="reg-pill">Americas <b>1</b></span>
+          </div>
+          <div class="total">23</div>
+        </div>
+
+        <div class="topic-row">
+          <div class="t-name">SAF / fuel surcharges<span class="sub">Q3 pass-through · forward-buy</span></div>
+          <div class="reg-dist">
+            <span class="reg-pill">EU <b>8</b></span>
+            <span class="reg-pill">Americas <b>4</b></span>
+            <span class="reg-pill">APAC <b>2</b></span>
+          </div>
+          <div class="total">14</div>
+        </div>
+
+        <div class="topic-row">
+          <div class="t-name">Trucking &amp; last-mile<span class="sub">EV fleet · drayage · charging</span></div>
+          <div class="reg-dist">
+            <span class="reg-pill">Americas <b>9</b></span>
+            <span class="reg-pill">EU <b>2</b></span>
+          </div>
+          <div class="total">11</div>
+        </div>
+
+        <div class="topic-row">
+          <div class="t-name">Packaging &amp; crating<span class="sub">PPWR · reusable · climate-control</span></div>
+          <div class="reg-dist">
+            <span class="reg-pill">EU <b>6</b></span>
+            <span class="reg-pill">UK <b>2</b></span>
+            <span class="reg-pill">Americas <b>1</b></span>
+          </div>
+          <div class="total">9</div>
+        </div>
+
+        <div class="topic-row">
+          <div class="t-name">Solar &amp; on-site generation<span class="sub">NEM 3.0 · EPBD · permit windows</span></div>
+          <div class="reg-dist">
+            <span class="reg-pill">Americas <b>5</b></span>
+            <span class="reg-pill">EU <b>2</b></span>
+            <span class="reg-pill">APAC <b>1</b></span>
+          </div>
+          <div class="total">8</div>
+        </div>
+
+        <div class="topic-row">
+          <div class="t-name">CSRD &amp; reporting<span class="sub">Scope 3 · verifier choice</span></div>
+          <div class="reg-dist">
+            <span class="reg-pill">EU <b>4</b></span>
+            <span class="reg-pill">UK <b>2</b></span>
+            <span class="reg-pill">Americas <b>1</b></span>
+          </div>
+          <div class="total">7</div>
+        </div>
+
+      </div>
+
+      <!-- — YOUR GROUPS, EXPANDED — -->
+      <div class="layout">
+
+        <div>
+          <div class="section-h"><h2>Recent activity in your groups</h2><div class="right">Showing your <b style="color: var(--color-text-primary);">4</b> groups <a href="#">Browse public forums →</a></div></div>
+
+          <!-- Group 1: EU Live Events WG -->
+          <section class="group-sec">
+            <div class="group-sec-head">
+              <div class="top">
+                <span class="name">EU Live Events Working Group</span>
+                <span class="privacy priv">🔒 Private</span>
+              </div>
+              <div class="meta"><b>Europe</b> · <b>47</b> members · <b>18</b> orgs · <b>11</b> threads this week · last active 2 hours ago</div>
+              <div class="topics">
+                <span class="topic-chip hot">CBAM · 6</span>
+                <span class="topic-chip">SAF · 3</span>
+                <span class="topic-chip">Charter · 4</span>
+                <span class="topic-chip">PPWR · 2</span>
+              </div>
+            </div>
+            <div class="group-sec-body">
+
+              <div class="thread-row urgent">
+                <div class="av verified">RT</div>
+                <div class="content">
+                  <h4>Charter filing — who owns the indirect-importer obligation under CBAM Article 30?</h4>
+                  <div class="who"><span class="name">Rebecca Thornton</span> · <span class="org">Convelio</span> · <span class="role">Head of Sustainability · Fine art · EU</span></div>
+                  <div class="tags">
+                    <span class="topic">CBAM</span>
+                    <span class="topic">Charter</span>
+                    <span class="xref">→ Regulations brief</span>
+                  </div>
+                </div>
+                <div class="stat"><b>14</b>replies · 2h ago</div>
+              </div>
+
+              <div class="thread-row">
+                <div class="av verified">JL</div>
+                <div class="content">
+                  <h4>Q3 surcharge pre-call to top accounts — who's doing it?</h4>
+                  <div class="who"><span class="name">Jeanne Laurent</span> · <span class="org">Möbius Tour Logistics</span> · <span class="role">Commercial Director · Live events · DE</span></div>
+                  <div class="tags"><span class="topic">SAF</span><span class="topic">Surcharge</span><span class="xref">→ Market signal</span></div>
+                </div>
+                <div class="stat"><b>11</b>replies · 2d ago</div>
+              </div>
+
+              <div class="thread-row">
+                <div class="av">HV</div>
+                <div class="content">
+                  <h4>Reusable-crate verification — anyone running a serial-level RFID system?</h4>
+                  <div class="who"><span class="name">Hugo van der Meer</span> · <span class="org">Crown Fine Art</span> · <span class="role">Operations · Fine art · NL</span></div>
+                  <div class="tags"><span class="topic">PPWR</span><span class="topic">Packaging</span></div>
+                </div>
+                <div class="stat"><b>5</b>replies · 4d ago</div>
+              </div>
+
+            </div>
+            <div class="group-sec-foot"><a href="#">All 11 threads in EU Live Events Working Group →</a></div>
+          </section>
+
+          <!-- Group 2: Art Logistics Public Forum -->
+          <section class="group-sec">
+            <div class="group-sec-head">
+              <div class="top">
+                <span class="name">Art Logistics Public Forum</span>
+                <span class="privacy pub">🌐 Public</span>
+              </div>
+              <div class="meta"><b>Global</b> · <b>188</b> members · <b>34</b> orgs · <b>23</b> threads this week · last active 1 hour ago</div>
+              <div class="topics">
+                <span class="topic-chip">CBAM · 7</span>
+                <span class="topic-chip">Packaging · 5</span>
+                <span class="topic-chip">Cold-chain · 4</span>
+                <span class="topic-chip">Solar · 3</span>
+              </div>
+            </div>
+            <div class="group-sec-body">
+
+              <div class="thread-row">
+                <div class="av">MK</div>
+                <div class="content">
+                  <h4>2,500 kg threshold under CBAM — packaging weight included?</h4>
+                  <div class="who"><span class="name">Marcus King</span> · <span class="org">Crozier Fine Arts</span> · <span class="role">Operations Director · Fine art · UK</span></div>
+                  <div class="tags"><span class="topic">CBAM</span><span class="xref">→ Regulations brief</span></div>
+                </div>
+                <div class="stat"><b>7</b>replies · 1d ago</div>
+              </div>
+
+              <div class="thread-row">
+                <div class="av">SO</div>
+                <div class="content">
+                  <h4>Vacuum-insulated panel crates — peer-reviewed LCA just landed. Anyone repricing?</h4>
+                  <div class="who"><span class="name">Sofia Okonkwo</span> · <span class="org">Atelier 4</span> · <span class="role">Sustainability · Fine art · US</span></div>
+                  <div class="tags"><span class="topic">Cold-chain</span><span class="topic">Packaging</span><span class="xref">→ Research</span></div>
+                </div>
+                <div class="stat"><b>4</b>replies · 3d ago</div>
+              </div>
+
+            </div>
+            <div class="group-sec-foot"><a href="#">All 23 threads in Art Logistics Public Forum →</a></div>
+          </section>
+
+          <!-- Group 3: Sustainability Leads -->
+          <section class="group-sec">
+            <div class="group-sec-head">
+              <div class="top">
+                <span class="name">Sustainability Leads</span>
+                <span class="privacy priv">🔒 Private</span>
+              </div>
+              <div class="meta"><b>Global</b> · <b>31</b> members · <b>22</b> orgs · <b>9</b> threads this week · last active 1 day ago</div>
+              <div class="topics">
+                <span class="topic-chip">CSRD · 4</span>
+                <span class="topic-chip">Scope 3 · 3</span>
+                <span class="topic-chip">Verifier · 2</span>
+              </div>
+            </div>
+            <div class="group-sec-body">
+
+              <div class="thread-row">
+                <div class="av verified">PV</div>
+                <div class="content">
+                  <h4>ICCT charter-specific Scope 3 factor — anyone re-running their FY26 figures with it?</h4>
+                  <div class="who"><span class="name">Priya Venkatesan</span> · <span class="org">Cargolux</span> · <span class="role">Sustainability Manager · Air freight · LU</span></div>
+                  <div class="tags"><span class="topic">CSRD</span><span class="topic">Scope 3</span><span class="xref">→ Research</span></div>
+                </div>
+                <div class="stat"><b>6</b>replies · 1d ago</div>
+              </div>
+
+              <div class="thread-row">
+                <div class="av">DM</div>
+                <div class="content">
+                  <h4>EcoVadis vs SGS vs Bureau Veritas — verifier choice for 2026 CSRD cycle</h4>
+                  <div class="who"><span class="name">David Martin</span> · <span class="org">Convelio</span> · <span class="role">Compliance Lead · Fine art · FR</span></div>
+                  <div class="tags"><span class="topic">CSRD</span><span class="topic">Verifier</span></div>
+                </div>
+                <div class="stat"><b>3</b>replies · 2d ago</div>
+              </div>
+
+            </div>
+            <div class="group-sec-foot"><a href="#">All 9 threads in Sustainability Leads →</a></div>
+          </section>
+
+          <!-- Group 4: US Live Events -->
+          <section class="group-sec">
+            <div class="group-sec-head">
+              <div class="top">
+                <span class="name">US Live Events</span>
+                <span class="privacy pub">🌐 Public</span>
+              </div>
+              <div class="meta"><b>Americas</b> · <b>96</b> members · <b>28</b> orgs · <b>14</b> threads this week · last active 3 hours ago</div>
+              <div class="topics">
+                <span class="topic-chip hot">NEM 3.0 · 4</span>
+                <span class="topic-chip">EPA HD3 · 3</span>
+                <span class="topic-chip">Drayage · 4</span>
+                <span class="topic-chip">CARB · 2</span>
+              </div>
+            </div>
+            <div class="group-sec-body">
+
+              <div class="thread-row">
+                <div class="av">AS</div>
+                <div class="content">
+                  <h4>NEM 3.0 strategies — who has rooftop solar on a Burbank or LA warehouse working under the new scheme?</h4>
+                  <div class="who"><span class="name">Andre Salvador</span> · <span class="org">Rock-It Cargo</span> · <span class="role">Head of Operations · Live events · US</span></div>
+                  <div class="tags"><span class="topic">Solar</span><span class="topic">NEM 3.0</span><span class="xref">→ Operations · Solar</span></div>
+                </div>
+                <div class="stat"><b>4</b>replies · 3d ago</div>
+              </div>
+
+              <div class="thread-row">
+                <div class="av">LK</div>
+                <div class="content">
+                  <h4>Class 8 truck — diesel-to-EV pilot economics on a Long Beach drayage lane</h4>
+                  <div class="who"><span class="name">Luis Kim</span> · <span class="org">SuperTransport US</span> · <span class="role">Fleet Manager · Trucking · US</span></div>
+                  <div class="tags"><span class="topic">Trucking</span><span class="topic">EV fleet</span></div>
+                </div>
+                <div class="stat"><b>9</b>replies · 1d ago</div>
+              </div>
+
+              <div class="thread-row">
+                <div class="av">RH</div>
+                <div class="content">
+                  <h4>EPA HD3 — fleet sales mandate, anyone in MY 2027 ordering yet?</h4>
+                  <div class="who"><span class="name">Rachel Hines</span> · <span class="org">Atlas Air Cargo</span> · <span class="role">Procurement · US</span></div>
+                  <div class="tags"><span class="topic">EPA HD3</span><span class="xref">→ Regulations</span></div>
+                </div>
+                <div class="stat"><b>3</b>replies · 4d ago</div>
+              </div>
+
+            </div>
+            <div class="group-sec-foot"><a href="#">All 14 threads in US Live Events →</a></div>
+          </section>
+
+          <!-- Public forums in your network -->
+          <div class="section-h" style="margin-top: 24px;"><h2>Public forums in your network</h2><div class="right">By region · 12 public forums total <a href="#">Browse all →</a></div></div>
+
+          <section class="group-sec">
+            <div class="group-sec-head">
+              <div class="top">
+                <span class="name">EU SAF Buyers Consortium</span>
+                <span class="privacy pub">🌐 Public</span>
+              </div>
+              <div class="meta"><b>Europe</b> · <b>74</b> members · <b>8</b> threads this week · last active 6 hours ago</div>
+              <div class="topics"><span class="topic-chip">SAF · 5</span><span class="topic-chip">HEFA · 2</span></div>
+            </div>
+            <div class="group-sec-foot"><a href="#">Join discussion →</a></div>
+          </section>
+
+          <section class="group-sec">
+            <div class="group-sec-head">
+              <div class="top">
+                <span class="name">APAC Maritime Decarbonization</span>
+                <span class="privacy pub">🌐 Public</span>
+              </div>
+              <div class="meta"><b>APAC</b> · <b>52</b> members · <b>6</b> threads this week · last active 1 day ago</div>
+              <div class="topics"><span class="topic-chip">Bunkering · 3</span><span class="topic-chip">Shore power · 2</span></div>
+            </div>
+            <div class="group-sec-foot"><a href="#">Join discussion →</a></div>
+          </section>
+
+        </div>
+
+        <!-- Right rail -->
+        <aside>
+
+          <div class="rail-card">
+            <div class="lbl">Orgs new to your network</div>
+            <ul>
+              <li><b>Atelier 4</b><span class="meta">Fine art · NY · joined this week</span></li>
+              <li><b>Gondrand Berlin</b><span class="meta">Luxury · DE</span></li>
+              <li><b>SuperTransport US</b><span class="meta">Trucking · US</span></li>
+            </ul>
+            <a class="link" href="#" style="margin-top: 8px; display: inline-block;">Peer directory →</a>
+          </div>
+
+        </aside>
+
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
