@@ -2,7 +2,7 @@
 // AUD-AT-3 section 6 "CI side of the ACCEPTED local forms", rows A-CI-012, A-CI-binary, A-CI-022, A-CI-015, A-M-1, A-M-2).
 //
 // AUD-AT-3 ran the rules engine in CI mode for four content forms that the local hooks accepted and for an evil merge, but
-// not the workflow's own shapes. discipline.yml runs the engine two ways:
+// not the workflow's own shapes. ci.yml runs the engine two ways (static on a pull request, master on a push):
 //   pull request   `runner.mjs --mode=ci` with BASE_REF and PR_HEAD in the environment and no --range (the range is resolved
 //                  by change-range.mjs to the merge base, so a post-fork commit on master is never judged);
 //   push to master `runner.mjs --mode=ci --commit=<sha>` (no usable before sha) or `--range=<before>..<sha>`.
@@ -25,7 +25,7 @@ import { dirname, join, resolve } from 'node:path';
 
 const HERE = import.meta.dirname;
 const RUNNER = resolve(HERE, 'runner.mjs');
-const WORKFLOW = readFileSync(resolve(HERE, '..', '..', '.github', 'workflows', 'discipline.yml'), 'utf8');
+const WORKFLOW = readFileSync(resolve(HERE, '..', '..', '.github', 'workflows', 'ci.yml'), 'utf8');
 
 const EM = String.fromCharCode(0x2014);
 // built from character codes so this file's own source holds no home path (rule 012 reads the added lines of this very file)
@@ -162,27 +162,43 @@ test('PINNED by design: a home path assembled through a template and a variable 
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
-// The workflow's own shape: the job's path filters, conditions and fork behaviour (the part of the row that is text).
-const job = WORKFLOW.slice(WORKFLOW.indexOf('\n  validate-commits:'), WORKFLOW.indexOf('\n  consistency-backstop:') > 0 ? WORKFLOW.indexOf('\n  consistency-backstop:') : undefined);
+// The workflow's own shape: the jobs' path filters, conditions and fork behaviour (the part of the row that is text). The
+// engine runs in two jobs of ci.yml since lane PIPE-1 (2026-10-11): `static` on a pull request and `master` on a push.
+const jobBlock = (id) => {
+  const lines = WORKFLOW.split('\n');
+  const start = lines.findIndex((l) => l === `  ${id}:`);
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) if (/^ {2}[A-Za-z0-9_-]+:\s*$/.test(lines[i])) { end = i; break; }
+  return lines.slice(start, end).join('\n');
+};
+const staticJob = jobBlock('static');
+const masterJob = jobBlock('master');
 
-test('the validate-commits job: full history, one engine step per event, the pull request step carries no --range, the push step guards the before sha', () => {
-  assert.ok(job.length > 500, 'the job block was found');
-  assert.match(job, /fetch-depth: 0/);
-  assert.match(job, /- name: Run discipline engine \(push to master\)\n\s+if: github\.event_name == 'push'/);
-  assert.match(job, /- name: Run discipline engine \(pull request\)\n\s+if: github\.event_name == 'pull_request'/);
-  const pr = job.slice(job.indexOf('Run discipline engine (pull request)'), job.indexOf('Run discipline engine (pull request)') + 900);
+test('the engine jobs: full history, one engine step per event, the pull request step carries no --range, the push step guards the before sha', () => {
+  assert.ok(staticJob.length > 500 && masterJob.length > 500, 'the job blocks were found');
+  assert.match(staticJob, /fetch-depth: 0/);
+  assert.match(masterJob, /fetch-depth: 0/);
+  assert.match(staticJob, /^ {4}if: github\.event_name == 'pull_request'$/m);
+  assert.match(masterJob, /^ {4}if: github\.event_name == 'push'$/m);
+  assert.match(staticJob, /- name: Run discipline engine \(pull request\)\n/);
+  assert.match(masterJob, /- name: Run discipline engine \(push to master\)\n/);
+  const at = staticJob.indexOf('Run discipline engine (pull request)');
+  const pr = staticJob.slice(at, staticJob.indexOf('- name: Memory gate', at));
   assert.match(pr, /BASE_REF: \$\{\{ github\.base_ref \}\}/);
   assert.match(pr, /PR_HEAD: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
-  assert.doesNotMatch(pr, /--range=|--commit=/, 'the pull request step lets runner.mjs resolve the merge base');
-  assert.match(job, /\[ "\$PUSH_BEFORE" = "0000000000000000000000000000000000000000" \]/);
-  assert.match(job, /git cat-file -e "\$\{PUSH_BEFORE\}\^\{commit\}"/);
+  assert.doesNotMatch(pr.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n'), /--range=|--commit=/, 'the pull request step lets runner.mjs resolve the merge base');
+  assert.match(masterJob, /\[ "\$PUSH_BEFORE" = "0000000000000000000000000000000000000000" \]/);
+  assert.match(masterJob, /git cat-file -e "\$\{PUSH_BEFORE\}\^\{commit\}"/);
 });
 
-test('the validate-commits job holds no secret and no continue-on-error, and both engine steps run under pipefail, so a fork pull request runs the same engine and a failure fails the check', () => {
-  assert.doesNotMatch(job, /\$\{\{\s*secrets\./);
-  assert.doesNotMatch(job, /continue-on-error/);
+test('the engine jobs hold no secret and no continue-on-error, and both engine steps run under pipefail, so a fork pull request runs the same engine and a failure fails the check', () => {
+  for (const job of [staticJob, masterJob]) {
+    assert.doesNotMatch(job, /\$\{\{\s*secrets\./);
+    assert.doesNotMatch(job, /continue-on-error/);
+  }
   // the engine steps run under pipefail, so `| tee` cannot swallow the engine's exit status
-  const engineSteps = job.split('- name: Run discipline engine').slice(1);
+  const stepOf = (job, name) => job.slice(job.indexOf(name)).split(/\n {6}(?:#|- name:)/)[0];
+  const engineSteps = [stepOf(staticJob, '- name: Run discipline engine (pull request)'), stepOf(masterJob, '- name: Run discipline engine (push to master)')];
   assert.equal(engineSteps.length, 2);
   for (const s of engineSteps) assert.match(s, /set -euo pipefail/);
 });

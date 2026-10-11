@@ -113,7 +113,7 @@ test("pre-push step 0: the tracked hook, run with DISCIPLINE_HOOK_TRAMPOLINE uns
 // FIRST CI run on a fitness function that scans the live tree (F23 twice, F20, F25, the skill-drift gate)
 // because the hook ran the fitness functions' unit tests (step 3) but never the runner itself, which is
 // what the CI "Fitness functions" job runs. This test pins the hook's command to the exact command
-// discipline.yml runs, read from the workflow file, so the two cannot drift apart silently.
+// ci.yml runs, read from the workflow file, so the two cannot drift apart silently.
 //
 // Step label updated (lane R7-LINT-CI, 2026-10-01/03): the runner's own step moved from 3d to 3e when
 // a new "ESLint (max-warnings 0)" step was inserted as 3d (matching CI's fitness-check job ordering,
@@ -123,9 +123,9 @@ test("pre-push step 0: the tracked hook, run with DISCIPLINE_HOOK_TRAMPOLINE uns
 // to match the hook's current wording, not the other way around.
 test("pre-push hook source: step 3e runs the SAME fitness-runner command the CI Fitness functions job runs (parity by construction)", () => {
   const hook = readFileSync(PRE_PUSH_PATH, "utf8");
-  const workflow = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "discipline.yml"), "utf8");
+  const workflow = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "ci.yml"), "utf8");
   const m = workflow.match(/run:\s*(node fsi-app\/\.discipline\/fitness\/runner\.mjs)\s*$/m);
-  assert.ok(m, "discipline.yml must run the fitness runner as a bare command line this test can read");
+  assert.ok(m, "ci.yml must run the fitness runner as a bare command line this test can read");
   const ciCommand = m[1];
   assert.ok(
     hook.includes("if ! " + ciCommand + " >"),

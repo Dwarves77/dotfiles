@@ -16,14 +16,14 @@
 //                                    `discoverTests()` from `.discipline/lib/test-discovery.mjs`, so the
 //                                    executed set here is the exact set the suite runs, not an
 //                                    approximation of it.
-//   2. *.npmtest.mjs glob          — the npm-deps `node --test` step in discipline.yml (fitness-check job).
+//   2. *.npmtest.mjs glob          — the npm-deps `node --test` step in ci.yml (fitness-check job).
 //   3. run-goldens.mjs             — every scripts/verify/*.golden.mjs / *-golden.mjs (behavioral goldens).
 //   4. run-data-audit-lane.mjs     — the AUDITS list (live-data audits, secrets lane).
 //   5. fitness sentinels           — a fitness function that SPAWNS a proof file (F10/F11 spawn their
 //                                    SENTINEL selftest and pass iff exit 0). Any .mjs path referenced as
 //                                    a string literal inside .discipline/fitness/functions/*.mjs.
 //   6. rendering guard             — run-rendering-guard.mjs, invoked directly by the rendering-guard job.
-//   7. discipline.yml NAMED paths — any proof path written LITERALLY into a workflow step. Added
+//   7. ci.yml NAMED paths — any proof path written LITERALLY into a workflow step. Added
 //                                2026-08-11 (wiring census): seven proofs reach an npm package
 //                                TRANSITIVELY (batch-primitives.npmtest.mjs imports a relative helper
 //                                that imports `pg`), so they cannot join the no-npm suite and are
@@ -76,12 +76,12 @@ function testSuiteMatcher() {
   return { test: (p) => discovered.has(p) };
 }
 
-// Surface 2: the *.npmtest.mjs glob wired in discipline.yml. WIDENED (plan 6.8, lane N1, out-of-write-set
+// Surface 2: the *.npmtest.mjs glob wired in ci.yml. WIDENED (plan 6.8, lane N1, out-of-write-set
 // necessary fix, disclosed in that lane's report) from 'fsi-app/src/**/*.npmtest.mjs' to
-// 'fsi-app/**/*.npmtest.mjs' to match discipline.yml's own widened `git ls-files` glob, which now also
+// 'fsi-app/**/*.npmtest.mjs' to match ci.yml's own widened `git ls-files` glob, which now also
 // covers fsi-app/scripts/** and fsi-app/.discipline/** npmtest files (the nine files that lane renamed
 // out of run-test-suite.sh's no-npm suite, plus the five pre-existing scripts/**/*.npmtest.mjs files
-// discipline.yml previously had to name literally because this surface did not see them).
+// ci.yml previously had to name literally because this surface did not see them).
 function npmtestMatcher() {
   return patternToRegex(`${FSI}/**/*.npmtest.mjs`);
 }
@@ -135,14 +135,14 @@ function fitnessSentinelSet() {
   return set;
 }
 
-// Surface 6: the rendering-guard entrypoint, invoked directly by the rendering-guard job in discipline.yml.
-// Surface 7: proof paths written LITERALLY into a discipline.yml step. Derived by READING the workflow
+// Surface 6: the rendering-guard entrypoint, invoked directly by the rendering-guard job in ci.yml.
+// Surface 7: proof paths written LITERALLY into a ci.yml step. Derived by READING the workflow
 // (same principle as every other surface here — never a hand-maintained duplicate), so adding a path to
 // the npm-deps step is by itself sufficient to make it execution-wired, with nothing else to remember.
 function workflowNamedSet() {
   // Lane GATE-8 (2026-10-08, AUD-AT-4 B7-21): YAML comments and echo lines are not steps. A test path that only a
-  // comment of discipline.yml names is not run by CI.
-  const yml = workflowInvocationText(readRepo('.github/workflows/discipline.yml'));
+  // comment of ci.yml names is not run by CI.
+  const yml = workflowInvocationText(readRepo('.github/workflows/ci.yml'));
   const set = new Set();
   for (const m of yml.matchAll(/fsi-app\/[\w./-]+\.(?:test|selftest|npmtest)\.mjs/g)) set.add(m[0]);
   return set;
