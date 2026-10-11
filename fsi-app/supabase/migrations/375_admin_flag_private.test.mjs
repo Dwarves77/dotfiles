@@ -292,7 +292,7 @@ test("CODE: no user-session reader in src selects the is_platform_admin column; 
     }
   }
   assert.deepEqual(offenders, [], "these read the revoked column through a user session");
-  assert.equal(allowedHits.length, 2, "admin.ts isPlatformAdmin and supabase-server.ts isPlatformAdminInline, both service-client");
+  assert.equal(allowedHits.length, 1, "admin.ts isPlatformAdmin, service-client (supabase-server.ts isPlatformAdminInline was deleted, DEAD-1d: no caller)");
 });
 
 test("CODE: the four own-row readers call the rpc, and the service-client readers say they need the service client", () => {

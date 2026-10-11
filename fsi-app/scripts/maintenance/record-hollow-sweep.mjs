@@ -37,8 +37,8 @@
 //     intelligence_items.is_archived)` and gates on `provenance_status='verified'` (migration 117's own
 //     header: "gates ALL customer surfaces in one place"). `src/lib/supabase-server.ts`'s
 //     `fetchWorkspaceResources` (read in full) buckets rows on `effective_archived` into `{active,
-//     archived}` and every caller (fetchDashboardData/fetchResourcesOnly/fetchMapData/the three
-//     category-routed fetchers) exposes ONLY `active` as `resources` — an archived row never reaches a
+//     archived}` and every caller (fetchDashboardData/fetchResourcesOnly and the then-existing /map and
+//     category-routed fetchers, since deleted as caller-less in DEAD-1d) exposes ONLY `active` as `resources` — an archived row never reaches a
 //     customer list/detail/dashboard-count render.
 //   - `hidden_reason` (migration 062): **zero readers anywhere in `src/`** (grepped `src/lib` and `src/app`
 //     in full — no match). Dead column; does not gate anything today.
