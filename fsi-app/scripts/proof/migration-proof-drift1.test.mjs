@@ -63,3 +63,13 @@ test("catalogOnly hands back the catalog it read (the --out file is that catalog
   assert.equal(bad.status, 1);
   assert.equal(bad.catalog, undefined);
 });
+
+test("sortedCatalog: two reads that hold the same objects in a different physical order serialise identically, a changed definition does not (cmp compares text)", async () => {
+  const { sortedCatalog } = await import("./schema-diff.mjs");
+  const a = { tables: { b: "rtff", a: "rtff" }, policies: {} };
+  const b = { tables: { a: "rtff", b: "rtff" }, policies: {} };
+  assert.notEqual(JSON.stringify(a), JSON.stringify(b), "the raw order differs");
+  assert.equal(JSON.stringify(sortedCatalog(a)), JSON.stringify(sortedCatalog(b)));
+  assert.notEqual(JSON.stringify(sortedCatalog(a)), JSON.stringify(sortedCatalog({ tables: { a: "rtff", b: "rtft" }, policies: {} })));
+  assert.deepEqual(sortedCatalog(null), {});
+});

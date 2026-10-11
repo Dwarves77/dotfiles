@@ -244,6 +244,13 @@ export function summarizeDiff(d) {
   return lines.join("\n");
 }
 
+/** The catalog with every category's keys in sorted order. json_object_agg returns keys in the physical order of the catalog rows, which an ALTER
+ *  (for example ENABLE ROW LEVEL SECURITY, an update of the pg_class row) can change without changing any definition; two reads are compared
+ *  byte for byte only after this sort. PURE. */
+export function sortedCatalog(catalog) {
+  return Object.fromEntries(Object.entries(catalog ?? {}).map(([cat, objs]) => [cat, Object.fromEntries(Object.keys(objs ?? {}).sort().map((k) => [k, objs[k]]))]));
+}
+
 /** The read-only entry (rule 15): run the catalog query once on one database, so every PR that touches the stack proves the query on a real server.
  *  Returns { status, lines, catalog }: 0 with one counts line (and the catalog), or 1 with the printed cause (SQLSTATE and psql error text). `read` is injectable. */
 export function catalogOnly(url, read = readCatalog) {
@@ -284,7 +291,7 @@ if (isMainModule(import.meta.url)) {
     try { assertLoopbackDbUrl(dbUrl); } catch (e) { console.error(`schema-diff: ${e.message}`); process.exit(2); }
     const c = catalogOnly(dbUrl);
     // --out <file>: also write the whole canonical catalog (definition text, stack only, never uploaded) so a workflow can compare two reads byte for byte.
-    if (c.status === 0 && arg("--out")) { mkdirSync(dirname(resolve(arg("--out"))), { recursive: true }); writeFileSync(resolve(arg("--out")), JSON.stringify(c.catalog, null, 1) + "\n", "utf8"); }
+    if (c.status === 0 && arg("--out")) { mkdirSync(dirname(resolve(arg("--out"))), { recursive: true }); writeFileSync(resolve(arg("--out")), JSON.stringify(sortedCatalog(c.catalog), null, 1) + "\n", "utf8"); }
     for (const l of c.lines) (c.status === 0 ? console.log : console.error)(l);
     process.exit(c.status);
   }
