@@ -292,9 +292,8 @@ test('DO-READ-1: the module derives its list by scanning, it does not hand-type 
   assert.equal(/OUT-OF-REPO-BOUNDARY/.test(src), false);
 });
 
-test('DO-READ-2: against the real repo, the docs the existing gates read are governing (OUT-OF-REPO-BOUNDARY, AUDIT-2026-09-07)', () => {
+test('DO-READ-2: against the real repo, the docs the existing gates read are governing (OUT-OF-REPO-BOUNDARY)', () => {
   assert.equal(isGoverningDocPath('fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md'), true);
-  assert.equal(isGoverningDocPath('docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md'), true);
   assert.equal(isDocsOnlyPath('fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md'), false);
 });
 

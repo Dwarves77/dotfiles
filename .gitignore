@@ -83,3 +83,11 @@ fsi-app/.discipline/rendering/audit/results.json
 fsi-app/.discipline/rendering/audit/AUDIT-2026-09-07.md
 fsi-app/.discipline/governance/coverage-report.json
 fsi-app/.discipline/rendering/layout-guard/results.json
+fsi-app/scripts/harness-runs/*/*-run-[0-9]*.json
+fsi-app/scripts/harness-runs/*/traces/
+fsi-app/scripts/harness-runs/*/LAST-PROPOSER-PASS.md
+fsi-app/scripts/_worklists/*
+!fsi-app/scripts/_worklists/attach-found-sources.fixture.json
+!fsi-app/scripts/_worklists/statutory-fueleu-annex-iv-2026-09-05.*
+fsi-app/scripts/turns/record-briefs/batches/
+fsi-app/scripts/turns/ledger-verdicts/ledger-verdicts-*.json

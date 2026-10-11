@@ -1080,24 +1080,6 @@ test("isRunArtifactFilename: false for non-string input, never throws", () => {
   assert.equal(isRunArtifactFilename(42), false);
 });
 
-test("CLI integration: --list against the real retrofitted screen family reads all 3 rounds, sorted, with defect counts intact", () => {
-  // fileURLToPath, not .pathname: on Windows a file:// URL's .pathname keeps the leading "/" before the
-  // drive letter ("/X:/repo/...", which no fs call resolves), while fileURLToPath returns the real
-  // platform path ("X:\repo\..."). A second, independent instance of the same OS-path-handling class
-  // this task's hashHarnessVersion fix addresses. Caught while extending this file per the task brief,
-  // fixed in the same motion (a flag is a commitment, not a comment) since it blocks the same pre-push
-  // gate `node --test` / run-test-suite.sh run on this clone.
-  const dir = fileURLToPath(new URL("../harness-runs/screen", import.meta.url));
-  const { runs, invalid } = readRunHistory(dir);
-  assert.equal(invalid.length, 0, `unexpected invalid files: ${JSON.stringify(invalid)}`);
-  assert.deepEqual(runs.map((r) => r.run_id), ["screen-run-001", "screen-run-002", "screen-run-003"]);
-  assert.equal(runs[0].defects_found.length, 1); // the screen-v1 loss
-  assert.equal(runs[2].defects_found.length, 0);
-  const listing = formatRunListing(runs);
-  assert.match(listing, /screen-run-001.*ambiguous=3312/);
-  assert.match(listing, /screen-run-003.*ambiguous=256/);
-});
-
 // ── lane GATE-9 (2026-10-08): the schema ties config.noop to the write metrics (AUD-AT-5 G-1, G-2, G-3, G-6) ──
 
 test("G-6: validateRunArtifact REJECTS config.noop = true alongside metrics.minted = 5 (a no-op that wrote)", () => {
@@ -1149,19 +1131,4 @@ test("G-6: noopContractErrors is pure and tolerant of missing or malformed confi
   assert.deepEqual(noopContractErrors(null, "x"), []);
   assert.deepEqual(noopContractErrors({}, {}), []);
   assert.equal(noopContractErrors({ noop: true }, { minted: 1 }).length, 1);
-});
-
-test("G-6: every committed harness-run artifact already satisfies the no-op contract (the schema tightening breaks no history)", () => {
-  const root = fileURLToPath(new URL("../harness-runs", import.meta.url));
-  let checked = 0;
-  for (const family of ALLOWED_FAMILIES) {
-    const dir = join(root, family);
-    if (!existsSync(dir)) continue;
-    const { runs } = readRunHistory(dir);
-    for (const run of runs) {
-      assert.deepEqual(noopContractErrors(run.config, run.metrics), [], run.run_id);
-      checked += 1;
-    }
-  }
-  assert.ok(checked > 0, "the committed history was read");
 });

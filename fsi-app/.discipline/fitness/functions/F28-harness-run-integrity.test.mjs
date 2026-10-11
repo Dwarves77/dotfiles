@@ -13,7 +13,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { readdirSync, mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as f28 from './F28-harness-run-integrity.mjs';
@@ -28,7 +28,7 @@ import {
   GOVERNING_FILES,
   fitnessFunction,
 } from './F28-harness-run-integrity.mjs';
-import { ALLOWED_FAMILIES, validateRunArtifact, isRunArtifactFilename } from '../../../scripts/lib/run-artifact.mjs';
+import { ALLOWED_FAMILIES } from '../../../scripts/lib/run-artifact.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 
 function validArtifact(overrides = {}) {
@@ -362,32 +362,4 @@ test('F28 passes GREEN against the live tree', LIVE_TREE, () => {
   if (result.length !== 0) {
     assert.fail(`F28 is RED against the live tree:\n${result.map((v) => `  - ${v.message}`).join('\n')}`);
   }
-});
-
-test('sanity: every artifact currently in the repo independently passes validateRunArtifact', () => {
-  // Belt-and-suspenders on rule (a): drives validateRunArtifact directly (not through scanArtifacts) over
-  // every real committed artifact, so a future artifact hand-edited into invalidity fails HERE too, not
-  // only via the live-tree check() above. isRunArtifactFilename (lane N2, 2026-09-19, Amendment 2, the
-  // same predicate scanArtifacts now uses) replaces the plain ".json" suffix filter, which used to also
-  // match each family's own family.json descriptor and fail this test on a file that is not a run
-  // artifact at all, a THIRD occurrence of the same defect class Amendment 2's two named readers already
-  // fixed (this test has its own independent readdirSync, never routed through scanArtifacts).
-  const root = getRepoRoot();
-  const families = ['mint', 'screen', 'fetch-drain', 'meta-harness'];
-  let checked = 0;
-  for (const family of families) {
-    const dir = `${root}/fsi-app/scripts/harness-runs/${family}`;
-    let files;
-    try {
-      files = readdirSync(dir).filter(isRunArtifactFilename);
-    } catch {
-      continue;
-    }
-    for (const f of files) {
-      const parsed = JSON.parse(readFileSync(`${dir}/${f}`, 'utf8'));
-      assert.deepEqual(validateRunArtifact(parsed), [], `${family}/${f} must validate`);
-      checked++;
-    }
-  }
-  assert.ok(checked > 0, 'expected at least one real artifact on disk to check');
 });

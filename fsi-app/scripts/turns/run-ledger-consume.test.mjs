@@ -1922,14 +1922,3 @@ test("shapeConsumeResult: without the stale-verdict options the metrics gain no 
   const { metrics } = M.shapeConsumeResult(fakeConsumeResult(), new Map());
   assert.equal("stale_verdicts_open" in metrics, false);
 });
-
-test("the committed batches on disk load and validate, and every URL is either still owed or superseded under a different live version", () => {
-  const paths = discoverVerdictsFiles(join(FSI_ROOT, "scripts", "turns", "ledger-verdicts"));
-  assert.ok(paths.length >= 1);
-  const loaded = M.loadVerdictBatchFiles(paths, {});
-  assert.equal(loaded.ok, true, loaded.message);
-  const idx = M.indexVerdictVersions(loaded.batches.map((b) => ({ batch: b.parsed.batch, entries: b.parsed.entries })), "sha256:0000000000000000");
-  const urls = new Set(loaded.batches.flatMap((b) => b.parsed.entries.map((e) => e.url)));
-  assert.equal(idx.stale.size + idx.superseded.length, urls.size);
-  assert.equal(idx.current_urls, 0, "no committed entry carries the fixture's live version");
-});

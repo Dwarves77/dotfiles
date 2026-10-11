@@ -1,9 +1,6 @@
 /** Tests for scripts/proof/steps/verdict-fixture.mjs (lane PROOF-3). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { buildVerdictBatch, STALE_PROMPT_VERSION, FIXTURE_SIZE, USABLE_ENTRIES } from "./verdict-fixture.mjs";
 import { validateVerdictsFile, partitionVerdictsByPromptVersion } from "../../turns/run-ledger-consume.mjs";
 
@@ -32,15 +29,6 @@ test("four entries carry the live prompt version (usable) and one is stale, so p
   for (const e of current) {
     assert.equal(e.entity_verdict, "specific_document");
     assert.ok(e.item_type && e.domain >= 1 && e.title_candidate.length > 0);
-  }
-});
-
-test("the committed verdict batches are all stale against a live version the fixture would use, which is why a fixture is needed", () => {
-  const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "turns", "ledger-verdicts");
-  for (const f of ["ledger-verdicts-001.json", "ledger-verdicts-002.json"]) {
-    const j = JSON.parse(readFileSync(join(dir, f), "utf8"));
-    const { current } = partitionVerdictsByPromptVersion(j.entries, LIVE);
-    assert.equal(current.length, 0, `${f} unexpectedly matches ${LIVE}`);
   }
 });
 

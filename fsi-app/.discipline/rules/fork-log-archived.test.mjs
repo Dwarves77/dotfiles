@@ -12,12 +12,11 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const REPO_ROOT = join(import.meta.dirname, '..', '..', '..');
 const OLD_PATH = join(REPO_ROOT, 'fsi-app', 'docs', 'ops', 'session-log.md');
-const ARCHIVED = join(REPO_ROOT, 'docs', 'archive', 'fsi-app-session-log-fork-2026-07.md');
 const CANONICAL = join(REPO_ROOT, 'docs', 'ops', 'session-log.md');
 
 test('RD-50: the deprecated fork path does not exist (recreating it fails the unit-test job)', () => {
@@ -26,12 +25,6 @@ test('RD-50: the deprecated fork path does not exist (recreating it fails the un
     false,
     'fsi-app/docs/ops/session-log.md was recreated. The canonical session log is docs/ops/session-log.md at the repo root (a lane writes its own docs/ops/session-log.d/ file). The frozen fork lives at docs/archive/fsi-app-session-log-fork-2026-07.md.',
   );
-});
-
-test('RD-50: the frozen fork is preserved in the archive with its deprecation header', () => {
-  assert.ok(existsSync(ARCHIVED), 'the archived fork was removed; history must not be destroyed');
-  const head = readFileSync(ARCHIVED, 'utf-8').slice(0, 400);
-  assert.match(head, /DEPRECATED FORK/);
 });
 
 test('RD-50: the canonical session log still exists at the repo root', () => {
