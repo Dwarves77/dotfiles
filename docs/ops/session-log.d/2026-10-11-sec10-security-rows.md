@@ -8,7 +8,7 @@ Branch lane/sec10-security-rows from origin/master 2c710d144, PR 1122. Backlog r
 - B-0002, B-0003, B-0040, `src/app/api/orgs/[org_id]/invitations/[id]/route.ts`: the org_invitations ownership read (id, org_id, status) now runs on `auth.supabase` BEFORE the `revoke_invitation` RPC, with its error handled: read error is 500, no row or `org_id` mismatch is 404 "Invitation not found", both with zero RPC calls. The RPC call and its error mapping are unchanged (42501 to 403, P0002 to 404, 22023 to 409). The post-RPC block and its dropped-error read are deleted.
 - B-0004, `src/app/api/orgs/[org_id]/invitations/route.ts`: the log line is `[invitation] org=<org_id> invitation=<id> role=<role>`: no email, no URL, no token. The invite URL is still returned to the inviter in the JSON (asserted unchanged).
 - B-0005, B-0006: `src/lib/api/auth.ts` `requireAuth` returns `{ userId, supabase }` (new exported `AuthContext`), `supabase` being the bearer-bound anon client it already built to verify the JWT; `src/lib/api/route-guard.ts` `UserRoute` gains `userClient: SupabaseClient`, `requireUserRoute` passes it through, `AdminRoute` (extends UserRoute) carries it too while its `supabase` stays the service client; `src/app/api/search/route.ts` drops the `createClient` import, the service-role client and `SUPABASE_SERVICE_ROLE_KEY`, and runs `runSearch(auth.userClient ...)`.
-- `requireUserRoute(` caller count: 16 route files under `src/app/api` (grep -rl; 17 including the new test stub's text). Every other caller ignores the new field.
+- `requireUserRoute(` caller count: 15 route files under `src/app/api` (`grep -rl "requireUserRoute(" src/app/api | grep -v npmtest | wc -l`; the plain `grep -rl | wc -l` gives 17 because two new test stubs carry the text). Every other caller ignores the new field.
 - Five attack tests (below), all red against master then green.
 
 ## Review of B-0005 and B-0006 (positives and negatives, then the decision)
@@ -59,18 +59,22 @@ Coverage table (each file read whole with the Read tool, one call each):
 |---|---|---|
 | briefs-2026-10-04/COMMON.md (scratchpad) | 123 | 1 |
 | briefs-2026-10-04/sec10.md (scratchpad) | 82 | 1 |
-| CLAUDE.md (repo root) | 120 | 1 |
-| fsi-app/src/app/api/agent/run/route.ts | 145 | 1 |
-| fsi-app/src/app/api/orgs/[org_id]/invitations/[id]/route.ts | 69 | 1 |
-| fsi-app/src/app/api/orgs/[org_id]/invitations/route.ts | 174 | 1 |
-| fsi-app/src/app/api/search/route.ts | 61 | 1 |
-| fsi-app/src/app/api/search/logic.ts | 104 | 1 |
-| fsi-app/src/lib/api/auth.ts | 123 | 1 |
-| fsi-app/src/lib/api/route-guard.ts | 121 | 1 |
-| fsi-app/src/lib/api/auth.npmtest.mjs | 118 | 1 |
-| fsi-app/src/lib/api/route-guard.npmtest.mjs | 94 | 1 |
+| CLAUDE.md (repo root; delivered whole in the lane context, header re-read) | 120 | 1 |
+| fsi-app/src/app/api/agent/run/route.ts (post-fix) | 140 | 1 |
+| fsi-app/src/app/api/orgs/[org_id]/invitations/[id]/route.ts (post-fix) | 69 | 1 |
+| fsi-app/src/app/api/orgs/[org_id]/invitations/route.ts (post-fix) | 173 | 1 |
+| fsi-app/src/app/api/search/route.ts (post-fix) | 58 | 1 |
+| fsi-app/src/lib/api/auth.ts (post-fix) | 132 | 1 |
+| fsi-app/src/lib/api/route-guard.ts (post-fix) | 125 | 1 |
+| fsi-app/src/lib/api/auth.npmtest.mjs | 162 | 1 |
+| fsi-app/src/lib/api/route-guard.npmtest.mjs | 109 | 1 |
 | fsi-app/src/app/api/workspace/viewer-read-only-routes.npmtest.mjs | 130 | 1 |
+| fsi-app/src/app/api/agent/run/guard-fail-closed.npmtest.mjs | 148 | 1 |
+| fsi-app/src/app/api/orgs/invitations-revoke-order.npmtest.mjs | 186 | 1 |
+| fsi-app/src/app/api/search/route-user-client.npmtest.mjs | 91 | 1 |
 | fsi-app/src/lib/supabase-service.ts | 43 | 1 |
+
+The first run of this lane (killed by a harness interrupt) also read `fsi-app/src/app/api/search/logic.ts` whole (104 lines); it is not in the write set and was not re-read by the relaunched run. The relaunched run re-ran every test, re-derived the red results below by restoring origin/master's six source files over the fixes (copy to scratchpad, `git checkout origin/master -- <files>`, run, `git checkout HEAD -- <files>`), and confirmed the working tree is back to the pushed tree.
 
 Also loaded whole through the Skill tool by the governing-skill hook before writes: caros-ledge-platform-intent, remediation-discipline, environmental-policy-and-innovation (plus fsi-app/.claude/CLAUDE.md, 441 lines, delivered by the hook). `canonical-pipeline.ts` was read only at lines 1574-1578 and 1681-1685 to confirm the two cited line numbers; it is not in the write set and is not edited.
 
