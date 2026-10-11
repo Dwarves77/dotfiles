@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { createJiti } from "jiti";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
@@ -133,7 +133,7 @@ const LIVE_INTELLIGENCE_ITEMS_COLUMNS = new Set([
   "id", "instrument_entity_id", "instrument_identifier", "instrument_type", "intersection_summary",
   "is_archived", "item_grade", "item_type", "jurisdiction_iso", "jurisdictions", "key_data",
   "last_regenerated_at", "last_verified", "legacy_id",
-  "linked_forum_thread_ids", "linked_regulation_ids", "linked_vendor_ids", "next_review_date",
+  "next_review_date",
   "open_questions", "operational_impact", "operational_scenario_tags", "origin_class",
   "pipeline_stage", "priority", "provenance_status", "provenance_verified_at", "reasoning",
   "regeneration_skill_version", "region_tags", "related_items", "replaced_by", "search_tsv",
@@ -198,4 +198,21 @@ test("the re-fetch's .select() names only real intelligence_items columns (live 
       `.select() names "${col}", which is not a real intelligence_items column (live schema, 2026-09-11) — this is exactly the 400 that shipped the defect`
     );
   }
+});
+
+test("the LIVE_INTELLIGENCE_ITEMS_COLUMNS fixture lists no column a migration has dropped from intelligence_items (DEAD-1d: it still listed the three 368 dropped)", () => {
+  const dir = resolve(ROOT, "fsi-app", "supabase", "migrations");
+  const last = new Map(); // column -> "add" | "drop", the last event in migration order wins
+  for (const f of readdirSync(dir).filter((n) => /^\d+.*\.sql$/.test(n)).sort()) {
+    const sql = readFileSync(resolve(dir, f), "utf8").split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+    for (const stmt of sql.match(/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?(?:public\.)?intelligence_items\b[^;]*;/gi) ?? []) {
+      for (const m of stmt.matchAll(/\b(ADD|DROP)\s+COLUMN\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?"?([a-z_][a-z0-9_]*)"?/gi)) {
+        last.set(m[2].toLowerCase(), m[1].toLowerCase());
+      }
+    }
+  }
+  const dropped = [...last].filter(([, ev]) => ev === "drop").map(([c]) => c);
+  assert.ok(dropped.includes("linked_vendor_ids"), "the scan must see migration 368's drops, or it proves nothing");
+  const stale = dropped.filter((c) => LIVE_INTELLIGENCE_ITEMS_COLUMNS.has(c));
+  assert.deepEqual(stale, [], "the fixture lists columns that no longer exist on intelligence_items");
 });

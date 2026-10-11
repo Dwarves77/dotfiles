@@ -37,6 +37,13 @@
 // consults the result. A false "governing" costs one heavy run, while a false "docs-only" skips the gate that
 // reads the file (an edit to a read doc that classed as docs-only and then failed the suite it had skipped).
 //
+// CIFIX-2 (2026-10-10): that scan is token based, not line based. It walks every string and template literal of the
+// scanned modules (the one source lexer classifies comments, strings and regex bodies; lexJs below groups them), so a
+// docs path read through a template with a variable prefix (`${root}/docs/x.md`), on a later line of a read call, in
+// a join() spread over lines, or bound to a name in one statement and read in a later one, is governing. An
+// interpolation inside the path becomes a one-segment `*`. Array elements, fixture object fields, prose and
+// non-read call arguments are still not reads.
+//
 // CLI: node docs-only-range.mjs --range=<git-range>
 //   exit 0  = every changed file in the range is docs-only (see isDocsOnlyPath)
 //   exit 1  = at least one changed file is outside that set (not docs-only) -- including an EMPTY diff,
@@ -52,6 +59,7 @@ import { getRepoRoot } from '../lib/context.mjs';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
 import { DOCTRINE_FILES } from './doctrine-contradiction.mjs';
 import { TEST_FILE_RE } from '../lib/test-discovery.mjs';
+import { classifySource, CODE, LIT } from './source-lexer.mjs';
 
 /** Code-like extensions: a file with one of these is run, imported or executed by something. */
 const CODE_EXTENSION_RE = /\.(?:[cm]?[jt]sx?|sh|bash|yml|yaml|sql|py)$/i;
@@ -73,18 +81,184 @@ const GOVERNING_PATTERNS = [
   /(?:^|\/)(?:brief-)?common[^/]*\.md$/i,
 ];
 
-/** A path literal naming a docs-like file: a quoted, slash-bearing path ending .md, .json or .txt. */
-const PATH_LITERAL_RE = /['"`]((?:\.\/)?[\w.-]+(?:\/[\w.-]+)+\.(?:md|json|txt))['"`]/g;
-/** A join()/resolve() call; its quoted arguments from the first docs-rooted segment on form one path. */
-const JOIN_CALL_RE = /\b(?:join|resolve)\(([^()]*)\)/g;
-/** A line that reads, opens or resolves a path, or names one as a constant: the literal on it is a dependency. */
-const READ_CONTEXT_RE = /(?:read|exist|stat|resolve|join|open|load|require|import)\w*\s*\(/i;
-const NAMED_PATH_CONST_RE = /^(?:export\s+)?const\s+[A-Z][A-Z0-9_]*\s*=\s*['"`]/;
-const QUOTED_ARG_RE =/['"`]([^'"`]*)['"`]/g;
+/** A callee whose call reads, opens or resolves a path: a docs literal inside its parentheses is a dependency. */
+const READ_CALLEE_RE = /(?:read|exist|stat|resolve|join|open|load|require|import)/i;
+const JOIN_CALLEE_RE = /^(?:join|resolve)$/;
 const DOCS_ROOT_RE = /^(?:docs|fsi-app)(?:\/|$)/;
 const DOCS_FILE_RE = /\.(?:md|json|txt)$/;
+/** A whole-literal docs path with no interpolation: slash-bearing, ending .md, .json or .txt. */
+const PLAIN_DOC_PATH_RE = /^(?:\.\/)?([\w.-]+(?:\/[\w.-]+)+\.(?:md|json|txt))$/;
 /** The scan's own files are excluded: their fixture literals name paths the tests assert are docs-only. */
 const SCAN_SELF_RE = /(?:^|\/)docs-only-range(?:\.test)?\.mjs$/;
+/** An interpolation inside a template literal, in the literal's static text. */
+const HOLE = '\0';
+const HOLE_PREFIX_RE = new RegExp(`^${HOLE}/?`);
+const HOLE_ALL_RE = new RegExp(HOLE, 'g');
+/** A docs path that may carry `*` for an interpolated segment. */
+const GLOB_PATH_RE = /^[\w.\-/*]+$/;
+
+/**
+ * CIFIX-2 (2026-10-10): the token stream the read scan walks. It does NOT re-answer "is this a comment, a string or a
+ * regular expression?": that is the one source lexer's job (source-lexer.mjs, GATE-8), and this reads its per
+ * character classes. What it adds is the grouping the classes do not carry: a string literal's content as one token,
+ * a template literal as one token whose interpolations are lexed as nested token lists, plus identifiers, numbers and
+ * punctuation from the CODE characters. Dependency-free (the docs-only classifier runs before `npm ci`). PURE.
+ * @param {string} src
+ * @returns {object[]} tokens: {t:'str', v, inner?} {t:'id'|'num', v} {t:'p', v} {t:'re'}
+ */
+function lexJs(src) {
+  const cls = classifySource(src);
+  const n = src.length;
+  let i = 0;
+  const readLit = () => {
+    let v = '';
+    while (i < n && cls[i] === LIT) {
+      if (src[i] === '\\') { v += src[i + 1] ?? ''; i += 2; } else v += src[i++];
+    }
+    return v;
+  };
+  const run = (nested) => {
+    const tokens = [];
+    let depth = 0;
+    while (i < n) {
+      const c = src[i];
+      if (cls[i] !== CODE || /\s/.test(c)) { i++; continue; }
+      if (c === '"' || c === "'") {
+        i++;
+        const v = readLit();
+        if (src[i] === c) i++;
+        tokens.push({ t: 'str', v });
+        continue;
+      }
+      if (c === '`') {
+        i++;
+        let v = '';
+        const inner = [];
+        while (i < n) {
+          v += readLit();
+          if (src[i] === '$' && src[i + 1] === '{') { i += 2; inner.push(run(true)); v += HOLE; continue; }
+          if (src[i] === '`') i++;
+          break;
+        }
+        tokens.push({ t: 'str', v, inner });
+        continue;
+      }
+      if (c === '/' && cls[i + 1] === LIT) {
+        i++;
+        while (i < n && cls[i] === LIT) i++;
+        if (src[i] === '/') i++;
+        while (i < n && /[a-z]/i.test(src[i])) i++;
+        tokens.push({ t: 're' });
+        continue;
+      }
+      if (/[A-Za-z_$]/.test(c)) {
+        const from = i++;
+        while (i < n && cls[i] === CODE && /[\w$]/.test(src[i])) i++;
+        tokens.push({ t: 'id', v: src.slice(from, i) });
+        continue;
+      }
+      if (/[0-9]/.test(c)) {
+        const from = i++;
+        while (i < n && cls[i] === CODE && /[\w.]/.test(src[i])) i++;
+        tokens.push({ t: 'num', v: src.slice(from, i) });
+        continue;
+      }
+      if (c === '{') depth++;
+      if (c === '}') {
+        if (nested && depth === 0) { i++; return tokens; }
+        depth--;
+      }
+      tokens.push({ t: 'p', v: c });
+      i++;
+    }
+    return tokens;
+  };
+  return run(false);
+}
+
+const isP = (tok, v) => tok?.t === 'p' && tok.v === v;
+
+/**
+ * The repo-relative docs path a literal's static text names, or null (prose, a bare name, no docs root). An
+ * interpolation AFTER the docs root becomes `*` (one path segment), so `docs/zz/${name}.md` names every .md directly
+ * under docs/zz/: which file is read is unknown, so every candidate is governing.
+ */
+function docPathOf(v) {
+  if (!v || /\s/.test(v)) return null;
+  const s = v.replace(/\\/g, '/');
+  if (!s.includes(HOLE)) {
+    const m = PLAIN_DOC_PATH_RE.exec(s);
+    return m ? m[1] : null;
+  }
+  // A template with a variable prefix (`${root}/docs/x.md`): from the first static piece that begins at a docs root.
+  const pieces = s.split(HOLE);
+  const at = pieces.findIndex((p) => DOCS_ROOT_RE.test(p.replace(/^\/+/, '')));
+  if (at < 0) return null;
+  const path = [pieces[at].replace(/^\/+/, ''), ...pieces.slice(at + 1)].join('*');
+  if (!GLOB_PATH_RE.test(path) || !path.includes('/') || !DOCS_FILE_RE.test(path)) return null;
+  return posix.normalize(path);
+}
+
+/** The path a join()/resolve() call's literal arguments form from the first docs-rooted segment on, or null. */
+function joinedDocPath(lits) {
+  const args = lits.map((a) => a.replace(/\\/g, '/').replace(HOLE_PREFIX_RE, '').replace(HOLE_ALL_RE, '*').replace(/^\/+|\/+$/g, ''));
+  const at = args.findIndex((a) => DOCS_ROOT_RE.test(a));
+  if (at < 0) return null;
+  const joined = args.slice(at).filter(Boolean).join('/').replace(/\/+/g, '/');
+  return joined.includes('/') && DOCS_FILE_RE.test(joined) && GLOB_PATH_RE.test(joined) ? joined : null;
+}
+
+/**
+ * Walk one token list: a docs-like literal is a read when it is (a) inside the parentheses of a read, open, exist,
+ * resolve or join style call at any line distance, (b) the value bound to a SCREAMING_CASE constant, or bound to
+ * any other name that reaches a read call anywhere in the same module (a path built in one statement and read in a
+ * later one). A literal that is an object property value (a fixture
+ * field such as `file_path: ...` is not a read), an element of an array, an argument of any other call, prose, or
+ * inside a comment or regular expression is not.
+ * @param {object[]} tokens
+ * @param {Set<string>} out
+ */
+function collectReadDocs(tokens, ctx) {
+  const { out, bindings, readIds } = ctx;
+  const stack = [];
+  for (let k = 0; k < tokens.length; k++) {
+    const tok = tokens[k];
+    if (tok.t === 'p') {
+      if (tok.v === '(') stack.push({ kind: '(', name: tokens[k - 1]?.t === 'id' ? tokens[k - 1].v : '', lits: [] });
+      else if (tok.v === '[') stack.push({ kind: '[', name: '', lits: [] });
+      else if (tok.v === ')' || tok.v === ']') {
+        const frame = stack.pop();
+        if (frame?.kind === '(' && JOIN_CALLEE_RE.test(frame.name)) {
+          const joined = joinedDocPath(frame.lits);
+          if (joined) out.add(joined);
+        }
+      }
+      continue;
+    }
+    if (tok.t === 'id') {
+      if (stack.some((f) => f.kind === '(' && READ_CALLEE_RE.test(f.name))) readIds.add(tok.v);
+      continue;
+    }
+    if (tok.t !== 'str') continue;
+    for (const inner of tok.inner ?? []) collectReadDocs(inner, ctx);
+    const prev = tokens[k - 1];
+    const next = tokens[k + 1];
+    const top = stack[stack.length - 1];
+    if (top?.kind === '(' && (isP(prev, '(') || isP(prev, ',')) && (isP(next, ',') || isP(next, ')'))) top.lits.push(tok.v);
+    const path = docPathOf(tok.v);
+    if (!path) continue;
+    const inRead = top?.kind !== '[' && stack.some((f) => f.kind === '(' && READ_CALLEE_RE.test(f.name));
+    if (inRead) {
+      out.add(path);
+      continue;
+    }
+    const name = isP(prev, '=') && tokens[k - 2]?.t === 'id' ? tokens[k - 2].v : null;
+    if (!name) continue;
+    // A named path constant (SCREAMING_CASE) is a dependency as it stands; any other name is one when it reaches a read call.
+    if (/^[A-Z][A-Z0-9_]*$/.test(name)) out.add(path);
+    else bindings.set(name, (bindings.get(name) ?? new Set()).add(path));
+  }
+}
 
 /**
  * The docs-like paths a set of sources names. PURE.
@@ -95,20 +269,9 @@ export function extractReadDocPaths(sources) {
   const out = new Set();
   for (const src of sources ?? []) {
     if (SCAN_SELF_RE.test(String(src?.path ?? '').replace(/\\/g, '/'))) continue;
-    for (const line of String(src?.text ?? '').split('\n')) {
-      const t = line.trim();
-      if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) continue;
-      if (READ_CONTEXT_RE.test(line) || NAMED_PATH_CONST_RE.test(t)) {
-        for (const m of line.matchAll(PATH_LITERAL_RE)) out.add(m[1].replace(/^\.\//, ''));
-      }
-      for (const call of line.matchAll(JOIN_CALL_RE)) {
-        const args = [...call[1].matchAll(QUOTED_ARG_RE)].map((a) => a[1]);
-        const at = args.findIndex((a) => DOCS_ROOT_RE.test(a));
-        if (at < 0) continue;
-        const joined = args.slice(at).join('/').replace(/\/+/g, '/');
-        if (joined.includes('/') && DOCS_FILE_RE.test(joined)) out.add(joined);
-      }
-    }
+    const ctx = { out, bindings: new Map(), readIds: new Set() };
+    collectReadDocs(lexJs(String(src?.text ?? '')), ctx);
+    for (const [name, paths] of ctx.bindings) if (ctx.readIds.has(name)) for (const p of paths) out.add(p);
   }
   return out;
 }
@@ -154,7 +317,18 @@ export function isGoverningDocPath(path, readDocs) {
   const p = normalize(path);
   if (!p) return false;
   if (GOVERNING_EXACT.has(p) || GOVERNING_PATTERNS.some((re) => re.test(p))) return true;
-  return (readDocs ?? defaultReadDocPaths()).has(p);
+  return readDocMatches(readDocs ?? defaultReadDocPaths(), p);
+}
+
+/** True for an exact entry, or an entry with `*` (an interpolated segment) that the path matches. */
+function readDocMatches(readDocs, p) {
+  if (readDocs.has(p)) return true;
+  for (const entry of readDocs) {
+    if (!entry.includes('*')) continue;
+    const re = new RegExp(`^${entry.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')}$`);
+    if (re.test(p)) return true;
+  }
+  return false;
 }
 
 /**

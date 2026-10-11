@@ -110,14 +110,24 @@ jobs:
           if [ "$resolved_mode" = "apply" ]; then args="$args --apply"; fi
           node scripts/producers/research/research-assessment-producer.mjs $args
 
-      # Record this family's own harness-run artifact into harness_runs (CONVENTION.md; best-effort, same
-      # posture as every other producer -- a missing credential self-skips rather than failing the job).
+      # Record this family's own harness-run artifact into harness_runs (CONVENTION.md). The exit code is checked
+      # explicitly (CIFIX-2, 2026-10-10; the same form research-walker.yml has carried since lane RW-WF), never
+      # swallowed with `|| echo ...`: record-harness-run.mjs exits 1 on a missing credential inside GitHub Actions
+      # (this job wires both secrets at job level, so that should not fire here) and 2 only for a developer-local run
+      # with no credentials. A swallowed exit 1 would report SUCCESS on a run that landed no harness_runs row.
       - name: Land the research-assessment harness-run artifact into harness_runs
         if: always()
         run: |
           latest=$(ls -1 scripts/harness-runs/research-assessment/research-assessment-run-*.json 2>/dev/null | sort | tail -1)
-          if [ -n "$latest" ]; then
-            node scripts/lib/record-harness-run.mjs --file "$latest" || echo "record-harness-run: best-effort, no-ops cleanly with no SUPABASE_* creds set."
-          else
+          if [ -z "$latest" ]; then
             echo "no research-assessment run artifact found to land."
+            exit 0
+          fi
+          status=0
+          node scripts/lib/record-harness-run.mjs --file "$latest" || status=$?
+          if [ "$status" -eq 2 ]; then
+            echo "record-harness-run: self-skip (no credentials) -- not landed, not a failure (developer-local case only)."
+          elif [ "$status" -ne 0 ]; then
+            echo "::error::record-harness-run: failed to land $latest (exit $status) -- this run's harness-run artifact was not recorded."
+            exit 1
           fi
