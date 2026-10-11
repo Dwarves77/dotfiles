@@ -96,7 +96,15 @@ async function authCall(fetchImpl, url, init, what) {
   } catch (e) {
     throw new Error(`route persona ${what}: request failed (${String(e?.message ?? e).split("\n")[0]})`);
   }
-  if (!res.ok) throw new Error(`route persona ${what}: auth service answered ${res.status}`);
+  if (!res.ok) {
+    // The auth service's own error code and message say WHY (for example email_provider_disabled); they carry no credential.
+    let why = "";
+    try {
+      const body = await res.json();
+      why = [body?.error_code ?? body?.error, body?.msg ?? body?.message ?? body?.error_description].filter(Boolean).join(": ").replace(/\s+/g, " ").slice(0, 160);
+    } catch { /* no JSON body */ }
+    throw new Error(`route persona ${what}: auth service answered ${res.status}${why ? ` (${why})` : ""}`);
+  }
   return res.json();
 }
 

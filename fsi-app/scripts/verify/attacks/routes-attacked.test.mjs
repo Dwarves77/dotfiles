@@ -242,6 +242,14 @@ test("route personas: the creation statements make a platform admin, a viewer an
   assert.ok(st.filter((s) => s.label.startsWith("profiles ")).filter((s) => s.params[3] === true).length === 1);
 });
 
+test("route personas: a refused request carries the auth service's own error code, never the password", async () => {
+  const env = { NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321", NEXT_PUBLIC_SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s" };
+  await assert.rejects(
+    () => setupRoutePersonas({ client: { query: async () => ({}) }, env, tag: "t", makePassword: () => "pw-secret", fetchImpl: async () => ({ ok: false, status: 422, json: async () => ({ error_code: "email_provider_disabled", msg: "Email logins are disabled" }) }) }),
+    (e) => /answered 422 \(email_provider_disabled: Email logins are disabled\)/.test(e.message) && !/pw-secret/.test(e.message),
+  );
+});
+
 test("route personas: sign-in failures and missing keys name the step, never a credential", async () => {
   const client = { query: async () => ({}) };
   await assert.rejects(() => setupRoutePersonas({ client, env: {} }), /API url or keys are missing/);
