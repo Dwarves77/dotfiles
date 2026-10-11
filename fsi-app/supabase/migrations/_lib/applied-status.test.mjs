@@ -8,7 +8,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { expectedHeaderFor, headerProblems, ledgerCount, derivesNeverApplied, accountFor, neverAppliedFiles, namedFiles, isFileKey } from "./applied-status.mjs";
+import { expectedHeaderFor, headerProblems, ledgerCount, derivesNeverApplied, accountFor, neverAppliedFiles, namedFiles, isFileKey, literalNotAppliedAssertions } from "./applied-status.mjs";
 
 const FSI = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 const MIG = join(FSI, "supabase", "migrations");
@@ -250,4 +250,50 @@ test("SIMULATION: an apply plus its header flip needs zero test edits and zero m
     assert.equal(ledgerCount({ root }), total);
     assert.equal(accountFor({ file: FILE, text: appliedTextOfFile, map: JSON.parse(readFileSync(mapPath, "utf8")) }).how, "ledger-row");
   } finally { cleanup(root); }
+});
+
+// MIGTEST-2 (2026-10-11): a per-migration test must never assert the pre-apply words itself. The convention (header says
+// NOT APPLIED until the executor's refresh flips it) guarantees a red at every apply for a test that does; the header is
+// asserted through headerProblems, which derives the expected state from the map.
+test("literalNotAppliedAssertions: ATTACK, a fixture test that asserts the literal NOT APPLIED while the map lists the file is reported", () => {
+  const root = makeRoot();
+  try {
+    const attack = [
+      'test("header: states NOT APPLIED", () => {',
+      "  assert.match(RAW, /^-- NOT APPLIED\./m);",
+      "});",
+    ].join("\n");
+    // the premise of the attack: the map lists the file, so its header is expected to say APPLIED and the literal assertion is wrong
+    assert.equal(expectedHeaderFor(APPLIED_FILE, { root }).applied, true);
+    const hits = literalNotAppliedAssertions(attack);
+    assert.equal(hits.length, 1);
+    assert.equal(hits[0].line, 2);
+    assert.match(hits[0].text, /NOT APPLIED/);
+  } finally { cleanup(root); }
+});
+
+test("literalNotAppliedAssertions: positive assertion forms are caught; negative assertions, test names, prose and the derived form are not", () => {
+  const caught = [
+    "assert.match(RAW, /^-- NOT APPLIED\./m);",
+    'assert.ok(RAW.includes("NOT APPLIED"));',
+    "assert.equal(RAW.split(NL)[3], '-- NOT APPLIED.');",
+  ];
+  for (const l of caught) assert.equal(literalNotAppliedAssertions(l).length, 1, l);
+  const clean = [
+    "assert.doesNotMatch(RAW, /NOT APPLIED/);",
+    "assert.doesNotMatch(RAW.split(NL)[0], /NOT APPLIED/);",
+    'test("header: subject line, states NOT APPLIED, names what it does not do", () => {',
+    "// the file is NOT APPLIED until the executor flips it",
+    'assert.deepEqual(headerProblems(RAW, "387_x.sql"), []);',
+    'test("runs inside one transaction and is not applied by this file", () => {',
+  ];
+  for (const l of clean) assert.deepEqual(literalNotAppliedAssertions(l), [], l);
+});
+
+test("committed tree: no migration test under supabase/migrations asserts the literal NOT APPLIED (the header is asserted through headerProblems)", () => {
+  const tests = readdirSync(MIG).filter((f) => /\.test\.mjs$/.test(f));
+  assert.ok(tests.length > 0);
+  const offenders = [];
+  for (const f of tests) for (const h of literalNotAppliedAssertions(readFileSync(join(MIG, f), "utf8"))) offenders.push(`${f}:${h.line}: ${h.text}`);
+  assert.deepEqual(offenders, [], "assert the header with headerProblems(RAW, file), which derives APPLIED or NOT APPLIED from APPLIED-MAP.json");
 });
