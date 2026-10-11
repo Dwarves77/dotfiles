@@ -27,7 +27,7 @@ const KEYS = ["countemissions-eu", "cbam-indirect-customs-representative", "empo
 // Candidates are the fixture objects as a grounded drain batch would hand them over: no obligation_id (minted here), and
 // the capture named by its id.
 const candidateOf = (o) => {
-  const { obligation_id, capture_fixture_key, ...rest } = o;
+  const { obligation_id: _id, capture_fixture_key, ...rest } = o;
   const cap = FIX.captures.find((c) => c.fixture_key === capture_fixture_key);
   return { ...rest, capture_id: cap.capture_id };
 };
@@ -126,14 +126,14 @@ test("refusals: every way a candidate can be wrong is named, none is written", (
 test("status is never written yes or no, and an absent status is written not_assessed", () => {
   const base = CAND("ppwr");
   const ctx = { item: ITEMS.find((i) => i.id === base.instrument_item_id), capture: CAPTURES.find((c) => c.id === base.capture_id) };
-  const { status, ...noStatus } = base;
+  const { status: _status, ...noStatus } = base;
   assert.equal(buildObjectRow(noStatus, ctx).row.status, "not_assessed");
   assert.equal(buildObjectRow({ ...base, status: "not_assessed" }, ctx).row.status, "not_assessed");
 });
 
 test("binding position: the candidate's own wins; without one the instrument classifier decides, then monitoring_only, else refused", () => {
   const base = CAND("countemissions-eu");
-  const { binding_position, ...bare } = base;
+  const { binding_position: _bp, ...bare } = base;
   const ctx = (item) => ({ item, capture: CAPTURES.find((c) => c.id === base.capture_id), classify: classifyItemBindingPosition });
   const plain = { ...ITEMS.find((i) => i.id === base.instrument_item_id), title: "FIXTURE unnamed measure" };
   // unnamed instrument, forwarder duty holder: nothing fires, never guessed
