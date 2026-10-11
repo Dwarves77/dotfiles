@@ -94,7 +94,7 @@ The eighteen subsystems are the coordinator's list. One extension, stated once: 
 | 4 | Fitness functions | each F-id | `fsi-app/.discipline/fitness/functions/`, `runner.mjs --list` |
 | 5 | Governance gates | closure gate, memory gate, invariant-coverage and execution-wiring meta-gates, skill-acks, worktree isolation, consistency checks | `fsi-app/.discipline/governance/`, `fsi-app/.discipline/consistency/` |
 | 6 | Rendering guard | each fixture by viewport, each UX smoke spec, the layout guard | `fsi-app/.discipline/rendering/` |
-| 7 | CI workflow | each job and step of `discipline.yml`, and the other workflows' CI side | `.github/workflows/` |
+| 7 | CI workflow | each job and step of `ci.yml`, and the other workflows' CI side | `.github/workflows/` |
 | 8 | Chain workflows and hops | each `workflow_run` edge and each dispatch hop | `.github/workflows/`, the F50 hop manifest |
 | 9 | Harness families | each family | `fsi-app/scripts/harness-runs/*/FAMILY.md` |
 | 10 | Migrations and ledger | each migration file, each ledger row, each live object | `fsi-app/supabase/migrations/`, the ledger (`list_migrations`), `docs/inventories/migrations.md` |
@@ -366,7 +366,7 @@ Priority order: ATTACKED and RECORD-VS-REALITY first (a guard never attacked and
 - P-006 row 5, Governance gates: on file ~2026-07-30 SPD; each governance gate and consistency check
 - P-007 row 1, Commit rules: on file ~2026-10-08 GA; each of the 10 rule files
 - P-008 row 2, Hooks: on file ~2026-10-08 GA; each git hook step and each Claude Code hook (repo and user level)
-- P-009 row 7, CI workflow: on file ~2026-10-08 DC; each job and step of discipline.yml and the other workflows
+- P-009 row 7, CI workflow: on file ~2026-10-08 DC; each job and step of ci.yml (was discipline.yml) and the other workflows
 - P-010 row 9, Harness families: on file ~2026-10-08 GB; ~2026-09-04 WIR; each harness family
 
 #### RUNS (RU): 3 empty, 3 partial only
@@ -415,7 +415,7 @@ Priority order: ATTACKED and RECORD-VS-REALITY first (a guard never attacked and
 - P-018 row 4, Fitness functions: on file ~2026-10-08 GB; each F-id (60 today)
 - P-019 row 1, Commit rules: on file ~2026-10-08 GA; each of the 10 rule files
 - P-020 row 2, Hooks: on file ~2026-10-08 GA; each git hook step and each Claude Code hook (repo and user level)
-- P-021 row 7, CI workflow: on file ~2026-10-08 GB; each job and step of discipline.yml and the other workflows
+- P-021 row 7, CI workflow: on file ~2026-10-08 GB; each job and step of ci.yml (was discipline.yml) and the other workflows
 - P-022 row 8, Chain workflows and hops: on file ~2026-09-04 WIR; each workflow_run edge and dispatch hop
 - P-023 row 9, Harness families: on file ~2026-10-08 GB; each harness family
 - P-024 row 16, Producers: on file ~2026-09-12 QHF; each producer runtime and the rows it writes

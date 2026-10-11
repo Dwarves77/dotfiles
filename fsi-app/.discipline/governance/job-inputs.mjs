@@ -1,39 +1,46 @@
-// job-inputs.mjs (lane CI-MIN-1, 2026-10-10, ADR-047 decision 5). THE ONE classifier that decides which scoped
-// CI jobs a pull request must run. Actions minutes are metered (2,000 per month, spending limit 0), and a pull
-// request used to run every job whatever it touched (about 25 runner minutes). A scoped job now runs only when the
-// diff touches one of its INPUTS; an untouched job is SKIPPED at job level (an `if` over the outputs of the
-// workflow's `inputs` job). A skipped job satisfies branch protection; a job that never reports does not, which is
-// why the skip is job-level and never a workflow `paths:` filter (discipline.yml's 2026-08-12 note, R22).
+// job-inputs.mjs (lane CI-MIN-1, 2026-10-10, ADR-047 decision 5; reshaped by lane PIPE-1, 2026-10-11 for the one-pipeline
+// ci.yml). THE ONE classifier that decides which jobs and steps of the CI workflow a change must run. Actions minutes
+// are metered (2,000 per month, spending limit 0), and a pull request used to run every job whatever it touched (45
+// billed minutes across eight workflows). Now ci.yml runs five jobs: `inputs` (this classifier, once), `static`
+// (always on a pull request; its code steps run only when `code` is true), `schema` and `app` (scoped: each runs only
+// when the diff touches one of its INPUTS) and `master` (on a push to master only). An untouched scoped job is SKIPPED
+// at job level (an `if` over the outputs of the `inputs` job). A skipped job satisfies branch protection; a job that
+// never reports does not, which is why the skip is job-level and never a workflow `paths:` filter (discipline.yml's
+// 2026-08-12 note, R22).
 //
-// ONE HOME. The job -> input-globs map below is the single source. The workflows read its verdict through this
-// file's CLI (`--pr-merge --github-output`), the F52 workflow-shape test reads the SCOPED table to assert every
-// scoped job carries the `if` and `needs`, and the consistency backstop prints the skipped set. Nothing else lists
-// a job's inputs.
+// ONE HOME. The job -> input-globs map below is the single source. ci.yml reads its verdict through this file's CLI
+// (`--github-output`), the F52 workflow-shape test reads the SCOPED table to assert every scoped job carries the `if`
+// and `needs`, and the static job's backstop step prints the skipped set. Nothing else lists a job's inputs: the
+// per-workflow in-job scope steps, the `paths:` filter of the old build-proof workflow and the CI copy of the docs-only
+// resolution are retired.
+//
+// THE CODE VERDICT. `code` is the docs-only verdict of docs-only-range.mjs (the one shared primitive the pre-push hook
+// also calls) negated: false only when every changed file is documentation no gate reads. The `static` job's heavy
+// steps run when it is true, so a docs-only pull request runs the cheap steps only.
 //
 // DERIVED, NOT TYPED, WHERE A LIST ALREADY EXISTS. A scoped job's own scripts are read out of its workflow job block
 // (the `node scripts/...` and `.discipline/...` tokens on non-comment lines, and the body of any `npm run <name>`
 // from package.json), and each script contributes its relative-import closure. A new import inside a detector or the
-// rendering guard therefore becomes an input without anyone editing this file. Everything else is a glob.
+// rendering guard therefore becomes an input without anyone editing this file. Everything else is a glob. An entry
+// with `derive: false` (a single step of the master job) takes its globs only.
 //
 // FAILS TOWARD RUNNING. A false "run" costs one job; a false "skip" skips the gate that guards the change. So an
 // empty diff, an unreadable range, a checkout that is not a merge commit, or any git failure marks EVERY job
-// touched. A change to this file, its test, or ANY workflow file marks every job touched (a workflow edit can break
-// any job, including one whose own inputs it did not name). Every entry also lists its workflow file and
-// `.github/actions/**`.
+// touched and `code` true. A change to this file, its test, or ANY workflow file marks every job touched (a workflow
+// edit can break any job, including one whose own inputs it did not name). Every entry also lists its workflow file
+// and `.github/actions/**`.
 //
-// ALWAYS-ON JOBS are never scoped: validate-commits, consistency-backstop, test-discipline-engine and
-// fitness-check enforce across the whole tree, so no change can skip every gate (docs-only is the existing
-// fast path inside those jobs, docs-only-range.mjs).
+// ALWAYS-ON JOBS are never scoped: `inputs` and `static` run on every pull request, so no change can skip every gate
+// (docs-only is the `code` verdict inside `static`). `master` runs on a push to master and is skipped on a pull request.
 //
 // CLI: node job-inputs.mjs --pr-merge [--github-output] [--print-unchanged]
-//      node job-inputs.mjs --all --github-output   (not a pull request: every scoped job is true)
-//      node job-inputs.mjs --range=<git-range> [...]
+//      node job-inputs.mjs --all --github-output   (a dispatch, or a push with no usable before sha: every job is true)
+//      node job-inputs.mjs --range=<git-range> [...]   (a push to master: before..after)
 //   --pr-merge        the pull_request checkout is the merge commit: the diff is HEAD^1..HEAD (the pull request's
 //                     effect on its base tip), never HEAD~1. No second parent -> every job runs.
-//   --github-output   append `<job_key>=true|false` for every scoped job to $GITHUB_OUTPUT
-//   --all             a push or a dispatch: every scoped job is marked touched, no diff is read
-//   --print-unchanged print `inputs unchanged: <job id>` for every WIRED scoped job that is skipped (a job whose
-//                     workflow does not yet carry the `if` still runs, so it is never reported as skipped)
+//   --github-output   append `<key>=true|false` for `code` and every scoped key to $GITHUB_OUTPUT
+//   --all             a dispatch: every scoped job and `code` are true, no diff is read
+//   --print-unchanged print `inputs unchanged: <job id>` for every job-level scoped job that is skipped
 // Always exits 0 on a classification (a classifier fault marks every job touched); exit 2 only on bad arguments.
 
 import { appendFileSync, readFileSync, statSync } from 'node:fs';
@@ -41,10 +48,16 @@ import { execFileSync } from 'node:child_process';
 import { posix } from 'node:path';
 import { getRepoRoot } from '../lib/context.mjs';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
-import { changedFiles } from './docs-only-range.mjs';
+import { changedFiles, isDocsOnlyDiff, loadReadDocPaths } from './docs-only-range.mjs';
 
 /** Jobs that run on every pull request, whatever it touched. */
-export const ALWAYS_ON = Object.freeze(['validate-commits', 'consistency-backstop', 'test-discipline-engine', 'fitness-check']);
+export const ALWAYS_ON = Object.freeze(['inputs', 'static']);
+
+/** The job that runs on a push to master and is skipped on a pull request. */
+export const MASTER_ONLY = Object.freeze(['master']);
+
+/** The output key for the code verdict (true when any changed file is code or a governing doc). */
+export const CODE_KEY = 'code';
 
 /** Files whose change marks every scoped job touched (the classifier and its proof). Workflows are matched by prefix. */
 export const CLASSIFIER_FILES = Object.freeze([
@@ -54,52 +67,58 @@ export const CLASSIFIER_FILES = Object.freeze([
 const WORKFLOW_PREFIX = '.github/workflows/';
 
 const NPM_FILES = ['fsi-app/package.json', 'fsi-app/package-lock.json'];
-const MIGRATIONS = 'fsi-app/supabase/migrations/**';
 
 /**
- * The scoped jobs. `key` is the workflow output name (the job id with underscores), `workflow` the file that holds
- * the job, `jobId` the job id inside it. `globs` are the job's own inputs beyond its workflow file and
- * `.github/actions/**`; the scripts the job's workflow block runs, and their import closure, are added by
- * buildJobInputs. `wired` is true once the workflow carries the `if` and `needs` (the F52 test reads it).
+ * The scoped entries. `key` is the workflow output name, `workflow` the file that holds the job, `jobId` the job id
+ * inside it, `level` 'job' (the job carries `needs: inputs` and a job-level `if`) or 'step' (one step of the job carries
+ * the `if`). `globs` are the entry's own inputs beyond its workflow file and `.github/actions/**`; the scripts the job's
+ * workflow block runs, and their import closure, are added by buildJobInputs unless `derive` is false.
+ *
+ * schema        migration proof + RLS persona matrix + the PROOF-4 view and function attacks + the route attacks, all on
+ *               ONE local stack. The route attacks need the stack for their personas and cannot run in the app job (a
+ *               container job has no Docker daemon), so their inputs (the routes, the route guard, the proxy) are inputs
+ *               of this job.
+ * app           the Playwright container: ONE next build, the rendering guard, the design audit.
+ * master_build  the next build step of the master job (the post-merge check): the old build-proof `paths:` set.
  */
 export const SCOPED = Object.freeze({
-  rendering_guard: {
-    workflow: 'discipline.yml',
-    jobId: 'rendering-guard',
-    globs: ['fsi-app/src/**', 'fsi-app/public/**', 'fsi-app/.discipline/rendering/**', ...NPM_FILES],
-    wired: true,
+  schema: {
+    workflow: 'ci.yml',
+    jobId: 'schema',
+    level: 'job',
+    globs: [
+      'fsi-app/supabase/**',
+      'fsi-app/scripts/proof/**',
+      'fsi-app/scripts/verify/attacks/**',
+      'fsi-app/scripts/verify/fixtures/**',
+      'fsi-app/src/app/**',
+      'fsi-app/src/lib/api/**',
+      'fsi-app/src/lib/auth/**',
+      'fsi-app/src/proxy.ts',
+      'docs/audits/aud-at2-route-guard-register-2026-10-08.md',
+      ...NPM_FILES,
+    ],
   },
-  design_audit: {
-    workflow: 'design-audit.yml',
-    jobId: 'design-audit',
-    globs: ['fsi-app/src/**', 'fsi-app/public/**', 'docs/design/**', 'docs/specs/**', 'fsi-app/.discipline/rendering/audit/**', ...NPM_FILES],
-    wired: true,
+  app: {
+    workflow: 'ci.yml',
+    jobId: 'app',
+    level: 'job',
+    globs: [
+      'fsi-app/src/**',
+      'fsi-app/public/**',
+      'fsi-app/next.config.*',
+      'fsi-app/.discipline/rendering/**',
+      'docs/design/**',
+      'docs/specs/**',
+      ...NPM_FILES,
+    ],
   },
-  // migration-proof keeps its in-job scope decision until its workflow test is granted a write (that test asserts
-  // "exactly one job" and "no job-level if"); the entry is classified and printed now, wired later.
-  migration_proof: {
-    workflow: 'migration-proof.yml',
-    jobId: 'migration-proof',
-    globs: [MIGRATIONS, 'fsi-app/scripts/proof/**'],
-    wired: false,
-  },
-  rls_persona_matrix: {
-    workflow: 'rls-persona-matrix.yml',
-    jobId: 'rls-persona-matrix',
-    globs: [MIGRATIONS, 'fsi-app/scripts/proof/**', 'fsi-app/scripts/verify/attacks/**', 'fsi-app/scripts/verify/fixtures/**', ...NPM_FILES],
-    wired: true,
-  },
-  discrimination_guard: {
-    workflow: 'bug-class-guard.yml',
-    jobId: 'discrimination-guard',
-    globs: ['fsi-app/src/**', ...NPM_FILES],
-    wired: true,
-  },
-  bug_class_scan: {
-    workflow: 'bug-class-guard.yml',
-    jobId: 'bug-class-scan',
-    globs: ['fsi-app/src/**', MIGRATIONS, ...NPM_FILES],
-    wired: true,
+  master_build: {
+    workflow: 'ci.yml',
+    jobId: 'master',
+    level: 'step',
+    derive: false,
+    globs: ['fsi-app/src/**', 'fsi-app/next.config.*', ...NPM_FILES],
   },
 });
 
@@ -222,8 +241,11 @@ export function buildJobInputs(repoRoot) {
   const map = {};
   for (const [key, def] of Object.entries(SCOPED)) {
     const workflowPath = `${WORKFLOW_PREFIX}${def.workflow}`;
-    const block = jobBlockCode(readIfExists(`${repoRoot}/${workflowPath}`), def.jobId);
-    const derived = importClosure(scriptsRunBy(block, packageScripts), repoRoot);
+    let derived = [];
+    if (def.derive !== false) {
+      const block = jobBlockCode(readIfExists(`${repoRoot}/${workflowPath}`), def.jobId);
+      derived = importClosure(scriptsRunBy(block, packageScripts), repoRoot);
+    }
     map[key] = [...new Set([workflowPath, '.github/actions/**', ...def.globs, ...derived])];
   }
   return map;
@@ -233,20 +255,28 @@ export function buildJobInputs(repoRoot) {
 // Classification
 // ---------------------------------------------------------------------------------------------------------------
 
+let readDocsCache = null;
+/** The docs paths the tests and gates read, scanned once per process (the scan reads every tracked test). */
+function defaultReadDocs() {
+  if (!readDocsCache) readDocsCache = loadReadDocPaths(getRepoRoot());
+  return readDocsCache;
+}
+
 /**
- * Which jobs a set of changed files makes the pull request run. PURE given `map`.
+ * Which jobs a set of changed files makes the change run. PURE given `map` and `readDocs`.
  * @param {string[]} files repo-relative changed paths (both sides of a rename)
  * @param {Record<string, string[]>} [map] defaults to the map built from the working repo
- * @returns {{ alwaysOn: string[], touched: string[], unchanged: string[], reason: string }} touched and unchanged
- *   hold scoped KEYS. An empty file list touches every scoped job (fail toward running).
+ * @param {Set<string>} [readDocs] the docs paths tests and gates read (docs-only-range.mjs); derived from the repo when omitted
+ * @returns {{ alwaysOn: string[], touched: string[], unchanged: string[], code: boolean, reason: string }} touched and
+ *   unchanged hold scoped KEYS. An empty file list touches every scoped job and makes `code` true (fail toward running).
  */
-export function jobsTouched(files, map) {
+export function jobsTouched(files, map, readDocs) {
   const inputs = map ?? buildJobInputs(getRepoRoot());
   const list = (files ?? []).map(normalizePath).filter(Boolean);
   const everyKey = Object.keys(inputs);
-  if (list.length === 0) return { alwaysOn: [...ALWAYS_ON], touched: everyKey, unchanged: [], reason: 'no changed files readable: every job runs' };
+  if (list.length === 0) return { alwaysOn: [...ALWAYS_ON], touched: everyKey, unchanged: [], code: true, reason: 'no changed files readable: every job runs' };
   const trigger = list.find((f) => f.startsWith(WORKFLOW_PREFIX) || CLASSIFIER_FILES.includes(f));
-  if (trigger) return { alwaysOn: [...ALWAYS_ON], touched: everyKey, unchanged: [], reason: `${trigger} is a workflow or the classifier: every job runs` };
+  if (trigger) return { alwaysOn: [...ALWAYS_ON], touched: everyKey, unchanged: [], code: true, reason: `${trigger} is a workflow or the classifier: every job runs` };
   const touched = [];
   for (const key of everyKey) {
     const res = inputs[key].map(globToRegex);
@@ -256,6 +286,7 @@ export function jobsTouched(files, map) {
     alwaysOn: [...ALWAYS_ON],
     touched,
     unchanged: everyKey.filter((k) => !touched.includes(k)),
+    code: !isDocsOnlyDiff(list, readDocs ?? defaultReadDocs()),
     reason: `${list.length} changed file(s)`,
   };
 }
@@ -297,17 +328,18 @@ function main() {
   try {
     verdict = jobsTouched(files, buildJobInputs(repoRoot));
   } catch (err) {
-    verdict = { alwaysOn: [...ALWAYS_ON], touched: [...SCOPED_KEYS], unchanged: [], reason: `classifier fault, every job runs: ${String(err.message).split('\n')[0]}` };
+    verdict = { alwaysOn: [...ALWAYS_ON], touched: [...SCOPED_KEYS], unchanged: [], code: true, reason: `classifier fault, every job runs: ${String(err.message).split('\n')[0]}` };
   }
   console.log(`job-inputs: ${note}; ${verdict.reason}`);
+  console.log(`job-inputs: ${CODE_KEY}=${verdict.code}`);
   for (const key of SCOPED_KEYS) console.log(`job-inputs: ${key}=${verdict.touched.includes(key)}`);
   if (args.includes('--print-unchanged')) {
-    for (const key of verdict.unchanged.filter((k) => SCOPED[k].wired)) console.log(`inputs unchanged: ${jobIdOf(key)}`);
+    for (const key of verdict.unchanged.filter((k) => SCOPED[k].level === 'job')) console.log(`inputs unchanged: ${jobIdOf(key)}`);
   }
   if (args.includes('--github-output')) {
     const out = process.env.GITHUB_OUTPUT;
     if (!out) { console.error('job-inputs: --github-output needs $GITHUB_OUTPUT'); process.exit(2); }
-    appendFileSync(out, SCOPED_KEYS.map((k) => `${k}=${verdict.touched.includes(k)}\n`).join(''));
+    appendFileSync(out, `${CODE_KEY}=${verdict.code}\n${SCOPED_KEYS.map((k) => `${k}=${verdict.touched.includes(k)}\n`).join('')}`);
   }
   process.exit(0);
 }

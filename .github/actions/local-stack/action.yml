@@ -1,6 +1,6 @@
 name: Start the disposable local Supabase stack
 description: >-
-  The generic stack steps shared by chain-proof.yml and migration-proof.yml (lane MIG-CI, 2026-10-08;
+  The generic stack steps shared by chain-proof.yml and the schema job of ci.yml (formerly migration-proof.yml; lane MIG-CI, 2026-10-08;
   docs/decisions/ADR-045-chain-proof-on-a-local-stack.md). Lifted out of chain-proof.yml so there is ONE
   site for them: psql is made available, the Supabase CLI is installed, an EMPTY local stack is started from a
   scratch directory that holds only fsi-app/supabase/config.toml (so the CLI never applies the migration tree;
