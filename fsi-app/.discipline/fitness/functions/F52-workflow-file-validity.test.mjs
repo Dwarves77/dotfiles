@@ -656,7 +656,6 @@ const headerOf = (lines) => lines.slice(0, lines.findIndex((l) => /^jobs:\s*$/.t
 const IF_PR = "github.event_name == 'pull_request'";
 const IF_PUSH = "github.event_name == 'push'";
 const IF_CODE = "needs.inputs.outputs.code == 'true'";
-const IF_CODE_ALWAYS = `always() && ${IF_CODE}`;
 const IF_NOT_CANCELLED = '${{ !cancelled() }}';
 
 /** The job-level condition of each job of ci.yml (null = none). A job given another condition is a finding (JIF). */
