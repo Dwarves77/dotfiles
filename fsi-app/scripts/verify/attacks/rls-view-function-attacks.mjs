@@ -26,11 +26,9 @@
 //
 // Usage: node scripts/verify/attacks/rls-view-function-attacks.mjs [--out-dir <dir>]   (default CP_OUT_DIR)
 
-import { writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { isMainModule } from "../../lib/is-main.mjs";
 import { runSqlAttack } from "../../proof/attacks/attack-engine.mjs";
-import { assertLocalOnly } from "../../proof/attacks/run-attacks.mjs";
+import { runAttackCli } from "./attack-cli.mjs";
 import { personaContext, setupPersonaFixtures, teardownPersonaFixtures } from "../fixtures/rls-personas.mjs";
 
 const firstLine = (s, max = 200) => String(s ?? "").split("\n")[0].slice(0, max);
@@ -47,20 +45,20 @@ const GUARDED_LIST = GUARDED_VIEWS.map((v) => `'${v}'`).join(", ");
 // Postgres stores the reloption in the spelling it was set with: migration 369 sets security_invoker = on (stored as
 // security_invoker=on), earlier migrations set = true. Both mean the same; migration 369 checks the same regular expression.
 const INVOKER_OPT = "EXISTS (SELECT 1 FROM unnest(coalesce(c.reloptions, ARRAY[]::text[])) o WHERE o ~ '^security_invoker=(on|true)$')";
-/** Census, not an invariant: every public view other than the guarded ones that does NOT run as its invoker. Names are catalog
- *  metadata (a view name), printed so the next lane (SEC-10) decides per view; no row value is ever read. */
+/** Census: every public view other than the guarded two that does NOT run as its invoker, by name (catalog metadata, no row value).
+ *  The pass condition above already fails on any such view; the names make the failure actionable. */
 export const OWNER_RUN_VIEWS_SQL = `SELECT c.relname AS name FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v' AND NOT (c.relname = ANY(ARRAY[${GUARDED_LIST}])) AND NOT ${INVOKER_OPT} ORDER BY c.relname`;
 
 export const VIEW_FUNCTION_ATTACKS = Object.freeze([
   {
     id: "rls-vf-views-run-as-invoker",
     persona: "P1",
-    invariant: "The two guarded views (the pollution barriers) run as the caller (security_invoker on), so reading or writing through them never skips the base table's row level security. Every other public view is a census line (OWNER_RUN_VIEWS_SQL), not a pass condition, until lane SEC-10 decides per view.",
-    expected: "Both guarded views exist and carry security_invoker (reloption security_invoker=on or =true, the two spellings Postgres stores); the count lacking it is 0.",
+    invariant: "Every public view runs as its invoker (security_invoker on), so reading or writing through a view never skips the base table's row level security. The reloption is stored in the spelling it was set with (=on from migration 369, =true from earlier ones); both count.",
+    expected: "Both guarded views exist, the catalog lists at least 3 public views, and the count of public views lacking security_invoker (=on or =true) is 0. Any such view is also printed by name as an owner-run view census line.",
     steps: [
       { label: "control: the catalog lists the public views", kind: "control", sql: "SELECT (count(*) >= 3) AS ok FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v'", expect: { equals: { ok: "true" } } },
       { label: "control: both guarded views exist", kind: "control", sql: `SELECT (count(*) = ${GUARDED_VIEWS.length}) AS ok FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v' AND c.relname = ANY(ARRAY[${GUARDED_LIST}])`, expect: { equals: { ok: "true" } } },
-      { label: "attack: a guarded view that runs as its owner", kind: "attack", sql: `SELECT count(*)::int AS n FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v' AND c.relname = ANY(ARRAY[${GUARDED_LIST}]) AND NOT ${INVOKER_OPT}`, expect: { equals: { n: "0" } } },
+      { label: "attack: a public view that runs as its owner", kind: "attack", sql: `SELECT count(*)::int AS n FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v' AND NOT ${INVOKER_OPT}`, expect: { equals: { n: "0" } } },
     ],
   },
   {
@@ -150,43 +148,18 @@ export async function runAll({ client, attacks = VIEW_FUNCTION_ATTACKS, now = ()
   return report;
 }
 
-function parseArgs(argv) {
-  const out = { outDir: null };
-  for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === "--out-dir") out.outDir = argv[++i];
-    else throw new Error(`unknown argument ${argv[i]}`);
-  }
-  return out;
-}
-
 /** The CLI body with every side effect injectable. Returns the exit code. */
-export async function cliMain({
-  argv = process.argv.slice(2), env = process.env,
-  connect = async () => (await import("../../lib/pg-conn.mjs")).connectPg(),
-  writeFile = writeFileSync, makeDir = mkdirSync, log = console.log,
-}) {
-  let args;
-  try { args = parseArgs(argv); } catch (e) { log(`rls-view-function-attacks: ${e.message}`); return 2; }
-  const local = assertLocalOnly(env);
-  if (!local.ok) { log("rls-view-function-attacks: REFUSED, the environment is not the local stack:"); local.violations.forEach((v) => log(`  - ${v}`)); return 2; }
-  const client = await connect();
-  if (!client) { log("rls-view-function-attacks: no database connection to the local stack. Cannot verify, exit 2."); return 2; }
-  try {
-    const report = await runAll({ client });
-    for (const a of report.attacks) log(`${a.status === "pass" ? "HELD  " : "BROKEN"} ${a.id}  ${firstLine(a.observed, 160)}`);
-    for (const v of report.owner_run_views ?? []) log(`owner-run view: ${v}`);
-    for (const v of report.violations) log(`VIOLATION ${v}`);
-    const outDir = args.outDir ?? env.CP_OUT_DIR ?? env.MP_OUT_DIR ?? null;
-    if (outDir) {
-      makeDir(outDir, { recursive: true });
-      writeFile(join(outDir, "rls-view-function-attacks-report.json"), JSON.stringify(report, null, 2) + "\n", "utf8");
-    } else {
-      log("rls-view-function-attacks: no output directory (--out-dir, CP_OUT_DIR or MP_OUT_DIR); the report was not written.");
-    }
-    return report.violations.length === 0 ? 0 : 1;
-  } finally {
-    await client.end?.();
-  }
+export function cliMain(opts = {}) {
+  return runAttackCli({
+    ...opts,
+    name: "rls-view-function-attacks",
+    reportFile: "rls-view-function-attacks-report.json",
+    run: (client) => runAll({ client }),
+    describe: (report, log) => {
+      for (const a of report.attacks) log(`${a.status === "pass" ? "HELD  " : "BROKEN"} ${a.id}  ${firstLine(a.observed, 160)}`);
+      for (const v of report.owner_run_views ?? []) log(`owner-run view: ${v}`);
+    },
+  });
 }
 
 if (isMainModule(import.meta.url)) {

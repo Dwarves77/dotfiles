@@ -94,7 +94,7 @@ test("on a correct schema every attack holds and the fixtures are set up and tor
 });
 
 const leaks = [
-  ["a guarded view that runs as its owner", { definerView: true }, "rls-vf-views-run-as-invoker"],
+  ["a public view that runs as its owner", { definerView: true }, "rls-vf-views-run-as-invoker"],
   ["a guarded view readable by anon", { viewReadable: true }, "rls-vf-views-read-denied"],
   ["a guarded view readable by an org member", { viewReadableBy: "authenticated" }, "rls-vf-views-read-denied"],
   ["a view that accepts a write from anon", { viewWritable: true }, "rls-vf-views-write-denied"],
@@ -113,15 +113,15 @@ for (const [name, world, id] of leaks) {
   });
 }
 
-test("the owner-run census names every non-guarded view that lacks security_invoker, and is a census, not a pass condition", async () => {
+test("the owner-run census names every non-guarded view that lacks security_invoker and the CLI prints one line each", async () => {
   const report = await runAll({ client: fakeDb({ ownerRun: ["census_rollup_by_surface", "licence_clear_sources"] }) });
   assert.deepEqual(report.owner_run_views, ["public.census_rollup_by_surface", "public.licence_clear_sources"]);
-  assert.deepEqual(report.violations, [], "an owner-run view outside the guarded two does not fail the attack");
   const logs = [];
   const env = { CHAIN_PROOF_LOCAL: "1", SUPABASE_DB_URL: "postgresql://postgres:x@127.0.0.1:54322/postgres", NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321" };
-  const code = await cliMain({ argv: [], env, connect: async () => fakeDb({ ownerRun: ["public_thing"] }), log: (m) => logs.push(m), makeDir: () => {}, writeFile: () => {} });
-  assert.equal(code, 0);
+  await cliMain({ argv: [], env, connect: async () => fakeDb({ ownerRun: ["public_thing"] }), log: (m) => logs.push(m), makeDir: () => {}, writeFile: () => {} });
   assert.ok(logs.includes("owner-run view: public.public_thing"), logs.join(NL));
+  const clean = await runAll({ client: fakeDb() });
+  assert.deepEqual(clean.owner_run_views, []);
 });
 
 test("the invoker check accepts both spellings Postgres stores (on and true) and the census query shares it", () => {
