@@ -152,3 +152,27 @@ test("LOG+EMPTY: fetchCoverageGaps and fetchWorkspaceAggregates say why they deg
   assert.equal(agg.result.totalItems, 0);
   assert.ok(agg.logs.some((l) => l.includes("get_workspace_intelligence_aggregates failed")), JSON.stringify(agg.logs));
 });
+
+// SOURCE PINS. The three sites below live inside unstable_cache-wrapped readers (fetchIntelligenceItemSections,
+// fetchIntelligenceItem), and unstable_cache throws "Invariant: incrementalCache missing" outside a Next request,
+// so they cannot be driven in a node test. They are pinned by source text instead: each failed read is bound,
+// checked, and named in a log or a throw. (Confirmed by calling both readers under node: both throw that invariant.)
+import { readFileSync } from "node:fs";
+const SOURCE = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "supabase-server.ts"), "utf8");
+
+test("SOURCE PIN: the legacy_id resolve in the sections reader checks its error and logs before returning []", () => {
+  assert.match(SOURCE, /const \{ data: byLegacy, error: byLegacyError \} = await supabase/);
+  assert.match(SOURCE, /if \(byLegacyError\) \{\s*console\.warn\("fetchIntelligenceItemSections legacy_id resolve error:"/);
+});
+
+test("SOURCE PIN: the cited-sources bias read throws into the reader's own catch, so the grid reads as unavailable", () => {
+  assert.match(SOURCE, /const \{ data: biasRows, error: biasError \} = await supabase/);
+  assert.match(SOURCE, /if \(biasError\) throw new Error\(`source_bias_tags read failed:/);
+});
+
+test("SOURCE PIN: the item detail's six parallel reads are each checked and logged with their table", () => {
+  for (const table of ["item_timelines", "item_changelog", "item_disputes", "item_cross_references", "item_supersessions", "source_bias_tags"]) {
+    assert.ok(SOURCE.includes(`["${table}", `), `${table} missing from detailReadResults`);
+  }
+  assert.match(SOURCE, /fetchIntelligenceItem \$\{table\} read failed \(that block renders empty\)/);
+});
