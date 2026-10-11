@@ -15,7 +15,8 @@
 import { readFileSync } from "node:fs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
-import { HARNESS_RUN_COLUMNS } from "./export-loop-fired-evidence.mjs"; // the one column list both read
+// The harness_runs column list this audit reads (the manual exporter that once shared it was deleted by REG-1).
+const HARNESS_RUN_COLUMNS = "harness_family, run_id, started_at, trigger, github_run_id, upstream_run_id";
 import { LOOP_FIRED_EVIDENCE_FILE, FIRED_TRIGGERS, LOOP_HOPS, isFiredEvidence, producerFamilyOf } from "../../.discipline/governance/loop-manifest.mjs";
 
 const text = (v) => (v === null || v === undefined ? null : String(v));

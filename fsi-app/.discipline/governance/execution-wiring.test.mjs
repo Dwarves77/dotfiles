@@ -15,9 +15,9 @@ import { isExecutionWired } from './execution-wiring.mjs';
 test('execution-wiring: each surface resolves a known-wired file', () => {
   const wired = [
     'fsi-app/scripts/verify/mint-gates.golden.mjs',          // surface 3: run-goldens (.golden.mjs)
-    'fsi-app/scripts/verify/funded-pass-lock-golden.mjs',    // surface 3: run-goldens (-golden.mjs)
+    'fsi-app/scripts/verify/target-match.golden.mjs',        // surface 3: run-goldens (.golden.mjs, a second file)
     'fsi-app/scripts/verify/one-tier-per-host-audit.mjs',    // surface 4: data-audit lane
-    'fsi-app/scripts/verify/rls-credential-parity.mjs',      // surface 4: data-audit lane (newly wired)
+    'fsi-app/scripts/verify/claims-tier-audit.mjs',          // surface 4: data-audit lane
     'fsi-app/src/lib/trust.selftest.mjs',                    // surface 5: fitness sentinel (F11 spawn)
     'fsi-app/src/lib/sources/source-growth.selftest.mjs',    // surface 5: fitness sentinel (F10 spawn)
     'fsi-app/src/lib/agent/floor-attribution.test.mjs',      // surface 1: no-npm suite glob

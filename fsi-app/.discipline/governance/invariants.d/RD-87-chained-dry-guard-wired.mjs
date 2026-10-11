@@ -24,11 +24,6 @@ export const invariant = {
     'workflow that can reach an apply path MUST first evaluate the shared build-mode gate ' +
     '(`scripts/lib/chained-dry-guard.mjs`) and force dry whenever `system_state.scrape_cadence=\'off\'` ' +
     'is live, mechanically, not by an operator catching it.',
-  enforcedBy: [
-    'fitness:F61',
-    'selftest:fsi-app/.discipline/fitness/functions/F61-chained-dry-guard-wired.test.mjs',
-    'selftest:fsi-app/scripts/lib/chained-dry-guard.test.mjs',
-  ],
   residual:
     'F61 is a text-based heuristic (no YAML/shell parser is a direct dependency of this repository, ' +
     'same posture F50/F52/F60 already state for themselves): it flags a workflow_run-triggered file that ' +

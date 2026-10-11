@@ -21,11 +21,6 @@ export const invariant = {
   anchor:
     '### Section 4 - category 53: a worktree reaches the shared install through ONE link beside the ' +
     'worktrees, never a link inside a worktree',
-  enforcedBy: [
-    'fitness:F59',
-    'selftest:fsi-app/.discipline/hooks/worktree-node-modules.test.mjs',
-    'selftest:fsi-app/.discipline/lib/resolve-dep.test.mjs',
-  ],
   residual:
     'The layout is created and repaired on the operator\'s machine by git hooks (post-checkout, ' +
     'pre-push step 0b), the same out-of-repo boundary as every installed hook (install-hooks.mjs); CI ' +

@@ -230,9 +230,11 @@ export const DOCTRINES = [
     // (RD-20) is the mechanical form — a staged row must resolve (materialized / rejected-with-reason /
     // routed-to-flag) and MUST NOT park past its max-age; the machine gates are the approval. The F16
     // two-caller signed-exception (Unit 0b pt1, conflict-1) admits the manual run through the hold.
-    enforcedBy: ['RD-20-staged-transit-disposition'],
+    // REG-1 (2026-10-11): the staged-transit audit (RD-20) was deleted; the standing mechanical guard is the
+    // doctrine-surface scanner (SF-12), which fails any uncited human gate asserted in intake, triage or promotion.
+    enforcedBy: ['SF-12-doctrine-no-uncited-gate'],
     residual:
-      'RD-20 (staged-transit-audit) enforces the intake-side no-resting-state — staged rows resolve or age into the flag resolver, never park. The REMOVAL of the human-approval step from the RUNTIME path (the run-one-cycle orchestration that mints without a human) is Unit 0c; RD-20 is the standing invariant that keeps the transit queue honest once 0c removes the approval gate, and that surfaces the current human-approval backlog until it does (flag-rate is not defect-rate).',
+      '[Historical, REG-1 2026-10-11: the staged-transit audit named next was deleted.] RD-20 (staged-transit-audit) enforces the intake-side no-resting-state — staged rows resolve or age into the flag resolver, never park. The REMOVAL of the human-approval step from the RUNTIME path (the run-one-cycle orchestration that mints without a human) is Unit 0c; RD-20 is the standing invariant that keeps the transit queue honest once 0c removes the approval gate, and that surfaces the current human-approval backlog until it does (flag-rate is not defect-rate).',
     conflicts: ['conflict-1-autonomy-beats-batch1-gate'],
   },
   {
@@ -343,7 +345,7 @@ export const DOCTRINES = [
     statement:
       'No invented facts; when facts run out, stop. Analysis in a workspace-ACTION section MUST open with a recognized label; matching an entity to a regulation\'s defined role or deciding an obligation attaches is a legal determination routed to counsel, never asserted as fact.',
     source: 'environmental-policy-and-innovation — Integrity Rule + Section 8 qualification capture',
-    enforcedBy: ['EP-1-integrity'],
+    exempt: { reason: 'REG-1 (2026-10-11): EP-1 was enforced only by migration presence checks (035, 044, 121), which are not attack evidence, so it left the registry. The database triggers still flag hedge phrases; no registry row carries this doctrine.' },
     residual:
       'EP-1 (migrations 035/044/121) auto-flags hedge phrases + keeps unverified items off customer surfaces; EP-8 (qualification capture) and SC-12 (slot-forcing genuine-support) carry the semantic half. Invention that uses no hedge phrase is authoring-judgment residue — the moat is the provenance gate, not a semantic oracle.',
   },
@@ -443,7 +445,7 @@ export const DOCTRINES = [
     // Quarantine + deferral dwell bounds EXIST (RD-4/RD-6). Provisional 72h + staged-transit max-age are
     // BUILT in Units 1 and 0b; this doctrine grows its enforcedBy as those land. For now it rides the
     // existing quarantine/deferral dwell enforcement (the transitional states that HAVE a resolver today).
-    enforcedBy: ['RD-4-quarantine-disposition', 'RD-6-deferral-vs-undispositioned', 'RD-20-staged-transit-disposition'],
+    enforcedBy: ['RD-4-quarantine-disposition', 'RD-6-deferral-vs-undispositioned'],
     residual:
       'RD-4 enforces the quarantine dwell bound, RD-6 the deferral bound, and RD-20 (added 2026-07-11, Unit 0b pt2) the staged-transit max-age. The provisional-72h dwell invariant lands with Unit 1 and is ADDED to this enforcedBy when it exists (not claimed before it is built — the unenforced-doctrine bar). D-2 is fully satisfied only when EVERY transitional state (quarantine ✓, deferral ✓, staged-transit ✓, provisional — pending U1) has a live dwell audit.',
   },
@@ -482,9 +484,9 @@ export const DOCTRINES = [
     statement:
       'The Research surface answers "what is emerging, who is studying it, how does it change my planning horizon." Its feedstock is AUTONOMOUS intake from research-role sources (universities, academic journals, institutes, analytical/horizon-scan press) — machine-ingested, not editor-selected. Editorial/curation queues and human-selection affordances on Research (operator-approval, editor-picked, "featured/selected by" framing) are FORBIDDEN: they are intent-drift against the page intent AND a no-human-finish-of-intake (RD-20) violation — an editorial queue makes a human the finish of the Research pipeline. RULED operator 2026-07-12, closing the previously-open Research repositioning decision toward horizon-scan (editorial queue REJECTED).',
     source: 'Research positioning ruling (operator 2026-07-12) — caros-ledge-platform-intent SKILL.md §RESEARCH + May-2026 product-audit page intents',
-    enforcedBy: ['RD-20-staged-transit-disposition'],
+    exempt: { reason: 'REG-1 (2026-10-11): its only enforcer, the RD-20 staged-transit audit, was deleted for want of failure evidence or an attack test; the no-human-finish-of-intake doctrine, which this surface rule rests on, is guarded by SF-12. No registry row carries the Research queue rule itself.' },
     residual:
-      'RD-20 (staged-transit-audit) enforces no-human-finish-of-intake for the intake transit path — a research-role item is machine-ingested and cannot rest in a human-approval queue, which is precisely why an editorial/curation QUEUE on Research is forbidden (a queue is a human finish of the pipeline). The POSITIONING half ("Research = horizon-scan" page intent) is product-framing carried by the platform-intent SKILL.md (binding; drift requires operator-stated correction, same class as the five-surface model / PI-1). A surface-level fitness function scanning the /research surface for curation affordances (editor-picked / featured-by / operator-approval controls) is BUILDABLE but semantic/low-signal; it is NOT built under this relay — reported to the operator as the enforcement option, not silently claimed here. FEEDSTOCK-GAP RESIDUAL (named per the dormant-systems audit G-6, 2026-07-18; ADR-015): the entry\'s core clause — "feedstock is AUTONOMOUS intake from research-role sources, machine-ingested" — describes a capability that CANNOT currently run. No autonomous research-source intake exists, is scheduled, or is reachable without code + config + env change (the discovery layer is frozen; ADR-015 restores it). This is a KNOWN GAP with a named landing point — the crawl rebuild\'s wave three (research-source monitoring for the horizon feedstock: standards-body drafts, ICAO/IMO committee outputs, working papers) discharges it — same enforcement-to-build class as analysis-follows-page-intent. The entry grows an enforcedBy (the research-feedstock intake wired to the awareness tick) when that wave lands; until then the absence is a registered gap, not a violation.',
+      '[Historical, REG-1 2026-10-11: the staged-transit audit named next was deleted.] RD-20 (staged-transit-audit) enforces no-human-finish-of-intake for the intake transit path — a research-role item is machine-ingested and cannot rest in a human-approval queue, which is precisely why an editorial/curation QUEUE on Research is forbidden (a queue is a human finish of the pipeline). The POSITIONING half ("Research = horizon-scan" page intent) is product-framing carried by the platform-intent SKILL.md (binding; drift requires operator-stated correction, same class as the five-surface model / PI-1). A surface-level fitness function scanning the /research surface for curation affordances (editor-picked / featured-by / operator-approval controls) is BUILDABLE but semantic/low-signal; it is NOT built under this relay — reported to the operator as the enforcement option, not silently claimed here. FEEDSTOCK-GAP RESIDUAL (named per the dormant-systems audit G-6, 2026-07-18; ADR-015): the entry\'s core clause — "feedstock is AUTONOMOUS intake from research-role sources, machine-ingested" — describes a capability that CANNOT currently run. No autonomous research-source intake exists, is scheduled, or is reachable without code + config + env change (the discovery layer is frozen; ADR-015 restores it). This is a KNOWN GAP with a named landing point — the crawl rebuild\'s wave three (research-source monitoring for the horizon feedstock: standards-body drafts, ICAO/IMO committee outputs, working papers) discharges it — same enforcement-to-build class as analysis-follows-page-intent. The entry grows an enforcedBy (the research-feedstock intake wired to the awareness tick) when that wave lands; until then the absence is a registered gap, not a violation.',
   },
   {
     id: 'analysis-follows-page-intent',
@@ -586,7 +588,7 @@ export const DOCTRINES = [
     statement:
       'A funded-pass process holds an exclusive DB-level run-lock before driving a worklist; a second concurrent acquisition is refused and the second process exits with ZERO spend. Acquired at start, heartbeat between items, released at clean exit, stale-holder takeover (>300s). Paired with the emergencyPaused between-item poll so an operator STOP is a flag-flip, never a mid-write kill. Forecloses the 2026-07-15 concurrent-race (two funded passes on one worklist: 6 items double-inserted, 2 zeroed on a kill mid-write). The authoritative-cumulative spend bound is proven to hold the total even under a two-process race.',
     source: 'Wave 2 concurrent-race incident recovery (operator ruling 2026-07-15)',
-    enforcedBy: ['RD-38-funded-pass-run-lock'],
+    exempt: { reason: 'REG-1 (2026-10-11): the funded-pass-lock golden writes lock rows to the live database and was deleted under the writes rule; migration 205 still holds the lock in the database but no registry row carries an attack on it.' },
     residual:
       'Migration 205 (funded_pass_runlock + atomic acquire/heartbeat/release) + golden funded-pass-lock-golden.mjs, wired in funded-pass.mjs. Proven live. The lock gates the funded-pass entrypoint; a raw-client DISPOSITION actor (archive/reclassify) is NOT yet gated — the hardening unit H5 (mutation leases) + H6 (attribution + raw-write-path gate) close that residual.',
   },

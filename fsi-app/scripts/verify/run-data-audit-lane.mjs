@@ -1,5 +1,9 @@
 // SHARED-WRITER: integrity_flags
-/** DATA-AUDIT LANE runner (CI-with-secrets / nightly). GOVERNING: remediation-discipline.
+/** DATA-AUDIT LANE runner. GOVERNING: remediation-discipline.
+ *  REG-1 (2026-10-11): the data-audit-lane workflow is RETIRED (rule 16 forbids its schedule). This runner now runs from
+ *  the live-smoke job as `node scripts/verify/run-data-audit-lane.mjs --read-only`: the audits that write (named in the
+ *  registry as LANE_WRITING_AUDITS) are skipped, the integrity_flags block reflect is not performed, and a run with no
+ *  credentials at all self-skips loudly with exit 0 (a skip, not a pass). Exit 2 from an audit still counts against it.
  *  Runs every live-data audit in sequence, captures pass/fail/error per audit, and exits non-zero if ANY
  *  HARD audit failed (so the scheduled job notifies). Each audit is its own process (isolation: one audit's
  *  DB hiccup or process.exit does not abort the lane). Honest reporting: prints each audit's verdict and a
@@ -20,6 +24,7 @@ import { spawnSync } from "node:child_process";
 import { readClient, guardedUpdate, guardedInsert } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
+import { LANE_WRITING_AUDITS } from "../../.discipline/registry.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
 
@@ -108,11 +113,28 @@ export function deriveAudits(dirs = AUDIT_SCAN_DIRS.map((d) => ({ abs: resolve(R
   return entries.sort((a, b) => a[0].localeCompare(b[0]));
 }
 
+/** True when the environment can reach the database at all (a REST pair or a direct connection). PURE. */
+export function laneCredentialsPresent(env) {
+  const rest = Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
+  const direct = Boolean(env.SUPABASE_DB_URL || env.DATABASE_URL || (env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_DB_PASSWORD));
+  return rest || direct;
+}
+
+/** The audits a run executes: read-only drops every audit the registry names as a writer. PURE. */
+export function selectAudits(audits, { readOnly, writingLabels = LANE_WRITING_AUDITS.map((a) => a.label) }) {
+  return readOnly ? audits.filter(([label]) => !writingLabels.includes(label)) : audits;
+}
+
 async function runLane() {
   // Load env for the block-state reflect (Layer C). In CI the secrets are injected into the env; locally
   // they live in .env.local. The child audits load it themselves; the runner needs it for the reflect.
   loadLocalEnvFile();
-  const AUDITS = deriveAudits();
+  const readOnly = process.argv.includes("--read-only");
+  if (readOnly && !laneCredentialsPresent(process.env)) {
+    console.log("data-audit lane --read-only: SKIPPED, no database credentials in this environment. Nothing was verified; this is a skip, not a pass.");
+    process.exit(0);
+  }
+  const AUDITS = selectAudits(deriveAudits(), { readOnly });
   const results = [];
   for (const [label, rel, hard] of AUDITS) {
     process.stdout.write(`\n-------- ${label} --------\n`);
@@ -128,7 +150,8 @@ async function runLane() {
   console.log(`\nhard failures/errors: ${hardFailures.length} | soft (informational): ${softFailures.length}`);
 
   // LAYER C teeth, reflecting the verdict into the block row so generation preflight can HALT on undisposed red.
-  await reflectBlockState(hardFailures);
+  // Read-only mode never writes: the reflect is a guarded integrity_flags write.
+  if (!readOnly) await reflectBlockState(hardFailures);
 
   if (hardFailures.length) { console.log(`LANE FAIL: ${hardFailures.map((r) => r.label).join(", ")}`); process.exit(1); }
   console.log("LANE GREEN: every hard data-audit passed.");

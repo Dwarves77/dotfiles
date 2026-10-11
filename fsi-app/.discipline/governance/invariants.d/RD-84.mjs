@@ -58,9 +58,6 @@ export const invariant = {
   anchor:
     '### Section 4 - category 52: the four detail surfaces drifted from the approved artboards on ' +
     'eight independent axes, each traced to ONE shared part',
-  enforcedBy: [
-    'selftest:fsi-app/.discipline/rendering/run-rendering-guard.mjs',
-  ],
   residual:
     'GATE-3 (2026-10-08): F57 and F58 were deleted, so the static mount checks described here no longer run and the rendering guard alone enforces this invariant. F57 covers only the one sub-rule that is genuinely a static source-code fact (no live ' +
     '<ImpactMeter variant="full"> mount, check 3\'s static half). The other seven axes (checks ' +

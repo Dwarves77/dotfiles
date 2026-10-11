@@ -52,7 +52,11 @@ export const ALLOWLIST = {
   // Empty since migration 371 (lane SEC-4, 2026-10-08): the one function it held (the unscheduled gate-a health cache
   // writer, operator ruling 2026-08-10, migration 256) is now referenced by migration 371's class E grant, so its entry
   // would be a stale allowlist violation.
-  functions: {},
+  functions: {
+    acquire_funded_pass_lock: { reason: 'Run-lock function of migration 205 whose only caller, scripts/lib/funded-pass-lock.mjs, was deleted by REG-1 (2026-10-11) with the live-writing golden that exercised it (RD-38 retired). Drop owed by a migration lane; the allowlist audit reports this entry stale once the function is dropped.', decidedOn: '2026-10-11' },
+    heartbeat_funded_pass_lock: { reason: 'Run-lock function of migration 205 whose only caller, scripts/lib/funded-pass-lock.mjs, was deleted by REG-1 (2026-10-11) with the live-writing golden that exercised it (RD-38 retired). Drop owed by a migration lane; the allowlist audit reports this entry stale once the function is dropped.', decidedOn: '2026-10-11' },
+    release_funded_pass_lock: { reason: 'Run-lock function of migration 205 whose only caller, scripts/lib/funded-pass-lock.mjs, was deleted by REG-1 (2026-10-11) with the live-writing golden that exercised it (RD-38 retired). Drop owed by a migration lane; the allowlist audit reports this entry stale once the function is dropped.', decidedOn: '2026-10-11' },
+  },
 };
 
 /** Committed ceilings. Re-seed DOWN in the commit that drops or wires an object; never up. */

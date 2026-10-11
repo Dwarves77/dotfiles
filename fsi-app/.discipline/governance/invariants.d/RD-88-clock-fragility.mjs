@@ -23,10 +23,6 @@ export const invariant = {
     'with a strict-equality assertion against a COMPUTED string (`+` concatenation or a `${...}` ' +
     'template) in the same test() block, checked by a standing gate, not by a one-time grep repeated ' +
     'by hand before the next incident.',
-  enforcedBy: [
-    'fitness:F66',
-    'selftest:fsi-app/.discipline/fitness/functions/F66-clock-fragility.test.mjs',
-  ],
   residual:
     'F66 is a text-based heuristic (same posture F48/F50/F52/F60/F61 already state for themselves): it ' +
     'scans for the literal tokens new Date()/Date.now() and a strict-equality assertion carrying a `+` ' +

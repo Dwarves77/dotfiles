@@ -8,5 +8,4 @@ export const invariant = {
     section: 'Post-slim engine state (F9)',
     text: 'tsc --noEmit must pass (no shipped type/build break).',
     anchor: 'F9 (build compiles)',
-    enforcedBy: ['fitness:F9'],
   };
