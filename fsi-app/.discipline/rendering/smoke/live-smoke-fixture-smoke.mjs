@@ -219,7 +219,7 @@ export async function runSmoke(browser) {
   const candidateListVisits = bad.report.pagesVisited.filter((p) => p.url.includes("?q="));
   if (candidateListVisits.length !== 4) failures.push(`live-smoke-fixture:list-chooser: expected 4 candidate list visits (2 lists at 2 viewports), got ${candidateListVisits.length}`);
   for (const inv of [INVARIANTS.GRADE_CHIP, INVARIANTS.BIAS_CHIPS]) {
-    if (!bad.findings.some((f) => f.invariant === inv && f.severity === "fail" && /candidate item(s) exist/.test(f.text) && /list page/.test(f.text))) {
+    if (!bad.findings.some((f) => f.invariant === inv && f.severity === "fail" && /candidate item\(s\) exist/.test(f.text) && /list page/.test(f.text))) {
       failures.push(`live-smoke-fixture:list-chooser: ${inv} did not fail on a candidate list page of the defective site`);
     }
   }
