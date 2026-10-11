@@ -86,7 +86,7 @@ export async function GET(
   // Resolve the owner (earliest 'owner' membership for the org) + a
   // display name from profiles. There can be multiple owners; we show
   // the first by created_at and let the Members tab list the rest.
-  const { data: ownerRow, error: ownerError } = await service
+  const { data: ownerRow, error: ownerLookupError } = await service
     .from("org_memberships")
     .select("user_id, created_at, user:profiles!user_id(full_name, avatar_url)")
     .eq("org_id", org_id)
@@ -94,22 +94,22 @@ export async function GET(
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (ownerError) {
+  if (ownerLookupError) {
     return NextResponse.json(
-      { error: ownerError.message },
+      { error: ownerLookupError.message },
       { status: 500, headers: rateLimitHeaders(auth.userId) }
     );
   }
 
   const ownerProfile = (ownerRow?.user || null) as { full_name?: string | null } | null;
 
-  const { count: memberCount, error: memberCountError } = await service
+  const { count: memberCount, error: memberTotalError } = await service
     .from("org_memberships")
     .select("id", { count: "exact", head: true })
     .eq("org_id", org_id);
-  if (memberCountError) {
+  if (memberTotalError) {
     return NextResponse.json(
-      { error: memberCountError.message },
+      { error: memberTotalError.message },
       { status: 500, headers: rateLimitHeaders(auth.userId) }
     );
   }
@@ -170,10 +170,10 @@ export async function PATCH(
 
   const service = getServiceSupabase();
 
-  const { membership, error: membershipError } = await getMembership(service, org_id, auth.userId);
-  if (membershipError) {
+  const { membership, error: membershipLookupError } = await getMembership(service, org_id, auth.userId);
+  if (membershipLookupError) {
     return NextResponse.json(
-      { error: membershipError },
+      { error: membershipLookupError },
       { status: 500, headers: rateLimitHeaders(auth.userId) }
     );
   }

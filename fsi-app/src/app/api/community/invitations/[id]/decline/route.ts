@@ -29,14 +29,14 @@ export async function POST(
     );
   }
 
-  const { data: inv, error: readErr } = await auth.supabase
+  const { data: inv, error: declineReadErr } = await auth.supabase
     .from("community_group_invitations")
     .select("id, invitee_user_id, status")
     .eq("id", invitationId)
     .maybeSingle();
 
-  if (readErr) {
-    return NextResponse.json({ error: readErr.message }, { status: 500 });
+  if (declineReadErr) {
+    return NextResponse.json({ error: declineReadErr.message }, { status: 500 });
   }
   if (!inv) {
     return NextResponse.json({ error: "Invitation not found" }, { status: 404 });

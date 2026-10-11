@@ -207,14 +207,15 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", body.provisionalSourceId);
 
+    const warnings: string[] = [];
     if (updateErr) {
       // Source was inserted; best-effort log but return success since the
       // promotion did happen.
       console.warn("Provisional update failed after source insert:", updateErr.message);
+      warnings.push("provisional row not marked promoted");
     }
 
     // Audit trail
-    const warnings: string[] = [];
     const { error: approveTrustErr } = await supabase.from("source_trust_events").insert({
       source_id: inserted.id,
       event_type: "manual_review",
@@ -253,6 +254,7 @@ export async function POST(request: NextRequest) {
         );
       } catch (e) {
         console.warn("Bias-tag write failed after source insert:", e instanceof Error ? e.message : String(e));
+        warnings.push("bias tags not recorded");
       }
     }
 

@@ -37,14 +37,14 @@ export async function GET(
   }
 
   // Pre-check admin role (mirrors the .../invite POST handler).
-  const { data: callerMembership, error: membershipErr } = await auth.supabase
+  const { data: callerMembership, error: adminReadErr } = await auth.supabase
     .from("community_group_members")
     .select("role")
     .eq("group_id", groupId)
     .eq("user_id", auth.userId)
     .maybeSingle();
-  if (membershipErr) {
-    return NextResponse.json({ error: membershipErr.message }, { status: 500 });
+  if (adminReadErr) {
+    return NextResponse.json({ error: adminReadErr.message }, { status: 500 });
   }
   if (callerMembership?.role !== "admin") {
     return NextResponse.json(

@@ -41,14 +41,14 @@ export async function POST(
   // Read the invitation via caller's RLS client. SELECT policy already
   // restricts visibility to invitee/inviter/admin/owner — a stranger
   // sees null (404).
-  const { data: inv, error: readErr } = await auth.supabase
+  const { data: inv, error: revokeReadErr } = await auth.supabase
     .from("community_group_invitations")
     .select("id, group_id, inviter_user_id, status")
     .eq("id", invitationId)
     .maybeSingle();
 
-  if (readErr) {
-    return NextResponse.json({ error: readErr.message }, { status: 500 });
+  if (revokeReadErr) {
+    return NextResponse.json({ error: revokeReadErr.message }, { status: 500 });
   }
   if (!inv) {
     return NextResponse.json({ error: "Invitation not found" }, { status: 404 });

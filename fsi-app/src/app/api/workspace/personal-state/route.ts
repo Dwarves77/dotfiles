@@ -40,7 +40,7 @@ async function resolveItemUuid(
     .eq("legacy_id", itemId)
     .maybeSingle();
   // A failed lookup must not read as "no such item" (404): throw, and withErrorCapture records it as a 500.
-  if (error) throw new Error(`intelligence_items lookup failed: ${error.message}`);
+  if (error) throw new Error(`personal-state item lookup failed: ${error.message}`);
   return data?.id ?? null;
 }
 
