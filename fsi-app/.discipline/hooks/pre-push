@@ -1,38 +1,29 @@
 #!/bin/sh
 # Installed from fsi-app/.discipline/hooks/pre-push
-# CI-parity gate: runs the same checks CI runs, BEFORE the push leaves your machine.
+# The push gate, three steps (HOOK-1, 2026-10-11, ADR-040 second amendment). CI's static job is where every
+# other check runs (ci.yml: the rules engine, the discipline suite, the meta-gates, the fitness runner, the
+# npm-dependent suites, the goldens, tsc); this hook keeps only what a machine can catch before a push leaves it
+# and what costs seconds:
+#   A. refuse the push when the gate itself or a critical surface is not what git will carry:
+#        0d  a tracked hook file has uncommitted changes (the hook that runs is the working-tree copy);
+#        1   an untracked file sits in a critical surface (the migration-067 class: present locally, absent in CI).
+#      A runs on EVERY push, WIP save-points included.
+#   B. on a CI-triggering push (step 0e: the tip commit carries no skip token): ESLint (max-warnings 0) on the
+#      files changed against origin/master, and the unit tests (*.test.mjs) of the changed test files plus the
+#      test files beside a changed module that name it. B is what a metered CI minute would otherwise find.
+#   C. on a CI-triggering push: the memory gate (code must not outrun the vault), the SAME script CI runs.
+# A WIP push (tip carries a skip token), a branch deletion and an empty push run only A.
 #
-# Added 2026-05-21 after the morning's email-noise pattern: 4 separate
-# failure emails in ~90 minutes, 3 of 4 caused by bugs in discipline-engine
-# code that were never run locally in CI-parity mode before push. This hook
-# closes that gap.
+# History: added 2026-05-21 after four failure emails in ninety minutes; D19 (2026-09-13) the stale-copy refusal;
+# ADR-040 (2026-10-03) the heavy steps stopped running by default; GATE-PUSH-1 (2026-10-11) the final-push tier;
+# HOOK-1 (2026-10-11) the consistency runner, the discipline suite, the meta-gates, the fitness runner, the
+# npm-dependent suites, the goldens, the closure and skill-map gates, tsc, the docs-only classifier and the
+# DISCIPLINE_PREPUSH_FULL opt-in are DELETED from the hook. Rule 17 (COMMON) has a lane run the fitness runner
+# itself before its one final push; CI runs it again on the PR.
 #
-# Step 0 (D19, 2026-09-13) refuses to run at all unless invoked through the installer's trampoline (see
-# fsi-app/.discipline/install-hooks.mjs) -- a stale byte-for-byte copy of this file can never silently
-# run again. Four further steps mirror the CI workflow's gating jobs:
-#   1. Untracked-file gate for critical surfaces (catches the migration-067
-#      class: file exists locally but isn't in git, so local consistency
-#      runner passes while CI checkout fails).
-#   2. Layer 4 consistency runner (catches C1-C10 drift).
-#   3. Discipline + fitness tests (catches rule + fitness function regressions).
-#   4. TypeScript compile (catches the F9 / Vercel build-break class).
-# (Sub-steps 2b and 3b-3h each mirror one CI step; F54 fails the build when any CI step that can
-# fail the workflow has no counterpart here, and when the no-npm suite's environment differs from CI's.)
-#
-# GATE-2 (2026-10-08): the former step 2c (the commit rules re-run in CI mode over the pushed range) is
-# REMOVED. The same rules already run at commit-msg and again in CI's validate-commits job, so a third run
-# here cost 5 to 25 seconds per push (rule 022 dominated) and added no catch (gate-evaluation-A section 9,
-# overlap 1). Step 2b no longer has the UX-compliance substring check either: that was an attestation, not
-# a measurement, and the rendering guard is the UX enforcement.
-#
-# Firing log (GATE-2): every step failure appends one JSON line to fsi-app/.discipline/governance/
-# .hook-firings.log (gitignored, the same file the commit rules engine writes), so local firings are
-# countable the next time the gates are evaluated.
-#
-# GATE-7 (2026-10-08): step 0d refuses the push when a tracked hook file has uncommitted changes (the hook that
-# runs is the working-tree copy, so an uncommitted edit would judge the push with itself edited); step 1 also
-# lists untracked files under hooks/ and lib/; the docs-only classifier (0c) and the memory gate (2b) class a
-# renamed file by its source path as well as its destination (a script moved into docs/ is still code).
+# Firing log: every step failure appends one JSON line to fsi-app/.discipline/governance/.hook-firings.log
+# (gitignored, the same file the commit rules engine writes), and every push that the hook lets through appends
+# one line with verdict "pass" naming the tier and the steps that ran, so the last firing is always knowable.
 #
 # Emergency bypass: git push --no-verify
 # (Use sparingly; the whole point of the hook is to prevent the bypass-then-fix loop.)
@@ -40,49 +31,30 @@
 # Exit codes:
 #   0  all checks pass; push proceeds
 #   1  at least one check failed; push blocked
-#   2  hook itself errored (missing node, etc.); push BLOCKED for safety
-#      (a previous version of this hook skipped on missing node, matching the
-#      commit-msg hook's posture; for the push gate we prefer fail-closed
-#      since a missing-node skip would have allowed every failure this morning)
+#   2  hook itself errored (missing node, etc.); push BLOCKED for safety (fail-closed)
 
 set -u
 
 # ---------------------------------------------------------------------------
-# Step 0: refuse to run as a stale copy (D19, defect-fix-plan-2026-09-12.md, lane L12, 2026-09-13)
+# Step 0: refuse to run as a stale copy (D19)
 # ---------------------------------------------------------------------------
-# `install-hooks.mjs` used to copy this file byte-for-byte into .git/hooks/pre-push with no freshness
-# check, so a merged change to THIS file never took effect until an operator remembered to re-run the
-# installer -- confirmed the night of 2026-09-13: the installed copy was dated 2026-09-11 19:33 and ran
-# without step 2b (the memory gate) or D11's per-run log directory. The installer now writes a TRAMPOLINE
-# to .git/hooks/pre-push instead (a three-line script that execs THIS tracked file from the pushing
-# worktree's own top level), so this file is always what actually runs -- but only once every worktree's
-# installed hook has been refreshed to the trampoline shape. Until then, a stale byte-for-byte COPY of an
-# older version of this file could still be sitting in some worktree's .git/hooks/ and would silently run
-# instead of this one. DISCIPLINE_HOOK_TRAMPOLINE is set only by the trampoline (never by a copy of this
-# file, since a copy has no way to know it is stale) -- its absence here means this invocation did NOT
-# come through the trampoline, i.e. this IS a stale copy, so it refuses before doing anything else rather
-# than silently running with whatever this file looked like when it was copied.
+# install-hooks.mjs writes a TRAMPOLINE to .git/hooks/pre-push that execs THIS tracked file from the pushing
+# worktree's own top level, so this file is always what actually runs. DISCIPLINE_HOOK_TRAMPOLINE is set only by
+# the trampoline; its absence means this invocation did NOT come through it, i.e. this is a stale byte-for-byte
+# copy from before the trampoline, and it refuses before doing anything else.
 if [ -z "${DISCIPLINE_HOOK_TRAMPOLINE:-}" ]; then
   echo "[discipline pre-push] STEP 0 FAIL: stale hook copy; run node fsi-app/.discipline/install-hooks.mjs" >&2
   exit 1
 fi
 
-# 2026-09-11 (task 0.3b fix round 1, [CONFIRMED] by the coordinator with a throwaway repo): a hook
-# invoked from a LINKED WORKTREE inherits GIT_DIR=<repo>/.git/worktrees/<name> (and GIT_WORK_TREE /
-# GIT_INDEX_FILE alongside it) in its environment, while the SAME hook invoked from the main checkout
-# inherits none of them. Step 3 below runs run-test-suite.sh, which runs
-# scripts/lib/assemble-train.test.mjs's fixture (`git init -q work` then `git remote add origin` inside
-# a fresh temp dir); with GIT_DIR exported, those commands ignore the temp dir and act on the REAL repo
-# instead, failing with "remote origin already exists", reproduced on push from a linked worktree,
-# while the identical test passes 11/11 run directly (no inherited GIT_DIR). Unset all three before any
-# step runs: git rediscovers the correct repository from cwd via the worktree's own `.git` file, so
-# every git command this hook itself invokes (steps 1, 2, 3c) is unaffected.
+# A hook invoked from a LINKED WORKTREE inherits GIT_DIR (and GIT_WORK_TREE / GIT_INDEX_FILE) in its environment,
+# while the same hook from the main checkout inherits none [CONFIRMED 2026-09-11 with a throwaway repo]; the
+# tests this hook runs make their own fixture repositories, which an inherited GIT_DIR would redirect to the
+# real one. Unset all three: git rediscovers the right repository from cwd.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 
-# Capture git's pre-push ref-update lines (`<local ref> <local sha> <remote ref> <remote sha>`) from
-# stdin BEFORE anything else consumes it — the consistency step (2) uses them to scan the commits being
-# pushed for Consistency-Override trailers. Guard against a manual TTY invocation, where reading stdin
-# would block: only read when stdin is a pipe (git always provides one; a terminal is a TTY).
+# Capture git's pre-push ref-update lines (`<local ref> <local sha> <remote ref> <remote sha>`) from stdin
+# BEFORE anything consumes it. Only read when stdin is a pipe (git always provides one; a terminal would block).
 if [ ! -t 0 ]; then
   PREPUSH_REFS="$(cat)"
 else
@@ -102,9 +74,10 @@ if ! command -v node >/dev/null 2>&1; then
   exit 2
 fi
 
-# Firing log (GATE-2, 2026-10-08): one JSON line per step failure, {ts, rule, mode, path, line, verdict},
-# the same keys the commit rules engine writes to the same gitignored file. $2 is a step log file (its first
-# non-empty line is the evidence) or literal text. 200 characters of evidence; never blocks the hook.
+# Firing log: one JSON line {ts, rule, mode, path, line, verdict}, the same keys the commit rules engine writes
+# to the same gitignored file. $1 is the rule suffix ("pre-push:<$1>"); $2 is a step log file (its first
+# non-empty line is the evidence) or literal text; $3 is the verdict, "fail" unless given. 200 characters of
+# evidence; never blocks the hook.
 HOOK_FIRINGS_LOG="$REPO_ROOT/fsi-app/.discipline/governance/.hook-firings.log"
 pre_push_log_firing() {
   if [ -f "$2" ]; then
@@ -113,126 +86,34 @@ pre_push_log_firing() {
     _ev="$2"
   fi
   _ev="$(printf '%s' "$_ev" | tr -d '\000-\037' | cut -c1-200 | sed 's/\\/\\\\/g; s/"/\\"/g')"
-  printf '{"ts":"%s","rule":"pre-push:%s","mode":"pre-push","path":"","line":"%s","verdict":"fail"}\n' \
-    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$_ev" >> "$HOOK_FIRINGS_LOG" 2>/dev/null || true
+  printf '{"ts":"%s","rule":"pre-push:%s","mode":"pre-push","path":"","line":"%s","verdict":"%s"}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$_ev" "${3:-fail}" >> "$HOOK_FIRINGS_LOG" 2>/dev/null || true
 }
 
+# Step 0e's decision functions (is this push CI-triggering, which files B lints, which tests B runs) live in
+# lib/final-push-tier.sh so a test can drive each one in a throwaway repository.
+. "$REPO_ROOT/fsi-app/.discipline/hooks/lib/final-push-tier.sh"
+
 # ---------------------------------------------------------------------------
-# Step 0d: the tracked hook files equal HEAD's (GATE-7, 2026-10-08, register attack A-P0-3)
+# Step A: the gate and the critical surfaces are what git will carry (every push)
 # ---------------------------------------------------------------------------
-# This file is what runs, and it is the WORKING-TREE copy: an uncommitted edit (for instance one that makes the
-# hook exit 0) would be the gate judging the push with itself edited, and nothing it ever pushed would carry
-# that edit. A hook change takes effect by being committed, so the tracked hook files must equal HEAD's before
-# any step runs. The refusal names the files and the diff. A lane that changes a hook commits the change first
-# (the pushed commit then carries it, and HEAD equals the tree).
+# 0d (GATE-7, register attack A-P0-3): this file is the WORKING-TREE copy, so an uncommitted edit (one that makes
+# it exit 0, say) would judge the push with itself edited, and nothing pushed would carry that edit. A hook
+# change takes effect by being committed, so the tracked hook files must equal HEAD's. The refusal names the
+# files and the diff.
 HOOK_DIRTY="$(git diff HEAD --name-only -- fsi-app/.discipline/hooks/ 2>/dev/null)"
 if [ -n "$HOOK_DIRTY" ]; then
-  pre_push_log_firing 0d "tracked hook file differs from HEAD: $(printf '%s' "$HOOK_DIRTY" | head -n 1)"
-  echo "[discipline pre-push] STEP 0d FAIL: a tracked hook file has uncommitted changes (the hook that runs must be the one in HEAD):" >&2
+  pre_push_log_firing A "tracked hook file differs from HEAD: $(printf '%s' "$HOOK_DIRTY" | head -n 1)"
+  echo "[discipline pre-push] STEP A FAIL: a tracked hook file has uncommitted changes (the hook that runs must be the one in HEAD):" >&2
   printf '%s\n' "$HOOK_DIRTY" | sed 's/^/    /' >&2
   git diff HEAD -- fsi-app/.discipline/hooks/ 2>/dev/null | head -n 60 >&2
   echo "[discipline pre-push] commit the hook change (or restore the file), then re-push." >&2
   exit 1
 fi
 
-# ---------------------------------------------------------------------------
-# Step 0b: fsi-app's npm dependencies resolve in THIS checkout (2026-09-27, RD-85)
-# ---------------------------------------------------------------------------
-# A linked worktree without the shared install used to reach step 3d and report F9 build-compiles,
-# F10, F11 trust-tier-weights and F12 moat-base-tier as violations (their selftests import npm deps),
-# or hang, when the real cause is one missing link [CONFIRMED 2026-09-25, four lanes]. SELF-HEAL
-# first (wt_nm_ensure_link: the one shared link beside the worktrees, no special OS rights, and any
-# junction inside the worktree removed, since `git worktree remove` empties the shared install
-# through one [CONFIRMED 2026-09-27]), then refuse, naming the cause and the fix, only if the
-# dependencies still do not resolve (the main checkout has no install, or the worktree sits outside
-# it). post-checkout runs the same repair on `git worktree add`.
-. "$REPO_ROOT/fsi-app/.discipline/hooks/lib/worktree-node-modules.sh"
-wt_nm_ensure_link || true
-if ! wt_nm_require; then
-  pre_push_log_firing 0b "fsi-app dependencies do not resolve in this checkout"
-  echo "[discipline pre-push] STEP 0b FAIL: the missing install above, not a fitness violation; no step ran." >&2
-  exit 1
-fi
-
-# ---------------------------------------------------------------------------
-# Per-run log directory (D11 fix, docs/plans/defect-fix-plan-2026-09-12.md): every step below used to
-# redirect to a FIXED path under /tmp and rm -f it when the step finished. This hook runs concurrently by
-# design (one push per lane, lane preflights, the coordinator's own gate runs), so two runs sharing a
-# fixed path could clobber each other's log: a passing run's cleanup deleting a failing run's
-# still-being-read log, printing "cannot open" instead of the real failure. `mktemp -d` (via the sourced
-# fragment below) gives each invocation its own directory; no fixed path remains. Removed on a clean exit
-# (trap on EXIT); kept, with its path printed, when the hook exits non-zero, so the diagnosis survives.
-. "$REPO_ROOT/fsi-app/.discipline/hooks/lib/prepush-logdir.sh"
-if ! pre_push_make_log_dir; then
-  echo "[discipline pre-push] cannot create a per-run log directory; blocking push for safety." >&2
-  exit 2
-fi
-pre_push_cleanup() {
-  code="$?"
-  if [ "$code" -eq 0 ]; then
-    rm -rf "$PRE_PUSH_LOG_DIR"
-  else
-    echo "[discipline pre-push] step logs kept for diagnosis: $PRE_PUSH_LOG_DIR" >&2
-  fi
-}
-trap pre_push_cleanup EXIT
-
-# ---------------------------------------------------------------------------
-# Step 0c: docs-only fast path (R22, 2026-10-01, ACTIONS-STORAGE-AND-DOCS-ONLY-PUSH)
-# ---------------------------------------------------------------------------
-# When the push's diff against origin/master touches ONLY docs/** and *.md files, the heavy steps below
-# (3, 3b-3g, 4: the test suite, the meta-gates, npm-dependent tests, goldens, tsc) add nothing a docs-only
-# change could break, and cost real minutes on every such push. The rule checks that DO apply to a
-# docs-only diff -- steps 1, 2, 2b (untracked-critical, the consistency runner, the memory gate) -- still
-# run unconditionally below; only steps 3 onward are skipped (the commit rules, rule 022 included, run at
-# commit-msg and in CI, no longer here: GATE-2). The SAME filter
-# .github/workflows/discipline.yml's own "Resolve docs-only fast path" steps compute, through the ONE
-# shared primitive both surfaces call (fsi-app/.discipline/governance/docs-only-range.mjs), so pre-push
-# and CI can never silently disagree about what counts as docs-only.
-DOCS_ONLY=false
-if node fsi-app/.discipline/governance/docs-only-range.mjs --range=origin/master..HEAD >"$PRE_PUSH_LOG_DIR/docs-only.log" 2>&1; then
-  DOCS_ONLY=true
-fi
-cat "$PRE_PUSH_LOG_DIR/docs-only.log"
-if [ "$DOCS_ONLY" = "true" ]; then
-  echo "[discipline pre-push] step 0c (docs-only fast path): every changed file is docs/** or *.md -- skipping steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc); steps 1/2/2b (untracked critical files, consistency, memory gate) still run."
-else
-  echo "[discipline pre-push] step 0c (docs-only fast path): not docs-only (code/workflow files changed) -- running the full 4-step CI-parity check."
-fi
-
-# ---------------------------------------------------------------------------
-# Step 0e: is this a CI-triggering (final) push? (GATE-PUSH-1, 2026-10-11, amends ADR-040)
-# ---------------------------------------------------------------------------
-# A push whose tip commit carries no CI skip token starts a full PR run on metered Actions minutes, so it runs
-# the FINAL TIER before leaving the machine: step 3d (ESLint over the files changed against origin/master) and
-# step 3e (the fitness runner, exactly as CI runs it). A push whose tip carries a skip token (a WIP save-point)
-# runs neither. A branch deletion or an empty push has no tip to judge and runs no tier. The heavy steps (3, 3b,
-# 3c, 3f, 3g, 3h, 4) stay behind DISCIPLINE_PREPUSH_FULL=1 as ADR-040 ruled; the docs-only fast path still skips
-# everything it skipped before. The decision functions live in lib/final-push-tier.sh (a unit a test drives).
-. "$REPO_ROOT/fsi-app/.discipline/hooks/lib/final-push-tier.sh"
-pre_push_resolve_final_push "$PREPUSH_REFS"
-LINT_FILES="$(pre_push_changed_lintable_files)"
-LINT_FILE_COUNT="$(printf '%s' "$LINT_FILES" | grep -c . || true)"
-if [ "$PUSHED_TIPS" -eq 0 ]; then
-  echo "[discipline pre-push] step 0e: no pushed commit (deletion or empty push), final tier skipped"
-elif [ "$FINAL_PUSH" = "true" ] && [ "$DOCS_ONLY" = "true" ]; then
-  echo "[discipline pre-push] step 0e: final push, but docs-only (step 0c), final tier skipped"
-elif [ "$FINAL_PUSH" = "true" ]; then
-  echo "[discipline pre-push] step 0e: final push, running the final tier (eslint on $LINT_FILE_COUNT changed files, fitness runner)"
-else
-  echo "[discipline pre-push] step 0e: WIP push (skip token), final tier skipped"
-fi
-
-echo "[discipline pre-push] running CI-parity check..."
-
-# ---------------------------------------------------------------------------
-# Step 1: untracked-file gate for critical surfaces
-# ---------------------------------------------------------------------------
-# `git ls-files --others --exclude-standard -- <patterns>` returns paths
-# the operator has on disk but never `git add`-ed. The critical-surface
-# patterns are surfaces where CI consistency checks compare disk to inventory;
-# an untracked file in any of these makes the local runner see something CI
-# cannot.
+# 1: `git ls-files --others --exclude-standard -- <patterns>` returns paths on disk that were never `git add`-ed.
+# These are the surfaces where CI's checks compare disk to inventory; an untracked file in one makes the local
+# checkout see something CI's cannot (the migration-067 class: the file exists locally, the CI checkout fails).
 UNTRACKED_CRITICAL=$(git ls-files --others --exclude-standard \
   -- 'fsi-app/supabase/migrations/*.sql' \
      'fsi-app/src/app/api/' \
@@ -246,293 +127,121 @@ UNTRACKED_CRITICAL=$(git ls-files --others --exclude-standard \
      'fsi-app/.discipline/governance/' \
      2>/dev/null)
 if [ -n "$UNTRACKED_CRITICAL" ]; then
-  pre_push_log_firing 1 "untracked critical files: $(echo "$UNTRACKED_CRITICAL" | head -n 1)"
-  echo "[discipline pre-push] STEP 1 FAIL: untracked file(s) in critical surfaces:" >&2
+  pre_push_log_firing A "untracked critical files: $(echo "$UNTRACKED_CRITICAL" | head -n 1)"
+  echo "[discipline pre-push] STEP A FAIL: untracked file(s) in critical surfaces:" >&2
   echo "$UNTRACKED_CRITICAL" | sed 's/^/    /' >&2
   echo "[discipline pre-push] CI's checkout will not see these files. Either 'git add' them or remove them, then re-push." >&2
   exit 1
 fi
-echo "[discipline pre-push] step 1 (untracked critical files): OK"
+echo "[discipline pre-push] step A (hook unchanged, no untracked critical files): OK"
 
 # ---------------------------------------------------------------------------
-# Step 2: Layer 4 consistency runner — OVERRIDE-AWARE (g1b)
+# Step 0e: is this a CI-triggering (final) push? (GATE-PUSH-1)
 # ---------------------------------------------------------------------------
-# Runs the consistency runner AND honors `Consistency-Override:` trailers on the commits being pushed
-# (the escape hatch this hook advertised but never parsed before g1b). override-check.mjs --prepush reads
-# the ref-update lines on stdin, collects the pushed commits' messages, and treats a C-check as overridden
-# only when a VALID trailer is present (a rationale sentence naming the check id or its invariant + a remediation-deadline from today to 30 days out). Same
-# primitive rule 014 + the CI backstop use, so the three surfaces cannot drift.
-if ! printf '%s' "$PREPUSH_REFS" | node fsi-app/.discipline/consistency/override-check.mjs --prepush >"$PRE_PUSH_LOG_DIR/c.log" 2>&1; then
-  pre_push_log_firing 2 "$PRE_PUSH_LOG_DIR/c.log"
-  echo "[discipline pre-push] STEP 2 FAIL: consistency runner reported drift with no valid override:" >&2
-  cat "$PRE_PUSH_LOG_DIR/c.log" >&2
-  echo "[discipline pre-push] fix the drift above, OR add on a commit being pushed:" >&2
-  echo "[discipline pre-push]   Consistency-Override: C<N> (rationale: <a sentence naming C<N> or its invariant>; remediation-deadline: YYYY-MM-DD, today to +30 days)" >&2
-  exit 1
-fi
-cat "$PRE_PUSH_LOG_DIR/c.log"
-echo "[discipline pre-push] step 2 (consistency runner, override-aware): OK"
-
-# ---------------------------------------------------------------------------
-# Step 2b: memory gate, CI parity (task 7.8, 2026-09-12)
-# ---------------------------------------------------------------------------
-# PR #647 (task 6.2b) went red in CI's "Memory gate, code must not outrun the vault" step although this
-# hook and the coordinator's own pre-push run were green, because this hook had NO memory-gate step: a
-# range that touches code without a docs/ops/session-log.md or docs/PROGRAM-BOARD.md change passed the
-# hook and failed CI [CONFIRMED, both the 6.2b and 7.4e ranges had an empty `git diff --stat -- docs/ops/
-# session-log.md`]. fsi-app/.discipline/governance/memory-gate.mjs is the SAME script the CI workflow now
-# calls (discipline.yml's memory-gate step), so the two surfaces cannot drift again. Blocking here (no
-# --warn-only): the range being pushed is the whole logical unit, unlike CI's per-push-event partial view.
-#
-# LANE R23 item 2 (2026-10-02) [CONFIRMED by inspection, the D11 class]: this step used to redirect to a
-# fixed path under /tmp (discipline-prepush-mem log, "mem" + ".log") and `rm -f` it on exit, the exact
-# concurrent-run collision
-# D11 (docs/plans/defect-fix-plan-2026-09-12.md) fixed for every sibling step via $PRE_PUSH_LOG_DIR
-# (mktemp -d, one directory per invocation). This hook runs concurrently by design (one push per lane,
-# lane preflights, the coordinator's own gate runs), so two runs sharing the fixed path could clobber
-# each other's log exactly the way D11's own header describes. Moved to $PRE_PUSH_LOG_DIR/mem.log, the
-# same per-run directory every other step already uses (also drops --range=origin/master..HEAD: lane R23
-# item 1 made memory-gate.mjs resolve its own range via change-range.mjs's resolveRange()).
-if ! node fsi-app/.discipline/governance/memory-gate.mjs >"$PRE_PUSH_LOG_DIR/mem.log" 2>&1; then
-  pre_push_log_firing 2b "$PRE_PUSH_LOG_DIR/mem.log"
-  echo "[discipline pre-push] STEP 2b FAIL: memory gate (code must not outrun the vault):" >&2
-  cat "$PRE_PUSH_LOG_DIR/mem.log" >&2
-  echo "[discipline pre-push] append a session-log addendum (your own docs/ops/session-log.d/YYYY-MM-DD-<lane>.md file, or docs/ops/session-log.md, or update docs/PROGRAM-BOARD.md), then re-push." >&2
-  exit 1
-fi
-cat "$PRE_PUSH_LOG_DIR/mem.log"
-echo "[discipline pre-push] step 2b (memory gate, CI parity): OK"
-
-# ---------------------------------------------------------------------------
-# Step 2c REMOVED (GATE-2, 2026-10-08): it ran `node fsi-app/.discipline/runner.mjs --mode=ci` over the pushed
-# range. The same rules run at commit-msg (every commit) and in CI's validate-commits job (every PR), so this
-# third run only added 5 to 25 seconds per push. gate-evaluation-A section 9, overlap 1; gate plan, GATE-2.
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# Steps 3 through 4: skipped entirely on the docs-only fast path (step 0c above). Everything from here
-# to "Step 4" is the heavy, code-shaped half of this hook (the test suite, the meta-gates, npm-dependent
-# tests, goldens, tsc) -- none of it can fail on a diff that touched only docs/** and *.md files, and all
-# of it costs real wall-clock time on every push. Wrapped in ONE guard rather than restructuring each
-# step individually, so the step bodies below are byte-for-byte what they were before R22.
-# ---------------------------------------------------------------------------
-# Operator ruling 2026-10-03 (ADR-040): steps 3-4 duplicate CI's required checks, cost 10-20 minutes per
-# push on Windows, and did not predict CI failures (prerender, F51 fork-point). CI is the authoritative
-# gate; steps 3-4 no longer run locally on any push. Opt back in with DISCIPLINE_PREPUSH_FULL=1.
-#
-# GATE-PUSH-1 (2026-10-11): steps 3d and 3e are NOT behind that opt-in on a CI-triggering push. Two guards:
-# RUN_HEAVY (docs-only false and DISCIPLINE_PREPUSH_FULL=1) wraps steps 3, 3b, 3c and 3f through 4;
-# RUN_FINAL (docs-only false and either DISCIPLINE_PREPUSH_FULL=1 or step 0e's FINAL_PUSH=true) wraps 3d and 3e.
-RUN_HEAVY=false
-RUN_FINAL=false
-if [ "$DOCS_ONLY" != "true" ]; then
-  if [ "${DISCIPLINE_PREPUSH_FULL:-0}" = "1" ]; then
-    RUN_HEAVY=true
-    RUN_FINAL=true
-  elif [ "$FINAL_PUSH" = "true" ]; then
-    RUN_FINAL=true
-  fi
-fi
-if [ "$RUN_HEAVY" != "true" ]; then
-  echo "[discipline pre-push] steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc): SKIPPED (CI is the gate, ADR-040; set DISCIPLINE_PREPUSH_FULL=1 to run locally; steps 3d and 3e run on a CI-triggering push, GATE-PUSH-1)."
-fi
-if [ "$RUN_HEAVY" = "true" ]; then
-
-# ---------------------------------------------------------------------------
-# Step 3: discipline + fitness tests — the SAME canonical suite CI runs
-# ---------------------------------------------------------------------------
-# PARITY BY CONSTRUCTION (operator ruling 2026-07-04): pre-push and the CI "Discipline engine unit tests"
-# job invoke the SAME entrypoint (fsi-app/.discipline/run-test-suite.sh), so the two lists cannot drift.
-# This closed the gap that let a non-portable `@/` import in a discipline-glob test pass locally and only
-# red in CI (glob-portability was in CI's list but not pre-push's).
-if ! sh fsi-app/.discipline/run-test-suite.sh >"$PRE_PUSH_LOG_DIR/t.log" 2>&1; then
-  pre_push_log_firing 3 "$PRE_PUSH_LOG_DIR/t.log"
-  echo "[discipline pre-push] STEP 3 FAIL: discipline / fitness tests:" >&2
-  # Historically xargs ran the suite as SEVERAL `node --test` batches, each ending in its own summary,
-  # so a plain `tail` showed the LAST batch's summary, all green when the failure sat in an earlier
-  # batch (lane CI-PARITY, 2026-09-28, seen replaying the lane/quarantine-disposition runs). Lane R6-8
-  # (2026-10-01) replaced the xargs/`node --test` invocation with run-explicit-tests.mjs's single
-  # programmatic run (closes CF-SEC-11's runner half; see F65-no-bracket-path-tests.mjs), which reports
-  # one unified summary instead of several batches -- the multi-batch failure mode this awk/grep guards
-  # against can no longer occur, but the same parsing still finds the one real summary correctly, so it
-  # is left in place rather than narrowed.
-  awk '/failing tests:/ {on=1} on && /^(✔|ℹ) / {on=0} on && !/^[[:space:]]+at / {print}' "$PRE_PUSH_LOG_DIR/t.log" | head -80 >&2
-  grep -E '^ℹ (tests|pass|fail) ' "$PRE_PUSH_LOG_DIR/t.log" >&2
-  echo "[discipline pre-push] full log: $PRE_PUSH_LOG_DIR/t.log" >&2
-  exit 1
-fi
-echo "[discipline pre-push] step 3 (discipline + fitness tests, canonical suite): OK"
-
-# ---------------------------------------------------------------------------
-# Step 3b: invariant-coverage meta-gate (per-INVARIANT wiring of all 6 skills)
-# ---------------------------------------------------------------------------
-# Fails the push if any skill invariant is neither mechanically enforced (by an
-# enforcement that actually resolves) nor explicitly exempted with a reason, or if
-# any anchor/baseline drifted. This is what makes "wired" non-optional + self-verifying.
-# (Also exercised inside step 3 via governance/*.test.mjs; this prints the readable report.)
-if ! node fsi-app/.discipline/governance/invariant-coverage.mjs >"$PRE_PUSH_LOG_DIR/inv.log" 2>&1; then
-  pre_push_log_firing 3b "$PRE_PUSH_LOG_DIR/inv.log"
-  echo "[discipline pre-push] STEP 3b FAIL: invariant-coverage meta-gate reported unwired invariant(s):" >&2
-  cat "$PRE_PUSH_LOG_DIR/inv.log" >&2
-  echo "[discipline pre-push] wire the invariant (rule/fitness/audit/migration) OR record an exempt.reason in governance/invariants.mjs, then re-push." >&2
-  exit 1
-fi
-echo "[discipline pre-push] step 3b (invariant-coverage meta-gate): OK"
-
-# ---------------------------------------------------------------------------
-# Step 3c: action-time skill-gate wiring (out-of-repo boundary check)
-# ---------------------------------------------------------------------------
-# The PreToolUse skill gate (governance/pretooluse-skill-gate.mjs) only FIRES if
-# ~/.claude/settings.json registers it for every mutating tool (Bash + Edit/Write/
-# MultiEdit/NotebookEdit). That file lives outside the repo, so CI can't enforce it;
-# this step proves it on the operator's machine. SKIPs cleanly when settings.json is
-# absent (e.g. a fresh clone) — hook correctness itself is covered by step 3's
-# governance/*.test.mjs. FAILs if settings.json exists but the gate is only partially wired.
-if ! node fsi-app/.discipline/governance/check-pretooluse-wired.mjs >"$PRE_PUSH_LOG_DIR/gate.log" 2>&1; then
-  pre_push_log_firing 3c "$PRE_PUSH_LOG_DIR/gate.log"
-  echo "[discipline pre-push] STEP 3c FAIL: action-time skill gate is not fully wired:" >&2
-  cat "$PRE_PUSH_LOG_DIR/gate.log" >&2
-  echo "[discipline pre-push] run: node fsi-app/.discipline/install-hooks.mjs (the one installer, from the main checkout), then re-push." >&2
-  exit 1
-fi
-cat "$PRE_PUSH_LOG_DIR/gate.log"
-echo "[discipline pre-push] step 3c (skill-gate wiring): OK"
-
-fi
-# end of the heavy guard (steps 3, 3b, 3c); the final tier (3d, 3e) follows under its own guard
-if [ "$RUN_FINAL" = "true" ]; then
-
-# ---------------------------------------------------------------------------
-# Step 3d: ESLint (max-warnings 0), the SAME command as CI's "ESLint (max-warnings 0)" step
-# ---------------------------------------------------------------------------
-# Lane R7-LINT-CI, 2026-10-01 (remediation plan Lane 7, closes CF-SEC-10). Matches discipline.yml's
-# fitness-check job ordering: that step runs right after npm ci and right before "Run fitness
-# functions"; here the deps-equivalent is step 0b above (worktree node_modules already resolved), so
-# this runs right before step 3e (the fitness runner, CI parity), the position's matching anchor.
-#
-# GATE-PUSH-1 (2026-10-11): on a CI-triggering push this lints ONLY the files changed against origin/master
-# (the list step 0e computed), not the tree, so it costs seconds; with DISCIPLINE_PREPUSH_FULL=1 it is the
-# whole-tree command CI runs. Same log path, same FAIL message either way.
-if [ "${DISCIPLINE_PREPUSH_FULL:-0}" != "1" ] && [ "$LINT_FILE_COUNT" -eq 0 ]; then
-  echo "[discipline pre-push] step 3d: no lintable files changed"
+# A push whose tip commit (subject and body) carries no CI skip token starts a full PR run on metered Actions
+# minutes, so it runs B and C before leaving the machine. A push whose tip carries a skip token (a WIP
+# save-point) runs neither. A branch deletion or an empty push has no tip to judge and runs neither.
+pre_push_resolve_final_push "$PREPUSH_REFS"
+if [ "$PUSHED_TIPS" -eq 0 ]; then
+  TIER=none
+  echo "[discipline pre-push] step 0e: no pushed commit (deletion or empty push), B and C skipped"
+elif [ "$FINAL_PUSH" = "true" ]; then
+  TIER=final
+  echo "[discipline pre-push] step 0e: final push (no skip token), running B and C"
 else
-  if [ "${DISCIPLINE_PREPUSH_FULL:-0}" = "1" ]; then
-    (cd fsi-app && npm run lint -- --max-warnings=0) >"$PRE_PUSH_LOG_DIR/lint.log" 2>&1
-  else
-    # shellcheck disable=SC2086
-    pre_push_eslint_files $LINT_FILES >"$PRE_PUSH_LOG_DIR/lint.log" 2>&1
-  fi
-  if [ "$?" -ne 0 ]; then
-    pre_push_log_firing 3d "$PRE_PUSH_LOG_DIR/lint.log"
-    echo "[discipline pre-push] STEP 3d FAIL: ESLint reported violation(s) (max-warnings 0):" >&2
-    tail -60 "$PRE_PUSH_LOG_DIR/lint.log" >&2
-    echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/lint.log" >&2
+  TIER=wip
+  echo "[discipline pre-push] step 0e: WIP push (skip token), B and C skipped"
+fi
+
+SUMMARY="tier=$TIER A=ok"
+
+if [ "$TIER" = "final" ]; then
+
+  # -------------------------------------------------------------------------
+  # Step B: ESLint and unit tests on what the push changes (CI-triggering push only)
+  # -------------------------------------------------------------------------
+  # Dependencies must resolve in THIS checkout (RD-85): a linked worktree without the shared install reports
+  # false violations or hangs [CONFIRMED 2026-09-25, four lanes]. SELF-HEAL first (wt_nm_ensure_link: the one
+  # shared link beside the worktrees, any junction inside the worktree removed, since `git worktree remove`
+  # empties the shared install through one [CONFIRMED 2026-09-27]), then refuse, naming the cause and the fix.
+  . "$REPO_ROOT/fsi-app/.discipline/hooks/lib/worktree-node-modules.sh"
+  wt_nm_ensure_link || true
+  if ! wt_nm_require; then
+    pre_push_log_firing B "fsi-app dependencies do not resolve in this checkout"
+    echo "[discipline pre-push] STEP B FAIL: the missing install above, not a lint or test failure; nothing ran." >&2
     exit 1
   fi
-  echo "[discipline pre-push] step 3d (eslint, max-warnings 0, CI parity): OK"
+
+  # Per-run log directory (D11): `mktemp -d`, one directory per invocation, so two concurrent runs never share a
+  # log path. Removed on a clean exit; kept, with its path printed, when the hook exits non-zero.
+  . "$REPO_ROOT/fsi-app/.discipline/hooks/lib/prepush-logdir.sh"
+  if ! pre_push_make_log_dir; then
+    echo "[discipline pre-push] cannot create a per-run log directory; blocking push for safety." >&2
+    exit 2
+  fi
+  pre_push_cleanup() {
+    code="$?"
+    if [ "$code" -eq 0 ]; then
+      rm -rf "$PRE_PUSH_LOG_DIR"
+    else
+      echo "[discipline pre-push] step logs kept for diagnosis: $PRE_PUSH_LOG_DIR" >&2
+    fi
+  }
+  trap pre_push_cleanup EXIT
+
+  # B1: ESLint, max-warnings 0, over ONLY the files changed against origin/master (the CI command, narrowed).
+  LINT_FILES="$(pre_push_changed_lintable_files)"
+  LINT_FILE_COUNT="$(printf '%s' "$LINT_FILES" | grep -c . || true)"
+  if [ "$LINT_FILE_COUNT" -eq 0 ]; then
+    echo "[discipline pre-push] step B (eslint): no lintable files changed"
+  else
+    # shellcheck disable=SC2086
+    if ! pre_push_eslint_files $LINT_FILES >"$PRE_PUSH_LOG_DIR/lint.log" 2>&1; then
+      pre_push_log_firing B "$PRE_PUSH_LOG_DIR/lint.log"
+      echo "[discipline pre-push] STEP B FAIL: ESLint reported violation(s) (max-warnings 0):" >&2
+      tail -60 "$PRE_PUSH_LOG_DIR/lint.log" >&2
+      echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/lint.log" >&2
+      exit 1
+    fi
+    echo "[discipline pre-push] step B (eslint, max-warnings 0, $LINT_FILE_COUNT changed files): OK"
+  fi
+
+  # B2: the unit tests of the changed test files, plus the test files beside a changed module that name it.
+  TEST_FILES="$(pre_push_changed_test_files)"
+  TEST_FILE_COUNT="$(printf '%s' "$TEST_FILES" | grep -c . || true)"
+  if [ "$TEST_FILE_COUNT" -eq 0 ]; then
+    echo "[discipline pre-push] step B (unit tests): no changed test file and no test beside a changed module"
+  else
+    # shellcheck disable=SC2086
+    if ! pre_push_run_changed_tests $TEST_FILES >"$PRE_PUSH_LOG_DIR/tests.log" 2>&1; then
+      pre_push_log_firing B "$PRE_PUSH_LOG_DIR/tests.log"
+      echo "[discipline pre-push] STEP B FAIL: unit tests of the changed files:" >&2
+      tail -80 "$PRE_PUSH_LOG_DIR/tests.log" >&2
+      echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/tests.log" >&2
+      exit 1
+    fi
+    echo "[discipline pre-push] step B (unit tests, $TEST_FILE_COUNT test files): OK"
+  fi
+
+  # -------------------------------------------------------------------------
+  # Step C: the memory gate, the SAME script CI runs (CI-triggering push only)
+  # -------------------------------------------------------------------------
+  # Code must not outrun the vault: a range that touches code without a docs/ops/session-log.d/ addendum, a
+  # session-log.md change or a docs/PROGRAM-BOARD.md change fails here, not in CI (PR #647 went red there while
+  # this hook was green). The range being pushed is the whole logical unit; the gate resolves its own range.
+  if ! node fsi-app/.discipline/governance/memory-gate.mjs >"$PRE_PUSH_LOG_DIR/mem.log" 2>&1; then
+    pre_push_log_firing C "$PRE_PUSH_LOG_DIR/mem.log"
+    echo "[discipline pre-push] STEP C FAIL: memory gate (code must not outrun the vault):" >&2
+    cat "$PRE_PUSH_LOG_DIR/mem.log" >&2
+    echo "[discipline pre-push] append a session-log addendum (your own docs/ops/session-log.d/YYYY-MM-DD-<lane>.md file, or docs/ops/session-log.md, or update docs/PROGRAM-BOARD.md), then re-push." >&2
+    exit 1
+  fi
+  cat "$PRE_PUSH_LOG_DIR/mem.log"
+  echo "[discipline pre-push] step C (memory gate, CI parity): OK"
+
+  SUMMARY="$SUMMARY B=ok(eslint $LINT_FILE_COUNT files, tests $TEST_FILE_COUNT files) C=ok"
 fi
 
-# ---------------------------------------------------------------------------
-# Step 3e: the fitness runner over the live tree, the SAME command the CI "Fitness functions" job runs
-# ---------------------------------------------------------------------------
-# CLASS FIX (2026-09-16, lane L22): five lanes in a row went red on their FIRST CI run and green on the
-# second, every time on a fitness function that scans the live tree (F23 orphaned proofs twice, F20, F25,
-# the skill-drift gate). Step 3 runs the fitness functions' UNIT TESTS (fixtures), never the runner itself,
-# so those scans ran for the first time on GitHub. The hook now runs the runner the way discipline.yml
-# does (node fsi-app/.discipline/fitness/runner.mjs, from the repo root; pre-push-tmpdir.test.mjs pins the
-# two commands to each other), so a live-tree violation is refused here, before the push. About 60s locally.
-if ! node fsi-app/.discipline/fitness/runner.mjs >"$PRE_PUSH_LOG_DIR/fit.log" 2>&1; then
-  pre_push_log_firing 3e "$PRE_PUSH_LOG_DIR/fit.log"
-  echo "[discipline pre-push] STEP 3e FAIL: fitness runner reported violation(s) on the live tree:" >&2
-  grep -E 'FAIL  \[F|^  \[F[0-9]+\]|^        ' "$PRE_PUSH_LOG_DIR/fit.log" | head -60 >&2
-  echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/fit.log" >&2
-  exit 1
-fi
-echo "[discipline pre-push] step 3e (fitness runner, live tree, CI parity): OK"
-
-fi
-# end of the final-tier guard (steps 3d, 3e); the remaining heavy steps follow under the heavy guard again
-if [ "$RUN_HEAVY" = "true" ]; then
-
-# ---------------------------------------------------------------------------
-# Step 3f: npm-dependent test suites, the SAME discovery + command as CI's "App unit tests
-# requiring npm deps (*.npmtest.mjs)" step (invariant RD-79, lane G2, 2026-09-21)
-# ---------------------------------------------------------------------------
-# CLASS FIX for the gap PR #769 exposed: PR #769 passed this hook locally and FAILED CI's Fitness
-# functions job on the npmtest step (three tests asserting component source text broke on a markup
-# change), because this hook had NO step that ran *.npmtest.mjs at all, "sTOP pushing when it will
-# fail Discipline engine / Fitness functions" (operator ruling, 2026-09-21). The discovery and
-# command live in ONE home, fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh, called by this step
-# AND by discipline.yml's own step, so the two surfaces cannot drift again. Requires fsi-app's npm
-# deps installed in THIS worktree; the shared script fails loud (never silently skips, never installs
-# by itself) when fsi-app/node_modules is absent or empty.
-if ! sh fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh >"$PRE_PUSH_LOG_DIR/npmtest.log" 2>&1; then
-  pre_push_log_firing 3f "$PRE_PUSH_LOG_DIR/npmtest.log"
-  echo "[discipline pre-push] STEP 3f FAIL: npm-dependent test suites (*.npmtest.mjs):" >&2
-  tail -60 "$PRE_PUSH_LOG_DIR/npmtest.log" >&2
-  echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/npmtest.log" >&2
-  exit 1
-fi
-tail -10 "$PRE_PUSH_LOG_DIR/npmtest.log"
-echo "[discipline pre-push] step 3f (npm-dependent test suites, CI parity): OK"
-
-# ---------------------------------------------------------------------------
-# Step 3g: behavioral goldens, the SAME command as CI's "Behavioral goldens (scripts/verify/
-# *.golden.mjs)" step (invariant RD-79, lane G2, 2026-09-21)
-# ---------------------------------------------------------------------------
-# The RD-79 parity check (F54) reads every test-running step of discipline.yml's "Fitness functions"
-# job, not only the npmtest step named in the incident: this job also runs every behavioral golden
-# under fsi-app/scripts/verify/ after npm ci, and that step was equally unwired locally before this
-# lane. Pure goldens pass here; LIVE-DB goldens self-skip (exit 2) for want of secrets, same as CI.
-# run-goldens.mjs resolves its own file discovery relative to itself (no cwd dependency), so it is
-# called with the same repo-root-relative path CI's working-directory: fsi-app + run: node
-# scripts/verify/run-goldens.mjs resolves to, byte-for-byte, which is what F54 checks for.
-if ! node fsi-app/scripts/verify/run-goldens.mjs >"$PRE_PUSH_LOG_DIR/goldens.log" 2>&1; then
-  pre_push_log_firing 3g "$PRE_PUSH_LOG_DIR/goldens.log"
-  echo "[discipline pre-push] STEP 3g FAIL: behavioral goldens (scripts/verify/*.golden.mjs):" >&2
-  tail -60 "$PRE_PUSH_LOG_DIR/goldens.log" >&2
-  echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/goldens.log" >&2
-  exit 1
-fi
-tail -5 "$PRE_PUSH_LOG_DIR/goldens.log"
-echo "[discipline pre-push] step 3g (behavioral goldens, CI parity): OK"
-
-# ---------------------------------------------------------------------------
-# Step 3h: the two blocking governance gates of CI's "Discipline engine unit tests" job that this hook
-# never ran (lane CI-PARITY, 2026-09-28, found by widening F54 to every job)
-# ---------------------------------------------------------------------------
-# Same commands as discipline.yml's "Closure gate" and "Skill-contract drift" steps. (That job's third
-# governance step, orphan-modules.mjs --all, is a report that never fails, so it owes no parity here;
-# see F54's EXEMPT_STEPS.)
-if ! node fsi-app/.discipline/governance/closure-gate.mjs >"$PRE_PUSH_LOG_DIR/closure.log" 2>&1; then
-  pre_push_log_firing 3h "$PRE_PUSH_LOG_DIR/closure.log"
-  echo "[discipline pre-push] STEP 3h FAIL: closure gate:" >&2
-  tail -40 "$PRE_PUSH_LOG_DIR/closure.log" >&2
-  exit 1
-fi
-if ! node fsi-app/.discipline/governance/skill-contract-map.mjs --check >"$PRE_PUSH_LOG_DIR/skillmap.log" 2>&1; then
-  pre_push_log_firing 3h "$PRE_PUSH_LOG_DIR/skillmap.log"
-  echo "[discipline pre-push] STEP 3h FAIL: skill-contract drift:" >&2
-  tail -40 "$PRE_PUSH_LOG_DIR/skillmap.log" >&2
-  exit 1
-fi
-echo "[discipline pre-push] step 3h (closure gate + skill-contract drift, CI parity): OK"
-
-# ---------------------------------------------------------------------------
-# Step 4: TypeScript compile parity (matches F9 / Vercel build path)
-# ---------------------------------------------------------------------------
-# tsc-noEmit is slow (~10-30s); run last so quick failures abort first.
-if ! (cd fsi-app && npx --no-install tsc --noEmit) >"$PRE_PUSH_LOG_DIR/tsc.log" 2>&1; then
-  pre_push_log_firing 4 "$PRE_PUSH_LOG_DIR/tsc.log"
-  echo "[discipline pre-push] STEP 4 FAIL: TypeScript compile errors:" >&2
-  tail -40 "$PRE_PUSH_LOG_DIR/tsc.log" >&2
-  echo "[discipline pre-push] Vercel build will fail on these. Fix the type errors, then re-push." >&2
-  exit 1
-fi
-echo "[discipline pre-push] step 4 (tsc --noEmit): OK"
-
-fi
-# end of the heavy guard reopened after Step 3e above (GATE-PUSH-1)
-
-echo "[discipline pre-push] all checks pass; push proceeding."
+pre_push_log_firing push "$SUMMARY" pass
+echo "[discipline pre-push] all checks pass ($SUMMARY); push proceeding."
 exit 0
