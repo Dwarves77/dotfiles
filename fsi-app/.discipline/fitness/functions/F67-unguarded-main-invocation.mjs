@@ -1,4 +1,5 @@
-// F67: unguarded-main-invocation (lane R20, 2026-10-01). Companion to F44 (broken-main-guard): F44
+// F67: CLI main-guard class (lane R20, 2026-10-01; REG-1, 2026-10-11 absorbed the former F44 broken-main-guard
+// as the second facet below, one row for one property). Facet B (this file's original): F44-era check
 // catches the OLD broken `import.meta.url === file://${argv[1]}` string-concat idiom; this function
 // catches the DIFFERENT, newer defect shape audited as F44-2a/2b/2c
 // (docs/audits/app-audit-a4bc-scripts-completion-2026-09-30.md) and F-10/F-11
@@ -91,11 +92,75 @@ export function findUnguardedMainInvocations(content) {
   return out;
 }
 
+// Facet A, formerly F44: broken-main-guard (task 0.3b, 2026-09-11). 36 files under fsi-app/scripts/** and
+// fsi-app/.discipline/** used a CLI main guard that hand-builds a comparison string by prefixing
+// `file://` onto process.argv[1]. On Windows import.meta.url is a real file:// URL with forward
+// slashes while process.argv[1] is Node's native backslash path, so the hand-built string never equals
+// import.meta.url and the guard is never true [CONFIRMED, grep across scripts + .discipline, task
+// 0.3b]. [CORRECTED, fix round 1, reviewer-confirmed]: 31 of the 36 files had no fallback and silently
+// exited 0 with no output when invoked directly on Windows, a runtime defect surfaced only because the
+// pre-push suite's spawned-CLI tests returned empty stdout on the operator's Windows machine while
+// passing on Linux CI; the other 5 (skill-map.mjs, skill-contract-map.mjs, bootstrap-test1.mjs,
+// defect-signature-scan.mjs, no-generic-source-audit.mjs) carried a working
+// `|| process.argv[1]?.endsWith(...)` fallback naming their own filename, which still called main()
+// correctly despite the broken primary comparison, fragile but not silently broken.
+//
+// THE FIX, already built and consumed by this gate: scripts/lib/is-main.mjs's isMainModule() builds the
+// comparison through Node's own pathToFileURL(resolve(argv[1])) instead of string concatenation, so it
+// agrees with import.meta.url on every platform. This gate forbids the broken idiom from ever
+// re-entering either tree; is-main.test.mjs carries the identical regression check at the
+// no-npm-ci pre-push layer, so the guard is enforced twice (belt-and-suspenders, the same shape RD-11's
+// transport-hold gate already uses in this repo).
+// Matches the broken comparison regardless of the trailing `|| process.argv[1]?.endsWith(...)`
+// fallback some call sites had already grown as a partial (and still broken) workaround.
+const BROKEN_GUARD_RE = /import\.meta\.url\s*===\s*`file:\/\/\$\{\s*process\.argv\[1\]\s*\}`/;
+
+/** Find every line in `content` carrying the broken main-guard idiom. Skips comment-only lines (a
+ *  historical mention is not a live instance). PURE, no filesystem, no git. @param {string} content
+ *  @returns {number[]} 1-based line numbers */
+export function findBrokenMainGuards(content) {
+  const lines = content.split(/\r?\n/);
+  const out = [];
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('//') || trimmed.startsWith('*')) return;
+    if (BROKEN_GUARD_RE.test(line)) out.push(i + 1);
+  });
+  return out;
+}
+
+
+/** Facet A (formerly F44): violations for the broken `import.meta.url === file://${argv[1]}` idiom. */
+export function checkBrokenMainGuard(filepath, content) {
+  const out = [];
+  for (const line of findBrokenMainGuards(content)) {
+    out.push(
+      violation(
+        line,
+        'broken CLI main guard: import.meta.url compared against a hand-built `file://` + ' +
+          'process.argv[1] string. This never equals import.meta.url on Windows (a real file:// URL ' +
+          'uses forward slashes; process.argv[1] is a native backslash path there), so the guard is ' +
+          'never true and the script silently exits 0 with no output when run directly. Use ' +
+          'isMainModule(import.meta.url) from scripts/lib/is-main.mjs (task 0.3b) instead.'
+      )
+    );
+  }
+  return out;
+}
+
+/** Facet B does not apply to confirmed-dead archive files or fixture modules (see enumerate()). */
+export function isFacetBExcluded(filepath) {
+  return filepath.startsWith('fsi-app/scripts/_archive/') || /\/fixtures(?:-dash)?\//.test(filepath);
+}
+
 export const fitnessFunction = {
   id: 'F67',
-  name: 'unguarded-main-invocation',
+  name: 'cli-main-guard',
   description:
-    'A CLI script under fsi-app/scripts/** or fsi-app/.discipline/** must never call its own main() ' +
+    'CLI main-guard class under fsi-app/scripts/** and fsi-app/.discipline/**. Facet A (formerly F44): a main ' +
+    'guard must never compare import.meta.url against a hand-built file:// string concatenated with ' +
+    'process.argv[1] (never equal on Windows, so the script silently exits 0). Facet B: a CLI script ' +
+    'must never call its own main() unconditionally at module scope. A CLI script under fsi-app/scripts/** or fsi-app/.discipline/** must never call its own main() ' +
     'unconditionally at module scope. Merely importing such a file triggers a real run (stdin read, ' +
     'live fetch, or a live DB read/write). Guard the call with isMainModule(import.meta.url) from ' +
     'scripts/lib/is-main.mjs, either as `if (isMainModule(import.meta.url)) { main()... }` or the ' +
@@ -105,22 +170,17 @@ export const fitnessFunction = {
     '(app-audit-a4cc-scripts-completion-2026-09-30.md), [CONFIRMED] by reading each file in full.',
 
   enumerate() {
-    // Test files excluded: a fixture that constructs the unguarded shape as a literal string to feed
+    // Test files excluded: a fixture that constructs either shape as a literal string to feed
     // fitnessFunction.check() (see this function's own test file) is not a live call site.
-    // _archive/ excluded: confirmed-dead files (0 live importers) stay out of this gate's scope.
-    // /fixtures/ and /fixtures-dash/ excluded (operator instruction, round 3): fixture modules feed test
-    // input and are never a CLI entrypoint, so a literal `main().catch(` inside one is not a live call
-    // site either, same posture as isTestFile() above.
-    return globFiles(SCOPE_GLOBS).filter(
-      (f) =>
-        !isTestFile(f) &&
-        !f.startsWith('fsi-app/scripts/_archive/') &&
-        !/\/fixtures(?:-dash)?\//.test(f)
-    );
+    // Facet B skips _archive/ (confirmed-dead files, 0 live importers) and /fixtures/ and /fixtures-dash/
+    // (operator instruction, round 3: fixture modules feed test input and are never a CLI entrypoint) in
+    // check() below; facet A keeps scanning them, as the former F44 did.
+    return globFiles(SCOPE_GLOBS).filter((f) => !isTestFile(f));
   },
 
   check(filepath, content) {
-    const out = [];
+    const out = [...checkBrokenMainGuard(filepath, content)];
+    if (isFacetBExcluded(filepath)) return out;
     for (const line of findUnguardedMainInvocations(content)) {
       out.push(
         violation(
