@@ -2506,7 +2506,9 @@ export async function fetchPriceStatsByItemIds(
     }
     if (uuidIds.length === 0) return out;
 
-    const { data, error } = await supabase
+    // published_price_statistics is readable by authenticated and the service role only (policy published_price_statistics_read,
+    // and anon holds no SELECT after migration 386): read it with the service client, never the anon key (SEC-9).
+    const { data, error } = await getServiceSupabase()
       .from("published_price_statistics")
       .select("item_id, label, value_display, unit, released_at, sort_order")
       // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
@@ -3000,7 +3002,8 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         .select("item_id, change_type, change_severity, change_summary")
         .order("detected_at", { ascending: false })
         .limit(100),
-      supabase
+      // sector_contexts is not anon-readable (migration 386): service client, never the anon key (SEC-9).
+      getServiceSupabase()
         .from("sector_contexts")
         .select("sector, display_name"),
       // Window-scoped What-changed feed (see RecentChangeRow). Service client:

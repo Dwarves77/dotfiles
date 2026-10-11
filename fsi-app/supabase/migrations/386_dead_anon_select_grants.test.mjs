@@ -1,11 +1,11 @@
-// 384_dead_anon_select_grants.test.mjs -- static proof of migration 384 (lane SEC-9) by parsing the SQL file and the migration
+// 386_dead_anon_select_grants.test.mjs -- static proof of migration 386 (lane SEC-9) by parsing the SQL file and the migration
 // tree: no database, no SQL parser dependency. The ATTACKS (SET LOCAL ROLE anon, a real SELECT, then SQLSTATE 42501 "permission
 // denied for table X") run in the migration's own self-check at apply time inside a rolled back sub-transaction, and the PROOF-4
 // attack sec9-anon-select-grants-have-an-anon-policy in scripts/proof/attacks/attacks.json re-proves the catalog invariant on the
-// chain stack. This file proves: the anon SELECT grant state of the migration TREE below 384 is re-derived here (every table and
+// chain stack. This file proves: the anon SELECT grant state of the migration TREE below 386 is re-derived here (every table and
 // view created, dropped, renamed, granted or revoked, in file order) and classified against the policy state of the same tree
 // (policyState from 381); the three explicit arrays in the migration (revoked, kept by design, kept authenticated-only) equal that
-// derivation, so a grant added before 384 and left out fails the build; the classification is complete and disjoint; no revoked
+// derivation, so a grant added before 386 and left out fails the build; the classification is complete and disjoint; no revoked
 // table is read by a kept policy's subquery; the enumeration assertion and the self-check cover the sets; and the mutation tests
 // at the end show the checker is red against the defects it exists to catch.
 
@@ -19,7 +19,7 @@ import { stripSql } from "./_lib/fixture-inserts.mjs";
 import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
-const FILE = "384_dead_anon_select_grants.sql";
+const FILE = "386_dead_anon_select_grants.sql";
 const RAW = readFileSync(join(HERE, FILE), "utf8");
 const strip = (raw) => raw.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const tn = (s) => s.replace(/"/g, "").trim().toLowerCase();
@@ -117,9 +117,12 @@ export const OUT_OF_BAND_ANON_POLICIES = [
 ];
 
 /** The classification of every anon SELECT grant of the tree below `before`. */
-export function classify(dir = HERE, before = 384) {
+export function classify(dir = HERE, before = 386) {
   const rel = anonSelectState(dir, before);
-  const pols = [...policyState(dir, before), ...OUT_OF_BAND_ANON_POLICIES];
+  const treePols = policyState(dir, before);
+  // Once the drift reconciliation migrations (384, 385) put these policies into the tree, the tree answers and the stand-ins drop out.
+  const standIns = OUT_OF_BAND_ANON_POLICIES.filter((o) => !treePols.some((p) => p.table === o.table && isAnonRead(p)));
+  const pols = [...treePols, ...standIns];
   const held = [...rel].filter(([, v]) => v.anon).map(([k]) => k).sort();
   const adm = (t) => pols.filter((p) => p.table === t && isAnonRead(p));
   const design = held.filter((t) => adm(t).some(anonSatisfiable));
@@ -141,7 +144,7 @@ function arrays(raw) {
 
 const same = (a, b) => JSON.stringify([...(a ?? [])].sort()) === JSON.stringify([...(b ?? [])].sort());
 
-/** Everything that can be wrong with a 384 text against a classification; [] when nothing is. */
+/** Everything that can be wrong with a 386 text against a classification; [] when nothing is. */
 export function verify(raw, cls = C) {
   const bad = [];
   const sql = strip(raw);
@@ -170,19 +173,19 @@ export function verify(raw, cls = C) {
     if (!m[1].startsWith("err:42501:permission denied for ") && !m[1].startsWith("ok:")) bad.push(`an anon leg expects ${m[1]}`);
   }
   if (!/sec9_expect\('B anon SELECT on '/.test(raw)) bad.push("the dead-table anon leg is missing");
-  if (!/RAISE EXCEPTION 'sec9_384_selfcheck_rollback'/.test(raw)) bad.push("the self-check does not roll back");
+  if (!/RAISE EXCEPTION 'sec9_386_selfcheck_rollback'/.test(raw)) bad.push("the self-check does not roll back");
   return bad;
 }
 
 // ---- tests ------------------------------------------------------------------------------------------------------------
 
 test("header: subject line, NOT APPLIED status, shared header rules", () => {
-  assert.match(RAW, /^-- subject: Migration 384 \(lane SEC-9, 2026-10-10\)/);
+  assert.match(RAW, /^-- subject: Migration 386 \(lane SEC-9, 2026-10-10\)/);
   assert.match(RAW, /^-- NOT APPLIED\./m);
   assert.deepEqual(headerProblems(RAW, FILE), []);
 });
 
-test("the tree leaves 92 anon SELECT grants below 384, and they classify as 13 + 30 + 49 (re-derived here)", () => {
+test("the tree leaves 92 anon SELECT grants below 386, and they classify as 13 + 30 + 49 (re-derived here)", () => {
   assert.equal(C.held.length, 92, "the live count after 382 is 92 (batch2 SEC-9); the tree derivation reproduces it");
   assert.equal(C.design.length, 13);
   assert.equal(C.authOnly.length, 30);
@@ -263,7 +266,7 @@ test("self-check: dead tables refuse anon 42501, authenticated and the service r
   assert.match(sc[0], /sec9_expect\('B control: authenticated SELECT on '/);
   assert.match(sc[0], /sec9_expect\('B anon SELECT on kept /);
   assert.match(sc[0], /sec9_expect_none\(/);
-  assert.match(sc[0], /sec9_384_selfcheck_rollback/);
+  assert.match(sc[0], /sec9_386_selfcheck_rollback/);
 });
 
 test("the attack in attacks.json asserts every anon SELECT grant on a public relation has an anon-or-public SELECT policy", () => {

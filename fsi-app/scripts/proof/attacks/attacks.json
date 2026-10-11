@@ -4040,7 +4040,7 @@
       "kind": "sql",
       "invariant": "Every SELECT privilege anon holds on a public relation is justified by a SELECT or ALL policy that applies to anon or public, the set of such relations is exactly the kept set (13 by design, 30 behind an authenticated-only predicate), and anon holds no SELECT on the 49 relations no policy applies to.",
       "expected": "Each anonymous read of a revoked relation is refused 42501 naming the relation; each kept authenticated-only table answers anon with zero rows or 42501; each by-design table is still readable by anon; the three catalog counts are 0.",
-      "reference": "migration 384 (lane SEC-9); migration 382 (SEC-8) for the grant-follows-policy form; migration 369 (grant hygiene left anon SELECT untouched); ADR-046",
+      "reference": "migration 386 (lane SEC-9); migration 382 (SEC-8) for the grant-follows-policy form; migration 369 (grant hygiene left anon SELECT untouched); ADR-046",
       "steps": [
         {
           "label": "attack: count public relations where anon holds SELECT and no SELECT or ALL policy applies to anon or public",

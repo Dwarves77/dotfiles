@@ -1,5 +1,5 @@
--- subject: Migration 384 (lane SEC-9, 2026-10-10): anon SELECT grants follow policy; the 49 public relations (44 tables and 5 views) where anon holds SELECT and no policy applies to anon or public lose it (REVOKE from PUBLIC, anon, GRANT back to authenticated and service_role), the 43 where a policy that applies to anon or public exists keep it and are listed here with that policy; the self-check attacks every one as anon, as authenticated and as the service role in a block that always rolls back.
--- 384 -- dead anon SELECT grants (lane SEC-9, 2026-10-10).
+-- subject: Migration 386 (lane SEC-9, 2026-10-10): anon SELECT grants follow policy; the 49 public relations (44 tables and 5 views) where anon holds SELECT and no policy applies to anon or public lose it (REVOKE from PUBLIC, anon, GRANT back to authenticated and service_role), the 43 where a policy that applies to anon or public exists keep it and are listed here with that policy; the self-check attacks every one as anon, as authenticated and as the service role in a block that always rolls back.
+-- 386 -- dead anon SELECT grants (lane SEC-9, 2026-10-10).
 --
 -- NOT APPLIED. Authored by lane SEC-9 with no database access; the coordinator's executor applies it after CI is green (two-track
 -- policy, CLAUDE.md standing rule 3: schema DDL applies via the Supabase CLI before any dependent code commits). No code in src or
@@ -9,7 +9,7 @@
 -- THE FINDING. After 382 anon holds a table-level SELECT grant on 92 public relations (information_schema.role_table_grants,
 -- grantee anon, privilege_type SELECT, table_schema public; the count the coordinator read live after 382). AUD-AT-1's P1 matrix
 -- returned rows on none of them once SEC-8 closed the 18 that did. [CONFIRMED by the tree derivation in this migration's test,
--- 384_dead_anon_select_grants.test.mjs: replaying every CREATE, DROP, RENAME, GRANT and REVOKE of the migration tree below 384
+-- 386_dead_anon_select_grants.test.mjs: replaying every CREATE, DROP, RENAME, GRANT and REVOKE of the migration tree below 386
 -- leaves exactly 92 public relations (87 tables, 5 views) with an anon SELECT grant; the set is derived on every test run.]
 -- Supabase's default privileges give anon every privilege on every new public table, so a grant that no policy ever asked for
 -- is the norm, not a decision; row level security is the only thing between anon and the rows, and a zero-row answer is a policy
@@ -42,12 +42,11 @@
 -- while authenticated reads all 15 and 2040 rows. They are therefore kept (class 2), not dead, and the precondition below
 -- re-checks that a policy applying to anon or public exists on each before anything is revoked. admin_action_cooldowns reads
 -- pp1 in AT1 because its policy was {public} then; 381 narrowed it to authenticated, service_role, so it is dead (class 3) now.
--- Behaviour change to read before applying: two anon-key reads sit on revoked tables, fetchPriceStatsByItemIds in
--- src/lib/supabase-server.ts (published_price_statistics) and the sector_contexts read in fetchDashboardData. Both already
--- received zero rows (the policies are TO authenticated or the out-of-band one above); after this migration the anon-key client
--- receives 42501 instead of an empty set. The first logs the error and returns an empty map, the second reads data || [], so the
--- rendered result is unchanged; moving them to a session or service client is src, outside this
--- lane's write set, and is recorded in the lane's session log.
+-- DRIFT-1's reconciliation migrations 384 and 385 put these live-only policies into the tree, so this migration runs unchanged on
+-- the replay stack and on production and must follow them. Two anon-key reads sat on revoked tables, fetchPriceStatsByItemIds in
+-- src/lib/supabase-server.ts (published_price_statistics) and the sector_contexts read in fetchDashboardData; both received zero
+-- rows through the anon key and, in the same PR as this file, now read through the service client (SEC-8's pattern), so applying
+-- this migration changes no rendered result except that the rows authenticated users are entitled to now render.
 --
 -- BY DESIGN, kept, with the policy that admits anon (13):
 --   community_groups: community_groups_select_public_or_member (SELECT, roles {public})
@@ -638,13 +637,13 @@ BEGIN
         pg_temp.sec9_try('anon', NULL, format('SELECT 1 FROM public.%I LIMIT 1', v_tbl)));
     END LOOP;
 
-    RAISE EXCEPTION 'sec9_384_selfcheck_rollback';
+    RAISE EXCEPTION 'sec9_386_selfcheck_rollback';
   EXCEPTION WHEN raise_exception THEN
     RESET ROLE;
-    IF SQLERRM <> 'sec9_384_selfcheck_rollback' THEN RAISE; END IF;
+    IF SQLERRM <> 'sec9_386_selfcheck_rollback' THEN RAISE; END IF;
   END;
 
-  RAISE NOTICE 'migration 384 OK: % relations lost the anon SELECT grant, % keep it by design, % keep it behind an authenticated-only policy; anon reads none of the revoked ones, authenticated and the service role still do', cardinality(v_dead), cardinality(v_design), cardinality(v_authonly);
+  RAISE NOTICE 'migration 386 OK: % relations lost the anon SELECT grant, % keep it by design, % keep it behind an authenticated-only policy; anon reads none of the revoked ones, authenticated and the service role still do', cardinality(v_dead), cardinality(v_design), cardinality(v_authonly);
 END $sc$;
 
 DROP FUNCTION pg_temp.sec9_try(text, uuid, text);
