@@ -1,6 +1,6 @@
 # 2026-10-10, lane TESTS-1 (tests1-owed-tests-and-fixtures), resumed: the RLS persona matrix, the C3 race split and the owed gate tests
 
-Rows worked: the 48 `[WORK: TESTS-1]` lines on origin/master (docs/audits and docs/ops/session-log.d, the dispo1 table excluded). This lane does not edit them; the executor applies the dispositions below at merge. Previous agents on this lane were killed mid-work; their 11 uncommitted changes were read in full, kept (all matched the brief) and finished.
+Rows worked: the 48 `[CLOSED: PR 1088]` lines on origin/master (docs/audits and docs/ops/session-log.d, the dispo1 table excluded). This lane does not edit them; the executor applies the dispositions below at merge. Previous agents on this lane were killed mid-work; their 11 uncommitted changes were read in full, kept (all matched the brief) and finished.
 
 ## Accomplished
 
@@ -42,13 +42,13 @@ Read: root CLAUDE.md, COMMON and the TESTS-1 section of batch2, the 48 row lines
 
 ## NOT done
 
-- Routes ATTACKED (aud-at2:73, routes1:80): a scripted run of the 19 HYPOTHESIS route methods and the 25 service-client-write methods against `next start` with sessions of each persona on the local stack is not built; it needs a CI job that builds the app, boots the stack, mints per-persona sessions and carries the register as its input. [WORK: TESTS-2]
+- Routes ATTACKED (aud-at2:73, routes1:80): a scripted run of the 19 HYPOTHESIS route methods and the 25 service-client-write methods against `next start` with sessions of each persona on the local stack is not built; it needs a CI job that builds the app, boots the stack, mints per-persona sessions and carries the register as its input. [CLOSED: PR 1101]
 - Three consecutive CI runs of the split race test: the executor cites three CI runs after merge. [WORK: EXEC-4]
 - AT1 item 6 view and function probes (derived_values_admissible, research_assessments_current, admin_set_judgement_drain) and the other lenses of subsystem 11. [WORK: TESTS-2]
-- The remaining rows tagged TESTS-2 above (aud-at3:510 and 514, aud-at4:457, aud-at5:240, 241, 244, 247, 248, r11:144, s8b:24, s8c:31, audit-catalogue:43, daudit1:196 and 203, daudit2:173 to 175, sec4:69, aud-at2:74 and 75) were not started in this resume; each is a distinct build and none was attempted. [WORK: TESTS-2]
+- The remaining rows tagged TESTS-2 above (aud-at3:510 and 514, aud-at4:457, aud-at5:240, 241, 244, 247, 248, r11:144, s8b:24, s8c:31, audit-catalogue:43, daudit1:196 and 203, daudit2:173 to 175, sec4:69, aud-at2:74 and 75) were not started in this resume; each is a distinct build and none was attempted. [CLOSED: PR 1101]
 
 ## Open items
 
-- The closure gate (GATE-9 test in the Discipline engine unit tests) fails NEVER-RUN on source-monitoring.yml and spot-check-monthly.yml, both disabled_manually with out-of-window live runs, despite the platform-dormant note; not caused by this PR. Lane DORMANT-2 fixes the gate and the executor re-runs this PR after it merges. [WORK: DORMANT-2]
+- The closure gate (GATE-9 test in the Discipline engine unit tests) fails NEVER-RUN on source-monitoring.yml and spot-check-monthly.yml, both disabled_manually with out-of-window live runs, despite the platform-dormant note; not caused by this PR. Lane DORMANT-2 fixes the gate and the executor re-runs this PR after it merges. [CLOSED: PR 1089]
 - The first CI run of the rls-persona-matrix job: 122 tables x 5 x 4 = 2440 cells held and five attacks held; the guard-trigger-alone attack was BROKEN by a privilege error on column reads in its SET expressions and was rewritten with constant right-hand sides plus a separate layer-1 control (coordinator ruling). The CLOSED rows marked from this job stay CLOSED only if the job is green on the final push, otherwise they become TESTS-2 rows. [NOT-WORK: the PR's own CI run is the proof, COMMON rule 9]
 - (superseded note) The rls-persona-matrix job had not run yet: the matrix SQL, the fixtures' INSERTs and the two new attacks run on the stack for the first time in this PR's check. A red there is a finding about the schema or the probe, reported, not a reason to loosen an expectation. [NOT-WORK: the PR's own CI run is the proof, COMMON rule 9]

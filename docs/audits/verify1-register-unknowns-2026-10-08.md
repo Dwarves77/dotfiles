@@ -81,10 +81,10 @@ Each is absent in the tree at e23feb02 by the method in its row. Absent means no
 
 ## Incidental facts outside the listed rows (seen while reading, not investigated)
 
-- `fsi-app/supabase/migrations/359_item_assignments.sql` (map: applied) plus route, component and mount exist, while register row S8-2 says "not started". [WORK: DOCS-5]
-- `fsi-app/supabase/migrations/361_count_rpc_membership.sql` (map: applied, identical) exists, while register row S8-4 says "not started". [WORK: DOCS-5]
+- `fsi-app/supabase/migrations/359_item_assignments.sql` (map: applied) plus route, component and mount exist, while register row S8-2 says "not started". [CLOSED: PR 1104]
+- `fsi-app/supabase/migrations/361_count_rpc_membership.sql` (map: applied, identical) exists, while register row S8-4 says "not started". [CLOSED: PR 1104]
 - `fsi-app/src/lib/portfolio/` (client, portfolio-core.mjs with test, read.ts, route-support.ts, types.ts) exists, while register rows 00S5 and S8-8 say "no file".
-These three were not opened beyond file names and one header; they are listed so the register rows can be re-read, not as findings about those rows. [WORK: DOCS-5]
+These three were not opened beyond file names and one header; they are listed so the register rows can be re-read, not as findings about those rows. [CLOSED: PR 1104]
 
 ## Not run, and why
 
