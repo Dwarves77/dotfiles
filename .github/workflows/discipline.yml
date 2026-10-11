@@ -112,6 +112,34 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # SCOPED JOBS (lane CI-MIN-1, ADR-047 decision 5). This job runs the one classifier over the pull request's diff
+  # (fsi-app/.discipline/governance/job-inputs.mjs) and exposes which scoped jobs it touched; rendering-guard runs
+  # only when its inputs changed. The four other jobs are ALWAYS-ON and never read this job: they enforce across the
+  # whole tree. A skipped job satisfies branch protection (the job-level skip, never a workflow paths filter).
+  inputs:
+    name: Inputs (which scoped jobs this change touches)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      rendering_guard: ${{ steps.classify.outputs.rendering_guard }}
+    steps:
+      - name: Checkout (the merge commit and its base parent)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Classify the touched scoped jobs
+        id: classify
+        run: node fsi-app/.discipline/governance/job-inputs.mjs --pr-merge --github-output
+
   validate-commits:
     name: Validate commits against discipline rules
     runs-on: ubuntu-latest
@@ -129,6 +157,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
 
       # GATE FIRINGS LOG (lane GATE-4, gate plan doctrine point 6). The rule engine's own output (one
       # PASS / SKIP / FAIL line per rule, FAIL with its message) is teed to this file by the two engine
@@ -304,6 +334,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
 
       # R22 (2026-10-01, docs-only fast path). Computes the SAME docs-only verdict
       # fsi-app/.discipline/hooks/pre-push's own fast path computes, through the ONE shared primitive
@@ -443,6 +475,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
 
       - name: Consistency runner (push to master) — override-aware
         if: github.event_name == 'push'
@@ -465,6 +499,12 @@ jobs:
           # (tip-vs-tip). BASE_REF + PR_HEAD are env vars; override-check.mjs resolves the range itself via
           # change-range.mjs's resolveRange(), the same function the validate-commits job and F51 use.
           node fsi-app/.discipline/consistency/override-check.mjs
+
+      # CI-MIN-1: the always-on backstop states which scoped jobs the pull request skipped, from the same classifier
+      # the inputs jobs use. It never fails: a classifier fault marks every job touched and prints nothing.
+      - name: Report scoped jobs whose inputs are unchanged
+        if: github.event_name == 'pull_request'
+        run: node fsi-app/.discipline/governance/job-inputs.mjs --pr-merge --print-unchanged
 
   fitness-check:
     name: Fitness functions (application-layer enforcement)
@@ -636,8 +676,10 @@ jobs:
 
   rendering-guard:
     name: Rendering guard (overflow / placeholder / hydration — real-browser layout)
-    # PR head only (lane GATE-4): a push to master skips this job, see the header's slim job set note.
-    if: github.event_name == 'pull_request'
+    # PR head only (lane GATE-4): a push to master skips this job, see the header's slim job set note. SCOPED (lane
+    # CI-MIN-1): also skipped when the pull request touches none of its inputs, per the inputs job.
+    needs: inputs
+    if: github.event_name == 'pull_request' && needs.inputs.outputs.rendering_guard == 'true'
     runs-on: ubuntu-latest
     # CONTAINER, NOT AN INSTALL (lane GATE-6, 2026-10-08). The job runs in the official Playwright image, so
     # chromium and its OS libraries are already present and `playwright install --with-deps` is not run at
@@ -706,6 +748,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
 
       - name: Install the Playwright npm package matching the image (browsers come from the image)
         run: |

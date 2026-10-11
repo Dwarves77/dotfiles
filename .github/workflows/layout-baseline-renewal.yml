@@ -53,6 +53,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
 
       - name: Install the Playwright npm package matching the image (browsers come from the image)
         run: |

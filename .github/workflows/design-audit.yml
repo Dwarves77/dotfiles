@@ -67,8 +67,44 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  inputs:
+    name: Inputs (which scoped jobs this change touches)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      design_audit: ${{ steps.classify.outputs.design_audit }}
+    steps:
+      - name: Checkout (the merge commit and its base parent)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Classify the touched scoped jobs
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            node fsi-app/.discipline/governance/job-inputs.mjs --pr-merge --github-output
+          else
+            node fsi-app/.discipline/governance/job-inputs.mjs --all --github-output
+          fi
+
   design-audit:
     name: Design audit (build vs design, value-level, soft)
+    # SCOPED (CI-MIN-1, ADR-047): a pull_request that touches none of this job's inputs skips it at job level, as
+    # decided by the inputs job above (fsi-app/.discipline/governance/job-inputs.mjs). A skipped job satisfies branch
+    # protection; a workflow paths filter would not. A workflow_dispatch always runs it.
+    needs: inputs
+    if: github.event_name != 'pull_request' || needs.inputs.outputs.design_audit == 'true'
     runs-on: ubuntu-latest
     # The one write permission in the file, for the workflow_dispatch commit-back step below. The pull_request
     # path never uses it: the commit-back step is guarded to workflow_dispatch (a fork PR token is read-only
@@ -100,6 +136,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
 
       - name: Install the Playwright npm package matching the image (browsers come from the image)
         run: |

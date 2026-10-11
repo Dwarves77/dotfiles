@@ -35,8 +35,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  inputs:
+    name: Inputs (which scoped jobs this change touches)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      rls_persona_matrix: ${{ steps.classify.outputs.rls_persona_matrix }}
+    steps:
+      - name: Checkout (the merge commit and its base parent)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Classify the touched scoped jobs
+        id: classify
+        run: node fsi-app/.discipline/governance/job-inputs.mjs --pr-merge --github-output
+
   rls-persona-matrix:
     name: RLS persona matrix (every public table, four personas)
+    # SCOPED (CI-MIN-1, ADR-047): skipped at job level when the pull request touches none of its inputs, as decided by
+    # the inputs job above (fsi-app/.discipline/governance/job-inputs.mjs). The in-job decision below stays.
+    needs: inputs
+    if: github.event_name == 'pull_request' && needs.inputs.outputs.rls_persona_matrix == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:

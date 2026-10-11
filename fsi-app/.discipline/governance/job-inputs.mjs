@@ -26,11 +26,14 @@
 // fast path inside those jobs, docs-only-range.mjs).
 //
 // CLI: node job-inputs.mjs --pr-merge [--github-output] [--print-unchanged]
+//      node job-inputs.mjs --all --github-output   (not a pull request: every scoped job is true)
 //      node job-inputs.mjs --range=<git-range> [...]
 //   --pr-merge        the pull_request checkout is the merge commit: the diff is HEAD^1..HEAD (the pull request's
 //                     effect on its base tip), never HEAD~1. No second parent -> every job runs.
 //   --github-output   append `<job_key>=true|false` for every scoped job to $GITHUB_OUTPUT
-//   --print-unchanged print `inputs unchanged: <job id>` for every scoped job that is skipped
+//   --all             a push or a dispatch: every scoped job is marked touched, no diff is read
+//   --print-unchanged print `inputs unchanged: <job id>` for every WIRED scoped job that is skipped (a job whose
+//                     workflow does not yet carry the `if` still runs, so it is never reported as skipped)
 // Always exits 0 on a classification (a classifier fault marks every job touched); exit 2 only on bad arguments.
 
 import { appendFileSync, readFileSync, statSync } from 'node:fs';
@@ -282,14 +285,14 @@ function resolveFiles(args, repoRoot) {
 
 function main() {
   const args = process.argv.slice(2);
-  const known = (a) => a === '--pr-merge' || a === '--github-output' || a === '--print-unchanged' || a.startsWith('--range=');
+  const known = (a) => a === '--pr-merge' || a === '--all' || a === '--github-output' || a === '--print-unchanged' || a.startsWith('--range=');
   const bad = args.filter((a) => !known(a));
-  if (bad.length || !(args.includes('--pr-merge') || args.some((a) => a.startsWith('--range=')))) {
-    console.error(`job-inputs: usage: --pr-merge | --range=<git-range> [--github-output] [--print-unchanged]${bad.length ? `; unknown: ${bad.join(' ')}` : ''}`);
+  if (bad.length || !(args.includes('--pr-merge') || args.includes('--all') || args.some((a) => a.startsWith('--range=')))) {
+    console.error(`job-inputs: usage: --pr-merge | --all | --range=<git-range> [--github-output] [--print-unchanged]${bad.length ? `; unknown: ${bad.join(' ')}` : ''}`);
     process.exit(2);
   }
   const repoRoot = getRepoRoot();
-  const { files, note } = resolveFiles(args, repoRoot);
+  const { files, note } = args.includes('--all') ? { files: [], note: 'not a pull request' } : resolveFiles(args, repoRoot);
   let verdict;
   try {
     verdict = jobsTouched(files, buildJobInputs(repoRoot));
@@ -299,7 +302,7 @@ function main() {
   console.log(`job-inputs: ${note}; ${verdict.reason}`);
   for (const key of SCOPED_KEYS) console.log(`job-inputs: ${key}=${verdict.touched.includes(key)}`);
   if (args.includes('--print-unchanged')) {
-    for (const key of verdict.unchanged) console.log(`inputs unchanged: ${jobIdOf(key)}`);
+    for (const key of verdict.unchanged.filter((k) => SCOPED[k].wired)) console.log(`inputs unchanged: ${jobIdOf(key)}`);
   }
   if (args.includes('--github-output')) {
     const out = process.env.GITHUB_OUTPUT;
