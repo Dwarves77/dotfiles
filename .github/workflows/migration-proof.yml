@@ -132,6 +132,27 @@ jobs:
           node scripts/proof/preflight.mjs
           node scripts/proof/apply-pending-migrations.mjs --apply --report "$MP_OUT_DIR/apply-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # DRIFT-1 (2026-10-10): the two reconciliation migrations (384 and 385) are idempotent by construction, and that is a claim a run proves. The
+      # pending-apply step above ran each once; this step reads the whole canonical catalog of the stack, applies each file a SECOND time (psql, ON_ERROR_STOP,
+      # one transaction, so their own self-checks run again), reads the catalog again and fails unless the two reads are byte for byte equal. The catalog
+      # files stay under RUNNER_TEMP: they hold schema text and are never uploaded. A missing file fails the step (psql cannot read it).
+      - name: Apply the schema reconciliation migrations a second time (the second apply must change nothing)
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$MP_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/schema-diff.mjs --catalog-only --db-url "$PROOF_DB_URL" --out "$RUNNER_TEMP/catalog-before.json"
+          for f in supabase/migrations/384_schema_oracle_reconcile_production_only.sql supabase/migrations/385_schema_oracle_repair_replay_only_indexes.sql; do
+            echo "second apply: $f" | tee -a "$GITHUB_STEP_SUMMARY"
+            psql "$PROOF_DB_URL" -X -v ON_ERROR_STOP=1 --single-transaction -f "$f"
+          done
+          node scripts/proof/schema-diff.mjs --catalog-only --db-url "$PROOF_DB_URL" --out "$RUNNER_TEMP/catalog-after.json"
+          cmp "$RUNNER_TEMP/catalog-before.json" "$RUNNER_TEMP/catalog-after.json"
+          echo "The second apply of 384 and 385 changed nothing (the catalog is byte for byte equal)." | tee -a "$GITHUB_STEP_SUMMARY"
+          rm -f "$RUNNER_TEMP/catalog-before.json" "$RUNNER_TEMP/catalog-after.json"
+
       - name: Upload the proof reports (counts, file names, error text)
         if: always() && steps.scope.outputs.touched == 'true'
         uses: actions/upload-artifact@v4

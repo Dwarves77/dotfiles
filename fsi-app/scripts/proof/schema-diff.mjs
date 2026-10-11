@@ -25,7 +25,7 @@
 // The report holds counts and names only. It never holds a definition's text and never row data.
 //
 // Usage: node scripts/proof/schema-diff.mjs --replayed <url> --oracle <url> --out <path>   (both loopback only)
-//        node scripts/proof/schema-diff.mjs --catalog-only --db-url <url>   (loopback only; runs the catalog query once, exit 1 with the cause on error)
+//        node scripts/proof/schema-diff.mjs --catalog-only --db-url <url> [--out <file>]   (loopback only; runs the catalog query once, exit 1 with the cause on error)
 // Exit: 0 = identical; 1 = they differ, or a side could not be read; 2 = usage error or a non-loopback URL.
 
 import { spawnSync } from "node:child_process";
@@ -245,12 +245,12 @@ export function summarizeDiff(d) {
 }
 
 /** The read-only entry (rule 15): run the catalog query once on one database, so every PR that touches the stack proves the query on a real server.
- *  Returns { status, lines }: 0 with one counts line, or 1 with the printed cause (SQLSTATE and psql error text). `read` is injectable. */
+ *  Returns { status, lines, catalog }: 0 with one counts line (and the catalog), or 1 with the printed cause (SQLSTATE and psql error text). `read` is injectable. */
 export function catalogOnly(url, read = readCatalog) {
   const r = read({ url });
   if (r.error) return { status: 1, lines: [`schema-diff: the catalog query failed on the stack${r.error.code ? ` (${r.error.code})` : ""}: ${r.error.message}`] };
   const counts = CATEGORIES.map((c) => `${c} ${Object.keys(r.catalog?.[c] ?? {}).length}`).join(", ");
-  return { status: 0, lines: [`schema-diff: the catalog query ran on the stack: ${counts}`] };
+  return { status: 0, lines: [`schema-diff: the catalog query ran on the stack: ${counts}`], catalog: r.catalog };
 }
 
 /** The path of the structural sidecar written beside the gate's report: replay-schema-diff.json -> replay-schema-diff-detail.json. PURE. */
@@ -283,6 +283,8 @@ if (isMainModule(import.meta.url)) {
     if (!dbUrl) { console.error("schema-diff: --catalog-only needs --db-url"); process.exit(2); }
     try { assertLoopbackDbUrl(dbUrl); } catch (e) { console.error(`schema-diff: ${e.message}`); process.exit(2); }
     const c = catalogOnly(dbUrl);
+    // --out <file>: also write the whole canonical catalog (definition text, stack only, never uploaded) so a workflow can compare two reads byte for byte.
+    if (c.status === 0 && arg("--out")) { mkdirSync(dirname(resolve(arg("--out"))), { recursive: true }); writeFileSync(resolve(arg("--out")), JSON.stringify(c.catalog, null, 1) + "\n", "utf8"); }
     for (const l of c.lines) (c.status === 0 ? console.log : console.error)(l);
     process.exit(c.status);
   }
