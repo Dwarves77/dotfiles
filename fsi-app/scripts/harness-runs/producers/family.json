@@ -3,7 +3,6 @@
   "registered": "2026-09-20",
   "registered_by": "lane M9d",
   "governing_files": [
-    "../.github/workflows/producers.yml",
     "scripts/producers/market/author-market-series-delta.mjs",
     "scripts/producers/regional/run-envelope-producer.mjs",
     "scripts/producers/emit-producers-artifact.mjs",
