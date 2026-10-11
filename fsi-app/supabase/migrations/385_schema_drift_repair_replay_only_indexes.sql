@@ -1,7 +1,7 @@
 -- subject: Migration 385 (lane DRIFT-1, 2026-10-10): repair. Creates on production the five indexes the migration files define and production lacks (chain proof fire 9, schema oracle: five indexes only in the replay), idempotent.
 -- 385 -- schema oracle repair: indexes the files define and production lacks (lane DRIFT-1, 2026-10-10).
 --
--- NOT APPLIED. Authored by lane DRIFT-1 with no database access; the coordinator's executor applies it (two-track policy, CLAUDE.md
+-- APPLIED (production ledger version 20261011082745, as of 2026-10-11). Authored by lane DRIFT-1 with no database access; the coordinator's executor applies it (two-track policy, CLAUDE.md
 -- standing rule 3). UNLIKE migration 384 THIS ONE CHANGES PRODUCTION: it creates up to five indexes. The tables are small (intelligence_summaries
 -- 2,040 rows and intelligence_changes 0 rows at AUD-AT-1, 2026-10-08; assumption_register has no row count recorded in the tree), so each
 -- CREATE INDEX is instant and takes its short lock without CONCURRENTLY (which cannot run in a transaction). Idempotent: IF NOT EXISTS, so a second
