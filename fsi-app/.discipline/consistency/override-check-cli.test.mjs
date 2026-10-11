@@ -21,7 +21,10 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DISCIPLINE = resolve(HERE, '..');
-const TRAILER = (check, rationale, deadline) => `Consistency-Override: ${check} (rationale: ${rationale}; remediation-deadline: ${deadline})`;
+// The rationale must name the check id or its invariant (override-check.mjs rationaleNamesInvariant), so the helper does.
+// The rationale must also be a sentence of 20 characters and 3 words, and the deadline today to +30 days (MAX_DEADLINE_DAYS).
+const TRAILER = (check, rationale, deadline) => `Consistency-Override: ${check} (rationale: ${check} ${rationale} pending the followup lane; remediation-deadline: ${deadline})`;
+const SOON = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 // The stub reads its verdict from STUB_RUNNER: "clean", "error" or "drift:C3,C4". It prints the drift lines the real runner
 // writes to stderr (`  [C3] <kind>`) and exits 1, exactly the surface the CLI parses.
@@ -93,7 +96,7 @@ test('ATTACK: drift with no trailer fails, naming the check', () => {
 });
 
 test('a valid trailer (non-empty rationale, deadline in the future) passes the same drift', () => {
-  const r = runCli({ stub: 'drift:C3', messages: [`work\n\n${TRAILER('C3', 'known gap tracked in a followup', '2099-01-01')}`] });
+  const r = runCli({ stub: 'drift:C3', messages: [`work\n\n${TRAILER('C3', 'known gap tracked in a followup', SOON)}`] });
   assert.equal(r.code, 0, r.out);
   assert.match(r.out, /VALIDLY OVERRIDDEN: C3/);
 });
@@ -103,27 +106,41 @@ test('ATTACK: an expired deadline is not an override', () => {
   assert.equal(r.code, 1, r.out);
 });
 
+test('ATTACK: a rationale that names neither the check nor its invariant is not an override', () => {
+  const r = runCli({ stub: 'drift:C3', messages: [`work
+
+Consistency-Override: C3 (rationale: known gap tracked in a followup; remediation-deadline: ${SOON})`] });
+  assert.equal(r.code, 1, r.out);
+});
+
+test('ATTACK: a deadline more than 30 days out is not an override', () => {
+  const r = runCli({ stub: 'drift:C3', messages: [`work
+
+${TRAILER('C3', 'known gap tracked in a followup', '2099-01-01')}`] });
+  assert.equal(r.code, 1, r.out);
+});
+
 test('ATTACK: an empty rationale is not an override', () => {
-  const r = runCli({ stub: 'drift:C3', messages: [`work\n\nConsistency-Override: C3 (rationale: ; remediation-deadline: 2099-01-01)`] });
+  const r = runCli({ stub: 'drift:C3', messages: [`work\n\nConsistency-Override: C3 (rationale: ; remediation-deadline: ${SOON})`] });
   assert.equal(r.code, 1, r.out);
 });
 
 test('ATTACK: a trailer for a different check does not cover the drift', () => {
-  const r = runCli({ stub: 'drift:C3', messages: [`work\n\n${TRAILER('C4', 'known gap', '2099-01-01')}`] });
+  const r = runCli({ stub: 'drift:C3', messages: [`work\n\n${TRAILER('C4', 'known gap', SOON)}`] });
   assert.equal(r.code, 1, r.out);
   assert.match(r.out, /uncovered: C3/);
 });
 
 test('ATTACK: a partial override fails on the check it does not cover', () => {
-  const r = runCli({ stub: 'drift:C3,C4', messages: [`work\n\n${TRAILER('C3', 'known gap', '2099-01-01')}`] });
+  const r = runCli({ stub: 'drift:C3,C4', messages: [`work\n\n${TRAILER('C3', 'known gap', SOON)}`] });
   assert.equal(r.code, 1, r.out);
   assert.match(r.out, /uncovered: C4/);
-  const both = runCli({ stub: 'drift:C3,C4', messages: [`work\n\n${TRAILER('C3', 'gap a', '2099-01-01')}\n${TRAILER('C4', 'gap b', '2099-01-01')}`] });
+  const both = runCli({ stub: 'drift:C3,C4', messages: [`work\n\n${TRAILER('C3', 'gap a', SOON)}\n${TRAILER('C4', 'gap b', SOON)}`] });
   assert.equal(both.code, 0, both.out);
 });
 
 test('a runner error is exit 2, never a pass and never a drift verdict', () => {
-  const r = runCli({ stub: 'error', messages: [`work\n\n${TRAILER('C3', 'known gap', '2099-01-01')}`] });
+  const r = runCli({ stub: 'error', messages: [`work\n\n${TRAILER('C3', 'known gap', SOON)}`] });
   assert.equal(r.code, 2, r.out);
   assert.match(r.out, /runner ERROR/);
 });
@@ -131,7 +148,7 @@ test('a runner error is exit 2, never a pass and never a drift verdict', () => {
 test('the commit judged is the one named: a trailer on an OLDER commit does not cover --commit=HEAD, and does cover a range containing it', () => {
   const messages = ['root', `first
 
-${TRAILER('C3', 'known gap', '2099-01-01')}`, 'second, no trailer'];
+${TRAILER('C3', 'known gap', SOON)}`, 'second, no trailer'];
   const head = runCli({ stub: 'drift:C3', messages, args: ['--commit=HEAD'] });
   assert.equal(head.code, 1, head.out);
   const onlyLast = runCli({ stub: 'drift:C3', messages, args: ['--range=HEAD~1..HEAD'] });
