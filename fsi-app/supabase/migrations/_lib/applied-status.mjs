@@ -181,3 +181,22 @@ export function headerProblems(text, file, opts = {}) {
 export function ledgerCount({ root = DEFAULT_ROOT } = {}) {
   return parseAppliedInventory(readFileSync(ledgerPathOf(root), "utf8")).length;
 }
+
+/**
+ * MIGTEST-2 (2026-10-11): the lines of a per-migration test that assert the literal pre-apply words. PURE.
+ * A test that asserts `NOT APPLIED` itself is green only until the executor's refresh flips the header, so it is red at
+ * every apply; the header is asserted through headerProblems(), which derives the expected state from APPLIED-MAP.json.
+ * A hit is an `assert.` line carrying the literal that is not a negative assertion (doesNotMatch / notEqual / notStrictEqual).
+ * Test names, comments and prose are not assertions and are not reported.
+ * @param {string} text the test file's text
+ * @returns {{ line: number, text: string }[]}
+ */
+export function literalNotAppliedAssertions(text) {
+  const hits = [];
+  String(text).replace(/\r\n/g, "\n").split("\n").forEach((l, i) => {
+    if (!l.includes("NOT APPLIED")) return;
+    if (!/\bassert\.\w+\(/.test(l) || /\bassert\.(doesNotMatch|notEqual|notStrictEqual|notDeepEqual)\(/.test(l)) return;
+    hits.push({ line: i + 1, text: l.trim().slice(0, 140) });
+  });
+  return hits;
+}
