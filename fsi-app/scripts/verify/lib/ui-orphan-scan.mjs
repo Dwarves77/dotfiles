@@ -33,12 +33,12 @@
 
 /**
  * Parse one `.select("...")` string body into top-level PostgREST select-list entries: bare columns,
- * `alias:column` (alias dropped, `column` kept), and `embed_table ( nested... )` embeds (recursed one
+ * `alias:column` (`column` kept as the bound column, `alias` carried as the prop name the component reads), and `embed_table ( nested... )` embeds (recursed one
  * level so nested field lists are captured too, matching PostgREST's own one-hop-embed shape in practice
  * for this codebase's selects). Splits only on commas at paren-depth 0 so a nested embed's own commas do
  * not fragment the parent list.
  * @param {string} selectBody the raw string between the select("...") quotes
- * @returns {Array<{ column: string, embedTable?: string }>}
+ * @returns {Array<{ column: string, alias?: string, embedTable?: string }>}
  */
 export function parseSelectList(selectBody) {
   const text = String(selectBody ?? '');
@@ -67,9 +67,12 @@ export function parseSelectList(selectBody) {
     // strip a leading "!fk_hint" or "alias:" prefix, and a trailing "::cast" / "(agg)" wrapper, keep the
     // bare identifier, a conservative, low-false-negative parse (a miss just costs a missed pair, never a
     // false orphan, since a name we fail to parse also never enters the UI-selected set).
-    const aliasStrip = part.includes(':') ? part.split(':').pop() : part;
-    const bare = (aliasStrip ?? '').replace(/!\S+/, '').trim().match(/^[a-zA-Z_][a-zA-Z0-9_]*/);
-    if (bare) out.push({ column: bare[0] });
+    // GATE-FIX-2 (audwire1 NOT done row): `alias:column` names the prop the component reads under `alias`; a
+    // `::cast` is not an alias separator (the old split on any ':' read `col::text` as the column `text`).
+    const aliasMatch = part.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:(?!:)\s*([\s\S]+)$/);
+    const aliasStrip = aliasMatch ? aliasMatch[2] : part;
+    const bare = aliasStrip.replace(/!\S+/, '').trim().match(/^[a-zA-Z_][a-zA-Z0-9_]*/);
+    if (bare) out.push(aliasMatch ? { column: bare[0], alias: aliasMatch[1] } : { column: bare[0] });
   }
   return out;
 }
@@ -90,7 +93,7 @@ export function scanUiSelects(uiFiles) {
     let m;
     while ((m = CODE_OP_RE.exec(content)) !== null) {
       const [, table, , body] = m;
-      for (const { column } of parseSelectList(body)) selected.push({ table, column, file });
+      for (const { column, alias } of parseSelectList(body)) selected.push(alias ? { table, column, file, alias } : { table, column, file });
     }
     RPC_CALL_RE.lastIndex = 0;
     while ((m = RPC_CALL_RE.exec(content)) !== null) rpcCalls.push({ name: m[1], file });
