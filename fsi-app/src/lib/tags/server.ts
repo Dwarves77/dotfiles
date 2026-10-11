@@ -68,11 +68,13 @@ export async function resolveItemUuid(
   itemId: string
 ): Promise<string | null> {
   if (UUID_RE.test(itemId)) return itemId;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("intelligence_items")
     .select("id")
     .eq("legacy_id", itemId)
     .maybeSingle();
+  // null means "no such item" (the routes answer 404); a failed read is not that, so it throws (the routes answer 500).
+  if (error) throw new Error(`resolveItemUuid: intelligence_items read failed: ${error.message}`);
   return (data as { id?: string } | null)?.id ?? null;
 }
 

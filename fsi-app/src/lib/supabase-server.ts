@@ -152,11 +152,14 @@ async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
   const supabase = getSupabase();
   // Bound: only the most recent ~100 entries; WhatChanged renders only the
   // newest diffs and the table grows monotonically.
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("item_changelog")
     .select("change_date, change_type, field, previous_value, new_value, impact, intelligence_items!inner(id, legacy_id)")
     .order("change_date", { ascending: false })
     .limit(100);
+  // Throw on failure: the callers (fetchDashboardData, loadMapDataPayload) turn it into their empty + _error
+  // payload, rather than the page rendering "nothing changed" over a failed read.
+  if (error) throw new Error(`fetchChangelog: item_changelog read failed: ${describeSupabaseError(error)}`);
 
   const result: Record<string, ChangeLogEntry[]> = {};
   (rows || []).forEach((row: ChangelogQueryRow) => {
@@ -182,11 +185,12 @@ async function fetchDisputes(): Promise<Record<string, Dispute>> {
   const supabase = getSupabase();
   // Bound: only active disputes; the surface only renders these, so
   // limit at 100 to keep the read predictable as the table grows.
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("item_disputes")
     .select("note, disputing_sources, intelligence_items!inner(id, legacy_id)")
     .eq("is_active", true)
     .limit(100);
+  if (error) throw new Error(`fetchDisputes: item_disputes read failed: ${describeSupabaseError(error)}`);
 
   const result: Record<string, Dispute> = {};
   (rows || []).forEach((row: DisputeQueryRow) => {
@@ -220,11 +224,14 @@ async function fetchSupersessions(): Promise<Supersession[]> {
   // rather than falling back to the technical row identifier. Without
   // title, the rail renders the legacy_id (e.g. "ss1", "g2") which is
   // a customer-visible leak.
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("item_supersessions")
     .select("supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id, title), new:intelligence_items!new_item_id(id, legacy_id, title)")
     .order("supersession_date", { ascending: false })
     .limit(500);
+  // Throw on failure (callers: fetchDashboardData, loadMapDataPayload, fetchSettingsData each catch and return
+  // their empty + _error payload): a failed read must not render as "no supersessions".
+  if (error) throw new Error(`fetchSupersessions: item_supersessions read failed: ${describeSupabaseError(error)}`);
 
   const pickTitle = (
     ii: { title?: string | null } | Array<{ title?: string | null }> | null | undefined,
@@ -455,7 +462,10 @@ async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
     // getSourceData() at /app/admin/page.tsx (passing includeAdminOnly=true).
     query = query.eq("admin_only", false);
   }
-  const { data: rows } = await query;
+  const { data: rows, error } = await query;
+  // Throw on failure: fetchSourceData (its only caller) logs it and returns the empty payload, so a failed read
+  // is in the log instead of the admin source list silently rendering as an empty registry.
+  if (error) throw new Error(`fetchSources: sources read failed: ${describeSupabaseError(error)}`);
   // SOURCE_COLUMNS is a dynamically-built string, not a literal, so supabase-js's `.select()`
   // overload can't infer a row shape from it and falls back to `GenericStringError[]`, a known
   // supabase-js limitation, not a real type mismatch (the column list is static and reviewed above).
@@ -1440,7 +1450,11 @@ export async function fetchWorkspaceAggregates(
       "get_workspace_intelligence_aggregates",
       { p_org_id: orgId }
     );
-    if (error || !data) return EMPTY_AGGREGATES;
+    if (error) {
+      console.warn("[supabase-server] get_workspace_intelligence_aggregates failed (counts render as zero):", describeSupabaseError(error));
+      return EMPTY_AGGREGATES;
+    }
+    if (!data) return EMPTY_AGGREGATES;
 
     // The RPC returns a single jsonb scalar; PostgREST surfaces it as the
     // raw object. Defensive coercion: missing keys default to 0 / {} so
@@ -2041,11 +2055,14 @@ async function readCitedSourcesForItem(supabase: SupabaseClient, itemId: string)
       if (s && typeof s.id === "string" && typeof s.url === "string" && s.url) byId.set(s.id, s);
     }
     if (byId.size === 0) return undefined;
-    const { data: biasRows } = await supabase
+    const { data: biasRows, error: biasError } = await supabase
       .from("source_bias_tags")
       .select("source_id, dimension, tag, confidence")
       // fitness-allow: F39 (byId.size <= CITED_SOURCES_CAP, bounded by the .limit() above)
       .in("source_id", [...byId.keys()]);
+    // A failed bias read must not present the sources as "no bias tags": the whole grid reads as unavailable
+    // (undefined, which the catch below logs), so the Sources grid keeps what the brief says.
+    if (biasError) throw new Error(`source_bias_tags read failed: ${describeSupabaseError(biasError)}`);
     const bias = groupBiasTagsBySource((biasRows ?? []) as BiasTagQueryRow[]);
     return [...byId.values()].map((s) => ({ url: s.url as string, tier: customerSourceTier(s), biasTags: bias.get(s.id) ?? [] }));
   } catch (e) {
@@ -3784,12 +3801,16 @@ async function fetchIntelligenceItemSectionsUncached(
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let uuid: string | null = uuidRe.test(uiId) ? uiId : null;
     if (!uuid) {
-      const { data: byLegacy } = await supabase
+      const { data: byLegacy, error: byLegacyError } = await supabase
         .from("intelligence_items")
         .select("id")
         .eq("legacy_id", uiId)
         .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
         .maybeSingle();
+      if (byLegacyError) {
+        console.warn("fetchIntelligenceItemSections legacy_id resolve error:", describeSupabaseError(byLegacyError));
+        return [];
+      }
       uuid = (byLegacy as { id: string } | null)?.id ?? null;
     }
     if (!uuid) return [];
@@ -3944,6 +3965,24 @@ async function fetchIntelligenceItemUncached(
       // listed source it can match by canonical url, not only the item's own. Same parallel batch.
       readCitedSourcesForItem(supabase, row.id),
     ]);
+
+    // The five detail reads and the bias read decorate an item that was read successfully, and this result is
+    // cached, so a failed one is logged (with its table) and that block renders empty; throwing here would
+    // cache a not-found for the whole item over one failed timeline read.
+    type DetailReadError = { message?: string; details?: string | null; hint?: string | null; code?: string | null } | null;
+    const detailReadResults: Array<[string, { error?: DetailReadError }]> = [
+      ["item_timelines", timelinesResult],
+      ["item_changelog", changesResult],
+      ["item_disputes", disputeResult],
+      ["item_cross_references", xrefResult],
+      ["item_supersessions", supResult],
+      ["source_bias_tags", biasResult],
+    ];
+    for (const [table, result] of detailReadResults) {
+      if (result.error) {
+        console.warn(`[supabase-server] fetchIntelligenceItem ${table} read failed (that block renders empty): ${describeSupabaseError(result.error)}`);
+      }
+    }
 
     const timelineRows = timelinesResult.data;
     const changeRows = changesResult.data;
@@ -4210,7 +4249,11 @@ async function readThemeBriefs(supabase: SupabaseClient): Promise<Array<Record<s
   const structured = await supabase.from("theme_briefs").select(`${THEME_BRIEF_BASE_COLUMNS}, sections, member_ids`);
   if (!structured.error) return (structured.data ?? []) as Array<Record<string, unknown>>;
   const base = await supabase.from("theme_briefs").select(THEME_BRIEF_BASE_COLUMNS);
-  return base.error ? [] : ((base.data ?? []) as Array<Record<string, unknown>>);
+  if (base.error) {
+    console.warn(`[supabase-server] theme_briefs read failed (no theme briefs shown): ${describeSupabaseError(base.error)}`);
+    return [];
+  }
+  return (base.data ?? []) as Array<Record<string, unknown>>;
 }
 
 /** Prior-to-new theme id pairs of the latest finished analysis run (migration 276 theme_delta). */
@@ -4221,7 +4264,11 @@ async function readThemeLineage(supabase: SupabaseClient) {
     .eq("status", "ok")
     .order("started_at", { ascending: false })
     .limit(1);
-  if (error || !data?.length) return [];
+  if (error) {
+    console.warn(`[supabase-server] connection_theme_runs read failed (theme lineage is left out): ${describeSupabaseError(error)}`);
+    return [];
+  }
+  if (!data?.length) return [];
   return lineageFromThemeDelta((data[0] as { theme_delta: object | null }).theme_delta);
 }
 
@@ -4237,7 +4284,10 @@ async function readVerifiedItemsByIds(supabase: SupabaseClient, ids: string[]) {
       .eq("provenance_status", "verified")
       // fitness-allow: F39 (chunked in 200-id slices, bounded per chunk, not corpus-scale)
       .in("id", unique.slice(i, i + 200));
-    if (error) continue;
+    if (error) {
+      console.warn(`[supabase-server] readVerifiedItemsByIds chunk read failed (those items are left out): ${describeSupabaseError(error)}`);
+      continue;
+    }
     rows.push(...((data ?? []) as typeof rows));
   }
   return rows;
@@ -4272,12 +4322,14 @@ export async function fetchCrossPageForItem(
 ): Promise<CrossPageAnalysis> {
   const empty: CrossPageAnalysis = { intersectionSummary: null, theme: null, inferences: null };
   try {
-    const { data: self } = await supabase
+    const { data: self, error: selfError } = await supabase
       .from("intelligence_items")
       .select("id, intersection_summary")
       .eq(itemIdColumn(itemUiId), itemUiId)
       .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
       .maybeSingle();
+    // Caught by the outer catch below, which logs it and shows nothing (this function never throws).
+    if (selfError) throw new Error(`intelligence_items read failed: ${describeSupabaseError(selfError)}`);
     if (!self) return empty;
     // Inferences are NOT read here (lane DFIX-2, register 18). This function runs inside the 300 s item-scoped
     // cache entry, so an inference written or withdrawn would show up to five minutes late. They are read per
@@ -4285,7 +4337,9 @@ export async function fetchCrossPageForItem(
     const inferences: CrossPageAnalysis["inferences"] = null;
     const summary = typeof self.intersection_summary === "string" && self.intersection_summary.trim() ? self.intersection_summary.trim() : null;
     try {
-      const { data: themes } = await supabase.from("connection_themes").select(THEME_COLUMNS);
+      const { data: themes, error: themesError } = await supabase.from("connection_themes").select(THEME_COLUMNS);
+      // Caught by the catch below, which logs it and shows the summary only.
+      if (themesError) throw new Error(`connection_themes read failed: ${describeSupabaseError(themesError)}`);
       const theme = findThemeForItem(self.id, themes ?? []);
       if (!theme) return { intersectionSummary: summary, theme: null, inferences };
       const [briefs, lineage, members] = await Promise.all([
@@ -4320,12 +4374,14 @@ export async function fetchFreshInferencesForItem(
   itemUiId: string
 ): Promise<CrossPageAnalysis["inferences"]> {
   try {
-    const { data: self } = await supabase
+    const { data: self, error: selfError } = await supabase
       .from("intelligence_items")
       .select("id")
       .eq(itemIdColumn(itemUiId), itemUiId)
       .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
       .maybeSingle();
+    // Caught by the catch below, which logs it and shows no inferences (this function never throws).
+    if (selfError) throw new Error(`intelligence_items read failed: ${describeSupabaseError(selfError)}`);
     if (!self) return null;
     return await readCustomerInferences(supabase, self.id, async (ids) =>
       citedItemsWithHrefs(await readVerifiedItemsByIds(supabase, ids))
@@ -4734,7 +4790,7 @@ export async function fetchWatchlist(
       // Absence convention for the timeline cell, same as any item with no milestones).
       const columns = "id, legacy_id, title, jurisdictions, priority, item_type, tags, transport_modes, source_id, compliance_deadline";
       // PostgrestFilterBuilder is thenable but not a Promise, so PromiseLike.
-      const lookups: Array<PromiseLike<{ data: unknown }>> = [];
+      const lookups: Array<PromiseLike<{ data: unknown; error: { message?: string } | null }>> = [];
       if (legacyIds.length > 0) {
         lookups.push(
           supabase
@@ -4757,6 +4813,8 @@ export async function fetchWatchlist(
       }
       const responses = await Promise.all(lookups);
       for (const resp of responses) {
+        // Re-raised like every failed read in this function (see the catch below): a partial title lookup must not be cached.
+        if (resp.error) throw new Error(`fetchWatchlist: intelligence_items title lookup failed: ${describeSupabaseError(resp.error)}`);
         for (const it of ((resp.data || []) as Array<{
           id: string;
           legacy_id: string | null;
@@ -4801,11 +4859,12 @@ export async function fetchWatchlist(
     {
       const itemSourceIds = Array.from(new Set(Array.from(itemMeta.values()).map((m) => m.sourceId).filter((id): id is string => !!id)));
       if (itemSourceIds.length > 0) {
-        const { data: tierRows } = await supabase
+        const { data: tierRows, error: tierError } = await supabase
           .from("sources")
           .select("id, base_tier, effective_tier, tier_override")
           // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
           .in("id", itemSourceIds);
+        if (tierError) throw new Error(`fetchWatchlist: sources tier lookup failed: ${describeSupabaseError(tierError)}`);
         for (const s of (tierRows || []) as Array<{ id: string; base_tier: number | null; effective_tier: number | null; tier_override: number | null }>) {
           itemSourceTierById.set(s.id, customerSourceTier(s));
         }
@@ -4817,11 +4876,12 @@ export async function fetchWatchlist(
       .map((r) => r.item_id);
     const sourceLabels = new Map<string, { name: string; jurisdiction: string | null }>();
     if (sourceIds.length > 0) {
-      const { data: srcs } = await supabase
+      const { data: srcs, error: srcsError } = await supabase
         .from("sources")
         .select("id, name, jurisdictions")
         // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("id", sourceIds);
+      if (srcsError) throw new Error(`fetchWatchlist: sources name lookup failed: ${describeSupabaseError(srcsError)}`);
       for (const s of (srcs || []) as Array<{
         id: string;
         name: string;
@@ -4845,11 +4905,12 @@ export async function fetchWatchlist(
       .map((r) => r.item_id);
     const marketSeriesLabels = new Map<string, { label: string }>();
     if (marketSeriesIds.length > 0) {
-      const { data: series } = await supabase
+      const { data: series, error: seriesError } = await supabase
         .from("market_series")
         .select("id, label")
         // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("id", marketSeriesIds);
+      if (seriesError) throw new Error(`fetchWatchlist: market_series label lookup failed: ${describeSupabaseError(seriesError)}`);
       for (const s of (series || []) as Array<{ id: string; label: string }>) {
         marketSeriesLabels.set(s.id, { label: s.label });
       }
@@ -4866,11 +4927,12 @@ export async function fetchWatchlist(
     );
     const adderNames = new Map<string, string>();
     if (adderIds.length > 0) {
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, full_name")
         // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("id", adderIds);
+      if (profilesError) throw new Error(`fetchWatchlist: profiles name lookup failed: ${describeSupabaseError(profilesError)}`);
       for (const p of (profiles || []) as Array<{ id: string; full_name: string | null }>) {
         if (p.full_name) adderNames.set(p.id, p.full_name);
       }
@@ -4946,7 +5008,11 @@ export async function fetchCoverageGaps(
       query = query.overlaps("sector_affinity", activeSectors);
     }
     const { data, error } = await query;
-    if (error || !data) return [];
+    if (error) {
+      console.warn("[supabase-server] fetchCoverageGaps read failed (the widget renders its empty state):", describeSupabaseError(error));
+      return [];
+    }
+    if (!data) return [];
 
     const order = { high: 0, medium: 1, low: 2 } as const;
     type Row = {

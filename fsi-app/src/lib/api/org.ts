@@ -101,6 +101,7 @@ export async function requireOrgWriter(
     response: NextResponse.json({ error: "User has no organization membership" }, { status: 403 }),
   };
   if (!orgId) return notAMember;
+  // fitness-allow: F72 (fail-closed: a failed membership read leaves data null, so the check below returns the not-a-member 403 and no write proceeds)
   const { data, error } = await supabase
     .from("org_memberships")
     .select("org_id, role")
@@ -147,13 +148,19 @@ export async function resolveOrgIdFromAuthenticatedClient(
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;
   const userId = data.claims.sub;
-  const { data: membership } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from("org_memberships")
     .select("org_id")
     .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+  if (membershipError) {
+    // Fail-soft contract (see resolveOrgIdFromCookies): the caller renders its public view. The failure is
+    // logged so a failed read is told apart in the log from a user who really has no membership.
+    console.warn(`[api/org] resolveOrgIdFromAuthenticatedClient membership read failed (caller will see no-membership): ${membershipError.message}`);
+    return null;
+  }
   return membership?.org_id ?? null;
 }
 
@@ -241,13 +248,18 @@ export async function resolveViewerIdentityFromAuthenticatedClient(
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return EMPTY_VIEWER_IDENTITY;
   const userId = data.claims.sub as string;
-  const { data: membership } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from("org_memberships")
     .select("org_id")
     .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+  if (membershipError) {
+    // Fail-soft contract (see below): the userId is still known, the org is not. Logged, never silent.
+    console.warn(`[api/org] resolveViewerIdentityFromAuthenticatedClient membership read failed (caller will see no-membership): ${membershipError.message}`);
+    return { userId, orgId: null };
+  }
   return { userId, orgId: membership?.org_id ?? null };
 }
 

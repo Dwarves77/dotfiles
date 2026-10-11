@@ -54,8 +54,12 @@ export async function loadCommunityShellContext(
   user: Pick<User, "id" | "email">,
   opts: { regionCountsArgs?: Record<string, unknown> } = {}
 ): Promise<CommunityShellContext> {
-  const [{ data: membershipsRaw }, { data: invitationsRaw }, { data: topicsRaw }, { data: regionRows }] =
-    await Promise.all([
+  const [
+    { data: membershipsRaw, error: membershipsError },
+    { data: invitationsRaw, error: invitationsError },
+    { data: topicsRaw, error: topicsError },
+    { data: regionRows, error: regionRowsError },
+  ] = await Promise.all([
       supabase
         .from("community_group_members")
         .select(
@@ -79,6 +83,12 @@ export async function loadCommunityShellContext(
       // browse passes { p_privacy: "public" } (public-only counts); every other page counts all groups
       opts.regionCountsArgs ? supabase.rpc("community_region_counts", opts.regionCountsArgs) : supabase.rpc("community_region_counts"),
     ]);
+  // The contract is throw-on-failure: a failed read must not render as "no groups", "no invitations", "no topics"
+  // or zero region counts. The six /community/* pages that call this let the throw reach Next's error boundary.
+  if (membershipsError) throw new Error(`loadCommunityShellContext: group memberships read failed: ${membershipsError.message}`);
+  if (invitationsError) throw new Error(`loadCommunityShellContext: pending invitations read failed: ${invitationsError.message}`);
+  if (topicsError) throw new Error(`loadCommunityShellContext: owned topics read failed: ${topicsError.message}`);
+  if (regionRowsError) throw new Error(`loadCommunityShellContext: community_region_counts failed: ${regionRowsError.message}`);
 
   // community_groups is a to-one embed (join on group_id), but the Supabase client's generated type
   // infers every embed as an array without an explicit FK hint; the one-cast-per-embed pattern below
@@ -143,7 +153,7 @@ export async function loadCommunityShellContext(
 
   // SEC-6 (migration 375): the flag is not selectable; it comes from the is_platform_admin rpc. This is a display
   // gate for the shell, so an rpc error reads as not-admin (the admin routes keep their own fail-closed gates).
-  const [{ data: profile }, adminRead] = await Promise.all([
+  const [{ data: profile, error: profileError }, adminRead] = await Promise.all([
     supabase
       .from("profiles")
       .select("name:full_name, headshot_url:avatar_url")
@@ -151,12 +161,14 @@ export async function loadCommunityShellContext(
       .maybeSingle(),
     readOwnPlatformAdmin(supabase),
   ]);
-  const { data: orgRow } = await supabase
+  if (profileError) throw new Error(`loadCommunityShellContext: profile read failed: ${profileError.message}`);
+  const { data: orgRow, error: orgRowError } = await supabase
     .from("org_memberships")
     .select("organizations(name)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
+  if (orgRowError) throw new Error(`loadCommunityShellContext: employer read failed: ${orgRowError.message}`);
   const employer = (orgRow?.organizations as { name?: string } | null)?.name ?? "";
 
   return {

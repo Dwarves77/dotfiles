@@ -68,7 +68,7 @@ function debouncedSave(orgId: string | null, state: SettingsState) {
   saveTimeout = setTimeout(async () => {
     try {
       const supabase = createSupabaseBrowserClient();
-      await supabase
+      const { error } = await supabase
         .from("workspace_settings")
         .update({
           home_sections: {
@@ -89,8 +89,12 @@ function debouncedSave(orgId: string | null, state: SettingsState) {
           },
         })
         .eq("org_id", orgId);
-    } catch {
-      // Silent fail — settings will persist in local state
+      if (error) {
+        // Best-effort by design: the settings stay in local state. The failed save is logged, never silent.
+        console.warn(`[settingsStore] workspace_settings save failed (settings stay in local state only): ${error.message}`);
+      }
+    } catch (e) {
+      console.warn(`[settingsStore] workspace_settings save threw (settings stay in local state only): ${e instanceof Error ? e.message : String(e)}`);
     }
   }, 1000);
 }
@@ -202,11 +206,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   loadFromWorkspace: async (orgId: string) => {
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("workspace_settings")
         .select("home_sections, default_export_format, alert_config, default_filters")
         .eq("org_id", orgId)
         .single();
+
+      // PGRST116 is .single() finding no row: a workspace with no settings yet, which loads the defaults below.
+      // Any other error is a failed read: the defaults are shown for this session, and orgId stays unset so no
+      // save can overwrite the stored row with those defaults.
+      if (error && error.code !== "PGRST116") {
+        console.warn(`[settingsStore] workspace_settings read failed (defaults shown, saves held so they cannot overwrite the stored row): ${error.message}`);
+        set({ orgId: null, loaded: true });
+        return;
+      }
 
       if (data) {
         // workspace_settings' three jsonb columns, typed to exactly the shape this function reads
@@ -241,8 +254,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       } else {
         set({ orgId, loaded: true });
       }
-    } catch {
-      set({ orgId, loaded: true });
+    } catch (e) {
+      console.warn(`[settingsStore] workspace_settings read threw (defaults shown, saves held so they cannot overwrite the stored row): ${e instanceof Error ? e.message : String(e)}`);
+      set({ orgId: null, loaded: true });
     }
   },
 }));
