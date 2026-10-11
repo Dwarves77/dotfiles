@@ -77,7 +77,6 @@ export const PENDING_SCRUB = {
   'design_handoff_2026-05/regulations.html': { lines: 1, reason: OWED + ' (sample username in the artboard)' },
   'design_handoff_2026-05/research.html': { lines: 1, reason: OWED + ' (sample username in the artboard)' },
   'docs/inventories/migrations.md': { lines: 2, reason: OWED + ' (generated page: its rows copy the subject line of migrations 137 and 138, so it is regenerated after those two are scrubbed)' },
-  'fsi-app/STATUS.md': { lines: 2, reason: OWED + ' (historical status file: a home path and an email)' },
   'fsi-app/supabase/migrations/048_integrity_flags_platform.sql': { lines: 1, reason: OWED + ' (SQL comment in an applied migration)' },
   'fsi-app/supabase/migrations/075_profiles_consolidation_phase1.sql': { lines: 1, reason: OWED + ' (SQL comment in an applied migration)' },
   'fsi-app/supabase/migrations/077_rpc_membership_checks.sql': { lines: 3, reason: OWED + ' (SQL comments in an applied migration)' },
