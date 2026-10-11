@@ -1,8 +1,3 @@
-// Route-level loading boundary for /research (perf lane, 2026-09-03,
-// docs/audits/perf-load-times-2026-09-03.md §6 "loading.tsx per route" item).
-// Shape mirrors ResearchLedger's own section order (masthead, tiles, finding
-// rows) — reuses the SAME cl-res-tiles / cl-row classes the real ledger
-// renders, so layout does not jump.
 import { skeletonBox as box, SkeletonPage } from "@/components/ui/skeleton-page";
 
 export default function Loading() {

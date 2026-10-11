@@ -1,32 +1,3 @@
-// region-grid.mjs — the ONE computation home for the Operations region x dimension grid.
-// PURE: no React, no DOM, no DB, no npm. Consumed by RegionDimensionMatrix.tsx (renders it) and
-// OperationsLedger.tsx (its coverage rail reads the same numbers), so the surface cannot show two
-// different coverage truths for one page.
-//
-// WHY THIS EXISTS. Spec 04 §10 records two contradictory truths on this surface: the ledger
-// recomputed dimension coverage from raw facts while `region_dimension_coverage` was fetched,
-// threaded through the page, and consumed only by a console.log. Separately, D1 (regulatory
-// feasibility) has ZERO rows in `regional_data_facts` — it is derived from regulation cross-references
-// — so counting it in the same coverage figure as the five sourced dimensions mixes two populations
-// silently. ADR-013's rule that a population count must state its predicate is the same discipline.
-//
-// THE RULE THIS ENCODES: every number leaves here carrying its BASIS. `coverage.basis` is
-// 'sourced-facts' or 'cross-references', never blank, and the two are never summed into one figure.
-//
-// LAYER 2 (WO-9's deferred half, landed here 2026-08-30): migration 267 added the full number
-// envelope (value_numeric, unit, currency, derivation, origin_class, ...) to `regional_data_facts` —
-// see src/lib/contracts/provenance-envelope.mjs. `isEnvelopedFact` below is the ONE gate deciding
-// whether a fact row gets the indexed numeric treatment or the original free-text prose treatment;
-// `indexAgainstBase` is the ONE place a cross-region index is computed. Both are pure and exported so
-// RegionDimensionMatrix.tsx never re-derives the gate itself — a second inline check is how the two
-// truths this file exists to prevent happen again, one layer up.
-//
-// LIVE STATE 2026-08-30 (rule 0.15, re-read this session against kwrsbpiseruzbfwjpvsp): all 75 rows are
-// still legacy free text — value_numeric IS NOT NULL on 0 of 75 (both WO-17 producers are kill-switched
-// off, ENABLED=false). The legacy prose path below is therefore the path that actually renders live
-// today and must not regress; the enveloped path is proven by unit tests against constructed fixtures,
-// not yet by any live row.
-
 import { ORIGIN_CLASS } from "../contracts/vocabularies.mjs";
 import { DERIVATION, roundToSampleSupport } from "../contracts/envelope.mjs";
 

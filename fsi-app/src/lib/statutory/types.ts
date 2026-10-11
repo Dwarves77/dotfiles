@@ -1,26 +1,3 @@
-// types.ts — Layer 2 of spec §4's four-layer statutory/estimate isolation, for THIS lane's one formula
-// (docs/specs/08-flywheel-design.md §4 Layer 2). Lane DP-SURF, system-completion train, 2026-09-02.
-//
-// PLAIN RELATIVE IMPORTS, NO `@/` ALIAS — matches src/lib/propagation/'s own convention (see that
-// directory's types.ts header for the full reasoning: Node-native type stripping, no jiti, no bundler).
-//
-// ONE HOME, NOT A SECOND DEFINITION. `Contractable`/`NonContractable`/`StatutoryInput`/`StatutoryResult`
-// already exist in `src/lib/propagation/types.ts` (Lane DP-ENGINE, same train) — THIS file imports and
-// re-exports them rather than re-declaring the vocabulary a second time (the exact "one canonical
-// function/type, never a second drift-prone reimplementation" doctrine ADR-024 states for entity identity,
-// applied here to the statutory type barrier). What THIS file adds is the part that did not exist yet:
-// `computeStatutory<F>()` itself — propagation/types.ts documents its SHAPE (spec §4's own illustrative
-// signature) but a shape is not an implementation, and no formula existed in this train before this lane.
-//
-// THE BARRIER, CONCRETELY. `StatutoryInput.derivation` is typed `Contractable` (propagation/types.ts).
-// `computeStatutory()`'s `inputs` parameter is `Record<InputKeyOf<F>, StatutoryInput>`, so a caller passing
-// an input whose `derivation` literal is `"modelled"`/`"estimated"`/`"interpolated"` (a `NonContractable`)
-// does not TYPE-CHECK — see `types.contractable-barrier.check.ts` in this same directory for the compiled
-// proof (a `// @ts-expect-error` case `tsc --noEmit` fails on if the barrier is ever weakened). This is a
-// COMPILE-TIME barrier only: a plain-JS caller with no type-checker can still construct a bad object at
-// runtime, which is exactly why Layer 3 (migration 286's `assert_statutory_purity()` trigger) exists as the
-// DB-level backstop — a single mistake at any one layer is caught by another (spec §4's own framing).
-
 import type { Contractable, NonContractable, StatutoryInput, StatutoryResult, AsOfTriple } from "../propagation/types.ts";
 export type { Contractable, NonContractable, StatutoryInput, StatutoryResult, AsOfTriple };
 

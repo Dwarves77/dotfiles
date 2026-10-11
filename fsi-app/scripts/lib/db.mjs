@@ -1,25 +1,3 @@
-// SHARED-WRITER: intelligence_items
-/**
- * Guarded write helper -- the PATH OF LEAST RESISTANCE for script row-mutations.
- *
- * Discipline rule 015 points here. The raw service-role *write* client is intentionally NOT
- * exported, so reaching for a raw `.update()`/`.delete()` takes more effort than using these -- * expedience routes INTO the guarded path, not around it (the same expedience that bypassed
- * /api/agent/run will otherwise bypass an opt-in helper).
- *
- * Every write:
- *   1. REQUIRES a governing-skill cite ({ skill, reason }) -- refuses to run without it.
- *   2. SNAPSHOTS the prior row state to scripts/_snapshots/ BEFORE mutating (reversibility -- the
- *      reason a "restore from change record" was impossible: nothing captured prior values).
- *   3. Then mutates and returns the count + snapshot path.
- *
- * Reads are routine/unguarded -- only WRITES are gated. Caller must have loaded env
- * (loadLocalEnvFile from ./env-file.mjs, the one loader) with NEXT_PUBLIC_SUPABASE_URL +
- * SUPABASE_SERVICE_ROLE_KEY first.
- *
- * Residual (named honestly): an uncommitted script that constructs its own createClient and writes
- * raw is irreducible without a gate/credential removal (excluded). Rule 015 catches it at commit;
- * review backstops the rest.
- */
 import { mkdirSync, appendFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

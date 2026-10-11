@@ -1,24 +1,3 @@
-// r14-held-producer-cli.mjs, the shared CLI shell for an R14-held fixture/dry-only producer (CLAUDE.md
-// standing rule/operator ruling 2026-09-25: "we are NOT updating the data on the site, we are building
-// the tools that manage that data first"). Extracted (lane ETS-PROXY, 2026-09-28, F45 duplicate-code
-// gate) from state-cost-facts-producer.mjs and carrier-ets-surcharge-producer.mjs, which had grown a
-// near-identical `--apply` refusal message and harness-run-artifact builder shape, never a second,
-// drifting copy of the same R14 enforcement text and artifact plumbing.
-//
-// WHAT STAYS PER-PRODUCER (deliberately NOT extracted here): the actual candidate set, grounding,
-// row-building, and planning logic, that is each producer's own business logic and the whole reason F27
-// requires a producer-specific composition proof. This module only owns the CLI SHELL every R14-held
-// producer wraps that logic in.
-//
-// PLAIN ESM. Filesystem-only (writeRunArtifact/claimRunId/hashHarnessVersion, imported directly below,
-// same real implementation every producer used to pass in by hand), no network, no DB.
-//
-// Coordinator follow-up (2026-09-28, F45): the two producers' own `runR14HeldFixtureCli` CALL SITES were
-// STILL duplicating six identical plumbing-function keys (resolvePathFn/pathToFileURLFn/mkdirSyncFn/
-// claimRunIdFn/hashHarnessVersionFn/writeRunArtifactFn), because every real caller always passes the SAME
-// node-builtin/run-artifact.mjs implementations, never a different one. This module now imports and
-// defaults them itself; a caller only overrides via `deps` when it genuinely needs to (a test).
-
 import { resolve as resolvePath } from "node:path";
 import { pathToFileURL } from "node:url";
 import { mkdirSync } from "node:fs";

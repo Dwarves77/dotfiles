@@ -1,24 +1,3 @@
-/**
- * pickCurrentStepIndex / formatTrajectoryStep -- the pure logic behind the Exposure card's
- * Trajectory cell for regulation-family items (task 2.3, brief-chain-build-plan-2026-09-11,
- * migration 316 intelligence_items.requirement_trajectory). Factored into its own plain .ts file,
- * no JSX, so this can be unit-tested directly via node's native type-stripping (same convention
- * milestone-timeline-classify.ts establishes for MilestoneTimeline.tsx: keep the decision logic
- * import-portable, leave only JSX assembly in the .tsx). src/components/detail/
- * RequirementTrajectory.tsx is the one caller of both functions below.
- *
- * Which step gets bolded (the mock, docs/design/handoff-2026-09-06/"Caros Ledge UI System.dc.html"
- * regulation Exposure card, bolds "70% (Sep 30 2026)" -- the same date its own timeline callout
- * elsewhere on the page tags "UPCOMING"):
- *   - The first step whose parsed date is on or after `now` is the imminent milestone -> bold it.
- *   - If every parseable date has already passed, the trajectory is complete -> bold the last
- *     parseable step (the requirement level currently in force).
- *   - If no step's date parses, bold nothing (-1) rather than guess.
- *
- * A step's `date` is a free-form string (RequirementTrajectoryJSON, src/lib/agent/parse-output.ts,
- * only requires it to be a string, not ISO), so parsing is honest-best-effort, never asserted.
- */
-
 interface RequirementTrajectoryStepLike {
   date: string;
   value: string;

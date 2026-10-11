@@ -1,19 +1,3 @@
-// POST /api/admin/sources/commit-tier-change — Sprint 4 task 1.15 (UNVERIFIED-PENDING-RUNTIME)
-//
-// Commits an operator-decided tier (gated on the operator tick — the authority,
-// not the Haiku recommendation). For SEEDED sources it updates sources.base_tier
-// directly. For PROVISIONAL sources, promotion-to-sources owns tier assignment,
-// so this endpoint defers to /api/admin/sources/promote (the ProvisionalReviewCard
-// approve flow) rather than writing a provisional row's tier in place.
-//
-// Body: { source_id: string, tier: number, kind: "seeded" | "provisional" }
-//
-// A source carrying a tier_override is refused with 409 (G7-TIER): revert via sources/[id]/tier-override.
-//
-// ADDITIVE-ONLY note: a base_tier UPDATE on a sources row is an operator-driven
-// curation write (Phase 1.5), not a Block-1 corpus mutation — it does not flip
-// any intelligence_items provenance_status. Not run in Block 1.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";

@@ -1,18 +1,3 @@
-// Surface-health evaluation logic for /api/health/surfaces (Wave-β R0.2).
-//
-// PURE module (repo pattern) so the must-have / zero-legal semantics are
-// unit-testable with node --test. The route (src/app/api/health/surfaces/
-// route.ts) gathers the counts; THIS module decides ok/not-ok.
-//
-// Semantics (per the R0.2 dispatch brief):
-//   - MUST-HAVE surfaces (dashboard, regulations, market, research,
-//     operations) are unhealthy when the backing fetch errored OR when the
-//     backing row count is zero — a populated platform whose regulations
-//     surface renders from zero rows is a silent outage, not an empty state.
-//   - ZERO-LEGAL surfaces (community, map, assistant-config,
-//     onboarding-config) are unhealthy only when the fetch errored; zero rows
-//     is an honest empty state (e.g. no community posts yet).
-
 export const MUST_HAVE_SURFACES = [
   "dashboard",
   "regulations",

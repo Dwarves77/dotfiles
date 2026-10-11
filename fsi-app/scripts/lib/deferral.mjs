@@ -1,34 +1,3 @@
-/**
- * DEFERRAL GUARD (write-time validator + read-side validity helper) for the research-or-erase /
- * quarantine-disposition invariant.
- *
- * GOVERNING SKILL: remediation-discipline (Section 2.1 — Quarantine Is an Open Investigation;
- * "Deferral is dispositioning-as-blocked, never silencing").
- *
- * A DEFERRAL is the disposition for a past-bound quarantined item that genuinely cannot be worked
- * yet: the item is dispositioned-as-BLOCKED, with the blocker named and a future resolution event
- * recorded. It is NOT a silence valve — a vague "needs review, until later" deferral is exactly the
- * silent-backlog shape this invariant exists to kill. So the guard is MECHANICAL and STRICT:
- *
- * A valid deferral payload is `{ reason, deferred_until, owner, resolution_event }` where:
- *   - reason            — names the SPECIFIC blocking condition AND references the disposition path the
- *                         item awaits. Enforced: length >= 30 AND matches >= 1 disposition-path keyword.
- *   - deferred_until    — a parseable FUTURE date. Expired deferrals do NOT count (read side re-opens
- *                         the item as undispositioned — the anti-silence self-resurrection property).
- *   - owner             — a non-empty named owner (reject TBD/unknown/empty).
- *   - resolution_event  — a non-empty string naming the checkable event that resolves the block
- *                         (an arbitrary date with no named event is REJECTED).
- *
- * isValidDeferral(payload) -> { ok, error? }  — pure, no date-future check is the only thing it does NOT
- *   re-encode beyond requiring deferred_until parse to a valid FUTURE date (it DOES check future here so
- *   the write path rejects an already-past date at write time; the read side ALSO re-checks future at
- *   audit time because a once-valid deferral expires with the clock).
- * assertValidDeferral(payload) -> throws Error(error) if not ok (the future write path calls this before INSERT).
- */
-
-// Disposition-path keywords. A valid reason must reference at least one — this is what makes the reason
-// say WHICH disposition the item is blocked awaiting (reground/relabel/register/archive/counsel/...),
-// not just "blocked". Case-insensitive substring match.
 const DISPOSITION_PATH_KEYWORDS = [
   "reground",
   "re-ground",

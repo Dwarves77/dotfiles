@@ -1,12 +1,3 @@
-// verbatim-grounding.mjs, the shared ADR-016 / rule 18 verbatim-span grounding check ("a span that is
-// not verbatim in a capture" is refused, never invented). Extracted (lane ETS-PROXY, 2026-09-28, F45
-// duplicate-code gate) from state-cost-facts-envelope.mjs and carrier-ets-surcharge-envelope.mjs, which
-// each carried an identical isVerbatimSpan/groundCandidate pair, never a second, drifting copy of the
-// same grounding rule. Both modules import and re-export from here, unchanged for their own callers.
-//
-// PLAIN ESM, ZERO DEPENDENCIES, no I/O, no clock read, same posture as every other pure module in
-// src/lib/contracts/.
-
 function normaliseWhitespace(s) {
   return String(s ?? "").replace(/\s+/g, " ").trim();
 }

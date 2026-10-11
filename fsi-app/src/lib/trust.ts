@@ -1,14 +1,3 @@
-// ══════════════════════════════════════════════════════════════
-// Source Trust Scoring Engine
-// ══════════════════════════════════════════════════════════════
-//
-// Computes trust scores from metrics and evaluates sources
-// against promotion/demotion criteria.
-//
-// Trust is earned through verified accuracy over time.
-// Citation count gets a source noticed. Accuracy gets it promoted.
-// ══════════════════════════════════════════════════════════════
-
 import type {
   TrustMetrics,
   TrustScore,

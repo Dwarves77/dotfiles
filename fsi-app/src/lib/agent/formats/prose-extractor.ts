@@ -1,10 +1,3 @@
-// src/lib/agent/formats/prose-extractor.ts
-//
-// The ONE section-extractor factory shared by every format (Rule 3 — one way to do each thing). It is
-// the generalisation of the proven extract-research-sections.ts: walk each section heading with the
-// tolerant extractSectionByHeading(), capture its markdown body verbatim, omit absent/empty sections
-// (integrity rule). Every FormatSpec.extract is built from this — no per-format parser forks.
-
 import { extractSectionByHeading, extractSectionByNumber } from "@/lib/agent/extract-sections";
 import type { FormatSpec, SectionDef, SectionRow, GroundingModel } from "@/lib/agent/format-spec";
 

@@ -1,13 +1,3 @@
-// COMMITTED GOLDEN URL CORPUS for the deterministic intake gates (line-read-is-not-verification, RD-14).
-// The permanent class lesson: a deterministic gate ships with a table-driven behavioral corpus, so its
-// contract is PROVEN red-then-green, not line-read. Pure data — no imports — consumed by
-// intake-gates-golden.test.mjs (sourceRole/congruence, urlIsRoot, matchExistingSubject) and referenced by
-// the mint idempotency npmtests. Add a row here when a gate's real behavior needs pinning; never delete a row
-// without recording why (a removed case is lost coverage).
-
-// ── (A) sourceRole + urlIsRoot cases. Each row is one URL with its EXPECTED verdict from BOTH gates, so the
-//    table proves the two gates are DIFFERENT axes: a primary-host homepage is role=primary AND isRoot=true
-//    (the entity-gate still refuses to mint the homepage; source != item). ──
 export const URL_CASES = [
   // portal roots (entity-gate: do NOT mint) — incl. language-prefix + landing-file variants
   { url: "https://eur-lex.europa.eu/", role: "primary", isRoot: true, note: "eur-lex bare root: primary HOST but portal ROOT" },

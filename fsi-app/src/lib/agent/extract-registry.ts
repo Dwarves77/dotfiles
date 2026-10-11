@@ -1,9 +1,3 @@
-// src/lib/agent/extract-registry.ts
-//
-// The format dispatch registry — the single place item_type -> FormatSpec is resolved. sectionBrief
-// (and any surface that needs a format's section list / grounding model) goes through here, so adding
-// or changing a format is a one-line edit, never a switch scattered across the pipeline.
-
 import type { FormatSpec } from "@/lib/agent/format-spec";
 import { regulationSpec } from "@/lib/agent/formats/regulation";
 import { researchSpec } from "@/lib/agent/formats/research";

@@ -1,27 +1,3 @@
-// POST /api/community/invitations/[id]/accept
-//
-// Accept a pending community group invitation.
-//
-// Performs two writes that must succeed together:
-//   1. UPDATE community_group_invitations SET status='accepted'
-//      WHERE id = :id AND invitee_user_id = auth.uid() AND status = 'pending'
-//   2. INSERT community_group_members (group_id, user_id, role='member')
-//
-// Postgres does not give us a single-statement transaction primitive
-// over the REST API; the conventional pattern in this codebase is to
-// run the writes sequentially and roll back manually on the second
-// failure. Step 2 uses the service-role client because RLS on
-// community_group_members.INSERT requires an existing admin (not the
-// invitee). Step 1 is gated by the invitee_user_id = auth.uid() RLS
-// policy on the invitations table, which is the integrity check we
-// trust here.
-//
-// Idempotency: if a membership row already exists, we still accept the
-// invitation (status -> 'accepted') and short-circuit the insert.
-//
-// Auth: cookie session.
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

@@ -1,16 +1,4 @@
 // @ts-check
-// TRANSPORT UNIT (standing dispatch item 6, 2026-07-06) — the fetch-primitive HOLD GATE + canonical-URL
-// pre-fetch cache + per-run fetch telemetry. Pure .mjs (no node_modules) so it imports into BOTH the TS routes
-// and the .mjs runners, and is red-then-green node-testable. The single canonical fetch (canonical-fetch.mjs)
-// calls assertFetchAllowed() at its top, so EVERY fetch is gated by the hold — the mechanical form of the
-// "scrape hold LIVE, zero fetches" constraint (previously enforced only by deleting BROWSERLESS_API_KEY, which
-// fails SILENTLY as a "key not configured" error rather than an explicit, telemetered hold).
-//
-// THE HOLD gates the operator's cadence ruling: while engaged, no fetch runs (seek-more is blocked); when the operator sets
-// the scrape cadence he LIFTS the hold (SCRAPE_HOLD=off) and new site content / seek-more resumes. Default is
-// LIFTED so wiring the gate into the primitive does not change current prod fetch behavior — the hold is an
-// EXPLICIT operator control, engaged with SCRAPE_HOLD∈{1,on,true,engaged}. (The paid build runners ALSO delete
-// BROWSERLESS_API_KEY as belt-and-suspenders; the hold gate is the first-class, observable mechanism.)
 
 import { canonicalizeCitationUrl } from "../agent/url-canon.mjs";
 

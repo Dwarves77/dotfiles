@@ -1,29 +1,3 @@
-/**
- * CouncilMembersRail — side-card showing a small preview of group
- * members for the right rail of /community/[slug]. Server component.
- *
- * Data source (real, schema-backed):
- *   community_group_members (Migration 029) joined to profiles
- *   (Migration 001 + 075 consolidation) for display name + avatar.
- *   Admins/moderators are surfaced first, then up to 6 rows total. RLS
- *   already restricts visibility (members of a group can read other
- *   members' rows). Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles.
- *
- * Why a separate query, not lifted from page state:
- *   /community/[slug]/page.tsx fetches the caller's row via maybeSingle
- *   (just role/starred/muted). Threading a second member-list query
- *   into that file would change page-level data flow; the rail keeps
- *   its own scoped read instead, so this PR's diff to page.tsx stays
- *   to layout-only.
- *
- * Empty / failure modes:
- *   - groupId missing → render null (caller is not on a slug page).
- *   - RLS denies (caller not a member of a private group) → render the
- *     "Members visible to members" empty state.
- *   - DB error → swallow and render the same empty state. The rail is
- *     decorative; we never want it to crash a working group page.
- */
-
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { loadCommunityIdentities } from "@/lib/community/identity.mjs";
 import { Lock } from "lucide-react";

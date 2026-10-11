@@ -1,31 +1,4 @@
 // @ts-check
-// api-transport — the ONE per-host document-API fetch body for federalregister.gov + ecfr.gov (Lane
-// LEDGER-WALLS, 2026-09-04), factored OUT of src/lib/agent/canonical-pipeline.ts's `apiFetchForHost` so
-// BOTH consumers call the SAME code — never a second hand-typed copy (CLAUDE.md "one body" rule):
-//
-//   - canonical-pipeline.ts's `apiFetchForHost` (the agent/grounding pipeline's RD-14 transport ladder,
-//     step (d)) now DELEGATES here after its own scrape-hold gate (`assertFetchAllowed`) passes — that
-//     gate, and the ladder's cache/dedup bookkeeping, stay in canonical-pipeline.ts (they are that
-//     pipeline's own concern, not this module's); only the "make the actual API call and shape the
-//     result" body moved.
-//   - scripts/turns/run-ledger-consume.mjs's buildFetchDoc calls this module DIRECTLY for
-//     federalregister.gov/ecfr.gov document URLs — the ledger-consume family has its own politeness gap
-//     (LEDGER_CONSUME_FETCH_GAP_MS) as its equivalent throttle and does not go through the grounding
-//     pipeline's scrape-hold gate (a different system; ledger-consume candidates are never part of an
-//     item's grounding pool).
-//
-// WHY THIS TRANSPORT EXISTS AT ALL (RD-14, restated for this module's own consumers): federalregister.gov
-// + eCFR return a "Request Access" CAPTCHA wall to a plain scraper on their HTML document pages (see
-// access-wall.mjs's REQUEST_ACCESS_RE — confirmed live, ledger-consume export #5, 2026-09-04: 231 of 231
-// fetched federalregister.gov document rows in that 400-row batch carried the shell), but BOTH hosts
-// publish the SAME content through an official, unauthenticated JSON/XML API. `fetchDocumentApi` is the
-// host-dispatching entry point `apiEndpointFor` (transport-escalation.mjs) already names as the "does this
-// host have an API" predicate — reused here, never re-derived, so the two modules can never disagree on
-// which hosts are API-routed.
-//
-// INJECTABLE `fetchImpl` (default the global `fetch`) so both callers, and this module's own tests, run
-// with no real network. `max` is REQUIRED on every call (ADR-016's "a fetcher without a required cap
-// silently reintroduces a storage cap" discipline, mirrored here rather than defaulted away).
 
 import { htmlToText } from "../text/html-to-text.mjs";
 import { cleanCtl } from "./charset-decode.mjs";

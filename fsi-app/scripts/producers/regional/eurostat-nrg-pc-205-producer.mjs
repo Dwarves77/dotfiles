@@ -1,25 +1,5 @@
 #!/usr/bin/env node
-// eurostat-nrg-pc-205-producer.mjs — WO-17 $0 producer: EU non-household electricity prices
-// (Eurostat dataset nrg_pc_205) into regional_data_facts, envelope-first (never new free text).
-//
-// Usage: node scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs [--apply]
-//   (no flag)   dry run: fetch, parse, compute the upsert plan, print it, write nothing (DEFAULT)
-//   --apply     execute the plan through the guarded write path (scripts/lib/db.mjs)
-//
-// KILL SWITCH — default OFF (WO-17 contract; CLAUDE.md rule 11's "every recurring worker must check a
-// kill switch before doing work"). This is a REVIEWED-CODE-CHANGE gate, not a runtime flag: flipping it
-// shows up in `git diff`, so a scheduled invocation can never silently turn this producer on. It is
-// checked BEFORE any work, including --dry, so "kill switch off" means the producer does nothing at all,
-// not just "does nothing to the database".
-// ARMED 2026-08-30. Was false from authoring until now: Waves 4-7 built this producer, the envelope
-// columns it writes and the matrix layer that renders them, and shipped all three with the producer
-// off, so /operations showed a built location with nothing in it. The producer was not unsafe, it was
-// unrun — the sandbox that authored it cannot reach ec.europa.eu / api.bls.gov (HTTP 000 under the
-// org egress policy), so there was no environment in which it COULD run. It now runs on a schedule
-// from .github/workflows/producers.yml, on a GitHub runner that can reach the source.
-// This flag stays a reviewed-code-change gate, not a runtime flag: flipping it shows in `git diff`,
-// which is what stops a scheduled invocation from ever silently turning a producer on. Setting it
-// true here IS that review. The remaining runtime gate is the workflow's own dry/apply mode.
+
 const ENABLED = true;
 
 // $0, NO KEY: Eurostat's dissemination API is open, unauthenticated (see the parser module header for

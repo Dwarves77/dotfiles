@@ -1,13 +1,3 @@
-// connection-view-model.mjs — flywheel U9 (D1). PURE, no DB, no LLM.
-//
-// Turns raw item_cross_references rows (as widened by fetchIntelligenceItem in supabase-server.ts) into
-// display-ready rows for the connections card on an item's detail page. One home for this mapping so
-// Regulations/Market/Operations/Research render the SAME relationship labels and basis summaries —
-// the drift class this file exists to prevent (see surface-of.mjs's own header for the precedent).
-//
-// GROUNDING GUARANTEE (same moat as discover.mjs): a row's basisSummary is read verbatim from the DB
-// column written by discover.mjs/write-edges.mjs — never invented, never re-derived here.
-
 import { isIntersectionEntry } from "./intersections.mjs";
 import { labelForScenario, labelForComplianceObject, joinLabels } from "./tag-labels.mjs";
 

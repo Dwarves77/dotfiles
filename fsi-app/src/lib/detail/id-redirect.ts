@@ -1,35 +1,3 @@
-/** Where a detail URL addressed by an item's UUID should go: the ONE decision all four `[slug]` routes
- *  (/regulations, /market, /operations, /research) share. Lane REG-REDIRECT, 2026-09-24.
- *
- *  THE DEFECT THIS REPLACES [CONFIRMED by the coordinator, Playwright, 2026-09-24]: each page read the row's
- *  `legacy_id` with the service role and 307-redirected to `/<own surface>/<legacy_id>` whenever one existed.
- *  Nothing asked whether the target would render. loadDetail admits an item only when it is
- *  `provenance_status='verified'` AND its canonical surface is the requested one, so a quarantined or
- *  unverified item (80 rows carry a legacy_id without being verified, SELECT 2026-09-24), or a verified item
- *  requested on the wrong surface, was bounced from its uuid URL into a slug URL that answered "This page
- *  doesn't exist". The live case: d2da85da (quarantined regulation) ->
- *  /regulations/uae-national-net-zero-by-2050-transport-sector-roadmap -> 404.
- *
- *  THE RULE: a uuid URL redirects only to a URL that renders.
- *    - not a uuid                                   -> render (the URL is a slug already)
- *    - lookup failed / no row                        -> render (loadDetail keeps the final say, fail-closed)
- *    - row admissible on no surface (not verified)   -> not-found HERE, at the uuid URL; never a dead slug
- *    - admissible on this surface, has a legacy_id   -> redirect to this surface's slug
- *    - admissible on this surface, no legacy_id      -> render by uuid (never a self-redirect)
- *    - admissible on ANOTHER surface                 -> redirect to that surface's slug (or its uuid URL)
- *
- *  ONE PREDICATE, NOT A SECOND ONE: `admittedSurfaceFor` is loadDetail's own admission, stated once for a raw
- *  row: fetchIntelligenceItemUncached's `provenance_status='verified'` read gate (supabase-server.ts) plus
- *  loadDetailCore's `canonicalSurface === surface` check, where canonicalSurface is canonicalSurfaceForItem
- *  (item-links.ts, the single classifier links and route guards already share). The redirect href is
- *  itemDetailHref, the same builder every list row uses. id-redirect.test.mjs's drift guard fails if either
- *  half of the mirrored predicate changes shape in its home file.
- *
- *  PURE AND node-TESTABLE: the only import is item-links.ts (itself importing only surface-of.mjs), so this
- *  module loads under plain `node --test` and from scripts/verify/id-redirect-target-audit.mjs. The DB lookup
- *  and next/navigation's redirect()/notFound() are bound in load-detail.ts (`applyIdRedirect`), the existing
- *  thin composition layer for these four routes. */
-
 import { canonicalSurfaceForItem, itemDetailHref, type DetailSurface } from "../item-links.ts";
 
 /** Postgres uuid text shape. The four routes' own copies of this regex were folded into this one. */

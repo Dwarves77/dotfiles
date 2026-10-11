@@ -1,25 +1,3 @@
-// src/lib/sources/institution.ts
-//
-// THE SINGLE canonical resolver (source-credibility-model, Phase 0'). ONE implementation consumed by
-// BOTH the pipeline stamp path (groundBrief / the backfill) AND the claims-tier data-audit, so the
-// invariant certifies the SAME resolver production runs (no F1-sibling drift). The mjs callers import
-// this .ts via jiti; groundBrief imports it natively.
-//
-// Tier is a property of the INSTITUTION, not a row. Grouping key = registrable domain (eTLD+1) with
-// documented super-domain exceptions where a shared government domain hosts distinct bodies
-// (europa.eu subdomains; legislation.gov.uk vs gov.uk). A span resolves to the canonical institutional
-// tier of the source CONTAINING ITS SPAN: a deliberate per-row tier_override (exact host) wins; else
-// the institution's canonical base_tier; else NULL (unregistered host).
-//
-// NOTE — the DB `institutions` TABLE is NOT this resolver, and this resolver does NOT read it. The table
-// `institutions` (+ the `sources.institution_id` FK, migration 122) is a separate PUBLISHER-IDENTITY /
-// grouping registry ("WHO published"; collapse one publisher's many URLs), declared in mig 122 as a
-// grouping dimension ORTHOGONAL to tier — never a tier authority. The canonical tier authority is
-// `sources.base_tier`; the "institution" grouping HERE is the in-memory host key (hostInstitution, eTLD+1
-// below), distinct from the table. Editing the `institutions` table does NOT change tier resolution — by
-// design, not omission. So `institutions` being write-only at runtime is intended, not a divergence.
-// (Confirmed by the table audit, 2026-06-20; see docs/SUPABASE-TABLE-AUDIT-2026-06-20.md.)
-
 const TWO_LEVEL = new Set<string>([
   "co.uk","gov.uk","ac.uk","org.uk","com.br","gov.br","org.br","co.jp","go.jp","or.jp","ne.jp",
   "gov.cn","com.cn","edu.cn","org.cn","gov.au","com.au","edu.au","org.au","gov.in","co.in","org.in",

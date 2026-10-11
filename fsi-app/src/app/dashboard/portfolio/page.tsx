@@ -1,12 +1,3 @@
-/**
- * /dashboard/portfolio: the workspace's portfolios (lane S8-D, 2026-10-07; spec 00 section 5; migration 362).
- *
- * A workspace view UNDER the dashboard, never a sixth nav entry (PI-1). Per-user by definition (the org is
- * resolved from the session cookie), so it can never be prerendered: force-dynamic, for the same reason
- * /watchlist is. Reads fail soft: a signed-out reader gets the sign-in note, a read failure (including the
- * tables not existing before migration 362 is applied) gets an honest unavailable note, never a crash.
- */
-
 import { PortfolioIndexView } from "@/components/portfolio/PortfolioIndexView";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getServiceSupabase } from "@/lib/supabase-service";

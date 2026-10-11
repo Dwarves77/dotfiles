@@ -1,47 +1,5 @@
 #!/usr/bin/env node
-// migration-299-precheck.mjs — the executable guard for migration 299 (Lane KIT-BACKFILL, 2026-09-05).
-//
-// WHY THIS EXISTS. `supabase/migrations/299_item_type_required_slots_wave3.sql`'s own header names a
-// self-check SQL query to run BEFORE the migration lands ("get N, then re-mint those N items, THEN
-// apply") — but as written that check is a comment a coordinator has to remember to run by hand, not a
-// gate anything refuses on. The plan's own W2.3 requires "the migration 299 pre-check extended so it
-// refuses to apply while any live verified item would be quarantined by it" — this file is that
-// extension: the SAME query, executable, exiting non-zero (refusing) while N > 0, so "the coordinator
-// remembered to check" becomes "the coordinator's own apply step failed until the check passes."
-//
-// WHAT IT CHECKS, EXACTLY (byte-identical semantics to migration 299's own header SQL and to the live
-// `validate_item_provenance` criterion 5 it will start enforcing): for each of the four
-// (item_type, slot_key) pairs the migration inserts, a `verified` item of that item_type — archived or
-// not; see the archive-status note at the CLI query below, this is not a narrowing to "live" in the
-// non-archived sense — is COVERED when at least one of its claims has `claim_kind IN ('FACT','GAP')` AND
-// `claim_text` contains the slot_key as a case-insensitive substring (criterion 5's own
-// `claim_text ILIKE '%' || slot_key || '%'` — migration 113's documented pattern, reproduced here in JS
-// rather than re-executed as SQL so this guard needs only `readAll`, never a raw query round trip).
-// `N` (the migration's own name for this) is the count of DISTINCT items failing that coverage for AT
-// LEAST ONE of their applicable new slots — an item needing both research-credibility slots still
-// counts once, matching the migration's own "distinct items, not slot-rows" framing.
-//
-// TWO MODES, one script:
-//   (default) PRE-CHECK  — run before `apply_migration` for 299. Exits 1 (refuses) while N > 0, printing
-//     the per-(item_type, slot_key) breakdown and the failing item ids so a backfill run
-//     (`provenance-heal --arg kit-backfill --mode apply` — reaches every one of the 149 including the
-//     archived-but-verified members `--arg slots-backfill` cannot, see that mode's own header) has
-//     an exact worklist. Exits 0 (safe to apply) once N = 0.
-//   `--post`  POST-CHECK — run after `apply_migration` for 299 has landed. Re-runs the SAME coverage
-//     query (nothing about it depends on whether the live `item_type_required_slots` rows exist yet —
-//     see the header above) and ADDITIONALLY confirms no live item of the three item_types is
-//     `provenance_status = 'quarantined'` for reason `missing_required_slot` naming one of the three new
-//     slot_key values — the concrete, read-back proof the migration's own step 4 asks for ("zero
-//     market_signal/initiative/research_finding item is quarantined for missing_required_slot that was
-//     verified before step 1's count"). Exits 1 if either check finds a survivor.
-//
-// $0, deterministic, no LLM: readAll (paginated, unguarded reads) + JS aggregation. Makes no write of
-// any kind — this is a GATE, not a backfill; the backfill itself is `provenance-heal --arg kit-backfill`
-// (scripts/maintenance/provenance-heal.mjs, dispatching scripts/mint/heal-provenance.mjs's own
-// resolveKitBackfillCandidates selection — no separate script; see this lane's REPORT for why: the
-// per-item capture/slot-write/section-attach mechanism already existed in heal-provenance.mjs's SLOTS
-// step, and duplicating it into a new file would violate the "no copies of logic" rule), dispatched
-// separately per this file's own printed worklist (`failingIds` in the JSON this script prints).
+
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 // claimCoversSlot: reused UNMODIFIED from heal-provenance.mjs (no copies of logic — CLAUDE.md rule)

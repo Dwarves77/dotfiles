@@ -1,38 +1,3 @@
-/**
- * WO-18 — shared seeding machinery for the `emission_factors` licence-clear modal-default seeders
- * (emission-factors-desnz.mjs, emission-factors-epa.mjs). One home for the natural-key idempotency
- * rule and the guarded-write plumbing, so the two source-specific seeders differ only in their
- * fixture data and source_key, never in how they write.
- *
- * WHY A NATURAL KEY, HAND-DEFINED HERE. `emission_factors` (migration 258) carries only ONE database
- * constraint that could dedupe a row — the `factor_id uuid` primary key, which is generated at insert
- * and therefore can never collide with anything, so it enforces nothing about re-running a seeder.
- * Confirmed live (rule 0.15, this session): `SELECT conname, pg_get_constraintdef(oid) FROM
- * pg_constraint WHERE conrelid = 'public.emission_factors'::regclass` returns 34 constraints and not
- * one UNIQUE or EXCLUDE constraint beyond `emission_factors_pkey (factor_id)`. The table is
- * deliberately append-only (migration 258's own header: "correct by inserting a new row and setting
- * superseded_by, never by editing") — an enforced UNIQUE would fight that design the day a real
- * supersession needs two rows that agree on every scope column and differ only in valid_from. So
- * idempotency is a SEEDER-LEVEL discipline, not a schema one: this module defines the tuple that
- * identifies "the same factor, again" for a MODAL scope row (the only scope kind either seeder
- * writes) and skips a row whose key already exists among LIVE (non-superseded) rows for the same
- * source_key before writing.
- *
- * The key: (tier, scope_kind, mode, vehicle_class, energy_carrier, jurisdiction, source_key,
- * valid_from). Two rows agreeing on all eight are the same published vintage of the same factor;
- * a later re-seed with a NEW valid_from is a new vintage and is expected to insert as a fresh row
- * (append-only supersession is a separate, human-reviewed step this module does not attempt).
- *
- * WRITE PATH: guardedInsertMany from scripts/lib/db.mjs (cite + snapshot + reversibility — the same
- * guarded path backfill-canonical-keys.mjs uses for its guardedUpdate). Every row is run through
- * validateFactor() from src/lib/contracts/factor-tier.mjs BEFORE any write is attempted — a single
- * invalid row aborts the whole run rather than partially seeding (a seeder that writes 9 good rows
- * and silently drops a 10th bad one is the same "confidently wrong" failure class factor-tier.mjs's
- * own header warns about for the DQI direction bug).
- *
- * DRY-RUN by default; --apply required to write (WO-18 lane contract). This module never calls
- * `--apply` itself — only a human or the coordinator's own run decides that.
- */
 import { readAll, guardedInsertMany, readClient } from "../lib/db.mjs";
 import { validateFactor } from "../../src/lib/contracts/factor-tier.mjs";
 import { authorEdges } from "../../src/lib/propagation/author-edges.mjs";

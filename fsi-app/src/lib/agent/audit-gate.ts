@@ -1,21 +1,3 @@
-// LAYER B — the cross-item / corpus AUDIT GATE in the generation write path (enforcement-gap fix,
-// 2026-06-21). GOVERNING: remediation-discipline (class-over-instance) + source-credibility-model.
-//
-// WHY THIS EXISTS. The per-item provenance gate is already DB-enforced and bypass-proof: the mig-115
-// set_provenance_status trigger calls validate_item_provenance on every write and only stamps 'verified'
-// when the six per-item criteria pass (mig 118 binds the flip to the reconciler credential). What the
-// trigger CANNOT see is the CROSS-item / corpus invariants the nightly data-audit lane checks — a write
-// can be locally valid yet push the corpus into violation (the grow-batch misstep registered hosts at
-// conflicting tiers; today's red is FACT claims grounded on unregistered hosts). Those invariants were
-// enforced ONLY nightly, with no teeth — detected on 7 consecutive nights with no consequence, the human
-// the only catch. This module moves the relevant cross-item checks INTO the write path so "write
-// succeeded" is connected to "audits green": the runner runs them as a NON-OPTIONAL step and FAILS CLOSED.
-//
-// NO LOGIC DRIFT. Resolution goes through the SAME single module the nightly audits use
-// (src/lib/sources/institution.ts). The scoring here mirrors one-tier-per-host-audit / claims-tier-audit /
-// unregistered-span-host-audit exactly, scoped to ONE item (cheaper + more precise than re-scanning the
-// whole corpus per write). The pure cores (scoreItemClaims, hostTierViolationCount, hasValidWaiver) are
-// unit-tested.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildResolver, hostOf, hostInstitution, type SourceRow, type Resolver } from "../sources/institution";
 // The pure cores live in a dependency-free .mjs so the no-npm-ci discipline test job can unit-test them

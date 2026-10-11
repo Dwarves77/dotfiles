@@ -1,13 +1,5 @@
 // @ts-check
-// NO-EXECUTION-FROM-STALE-STATE — the FETCH-SEAM guard (operator ruling 2026-07-14). The template instance of
-// the doctrine: an effectful mechanism re-verifies its OWN precondition against LIVE state as its first act; a
-// plan / manifest / dispatch that says "this item needs a fetch" is a PROPOSAL, never authority for the effect.
-// A fetch is admitted ONLY on genuine holdings-absence; usable held content (a real snapshot OR >=2 content-
-// bearing pool rows) refuses the fetch at the seam, for every caller — killing the fetch-when-held waste class
-// (the o9 re-fetch: 76KB snapshot already held, re-fetched, bought nothing). Deliberate freshness is the single
-// explicit escape (forceRefresh), never the default. Pure core here; the DB read + wiring live in the pipeline.
 
-/** A snapshot at/below this byte size is a stub/error capture (e.g. a 175-byte JS shell), not real content. */
 export const SNAPSHOT_STUB_MAX = 1000;
 /** ">=1 thin pool row" is absence (operator criterion); >=2 content-bearing pool rows is presence. */
 export const MIN_USABLE_POOL_ROWS = 2;

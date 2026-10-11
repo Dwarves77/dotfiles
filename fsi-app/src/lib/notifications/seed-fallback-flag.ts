@@ -1,34 +1,3 @@
-// SHARED-WRITER: integrity_flags
-/**
- * Seed-fallback flag dispatch.
- *
- * Sprint 3 SF-2 Phase 1 (2026-05-27).
- *
- * Records a platform-level integrity_flag row (migration 048) when a
- * data fetcher hits the seed-fallback path. Admin sees the entry via:
- *   - `admin_attention_counts.integrity_flags_unresolved` (red-flag-dot)
- *   - PlatformIntegrityFlagsView at /admin → Platform flags
- *
- * Dedupe: skips insert when an open flag for the same surface_ref
- * already exists with created_at > now() - 1 hour. Protects against
- * thousands of inserts per minute during a sustained outage.
- *
- * Trigger routing (operator ruling 2026-07-13, flag-system item 1):
- *   - `null_orgId` is an anonymous / no-org render of a public page — NOT an
- *     integrity violation. Routed to console.info telemetry; never flagged.
- *   - `service_role_missing` / env-missing can't self-record (the write needs
- *     the missing key) — logged LOUD as [UNRECORDABLE]; structurally under-counted.
- *   - genuine degradations (rpc_error, timeout, exception, supabase_not_configured)
- *     still write a platform integrity_flag.
- *
- * Failures are swallowed. Notification is a side-effect of an already-
- * degraded fetch; if the flag insert ALSO fails (Supabase fully down,
- * service-role key missing post-SF-1), the originating fetcher should
- * still return its error sentinel. A failed flag write logs to
- * console.warn so Vercel function logs catch the double-failure case.
- */
-
-
 import { getServiceSupabase } from "@/lib/supabase-service";
 
 export type SeedFallbackTrigger =

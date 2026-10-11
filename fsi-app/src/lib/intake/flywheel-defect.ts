@@ -1,16 +1,3 @@
-// SHARED-WRITER: integrity_flags
-// flywheel-defect.ts — recordFlywheelDefect, rule 16(d)'s ONE writer for "a flywheel step didn't run" (and
-// for "stale-events", a related-but-distinct finding: an already-written item_forward_events row whose
-// supporting claim/section has since gone away). SHARED by every rule-16 participant so a defect is
-// recorded in exactly one shape everywhere it is opened.
-//
-// MOVED HERE (lane FIX, 2026-09-01) from mint-item.ts, where it was a private export used only by that
-// file's own two mint-time post-insert try/catch blocks (rule 16a/16b). apply-staged-update.ts's
-// update_item path now needs the identical shape for its own post-update discovery/extraction try/catch
-// blocks (rule 16, "the forward-participation clause" — "on every mint or SUBSTANTIVE UPDATE"), so this
-// is the ONE home for it — a second hand-copied definition would be exactly the drift flag-namespaces.mjs's
-// own header warns a producer must never introduce: one shape, one place, every caller sees the same
-// integrity_flags row structure for a flywheel-defect finding.
 import type { SupabaseClient } from "@supabase/supabase-js";
 // Relative import, not the "@/..." alias (lane M3, 2026-09-19): this module is now imported both
 // through Next.js's own bundler (mint-item.ts's "@/lib/intake/mint-enrichment.ts" -> this file) AND

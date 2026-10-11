@@ -1,28 +1,3 @@
-/**
- * jurisdiction-rollup — THE one derivation of "which jurisdiction is this
- * item in" and "how many jurisdictions are live", for every surface that
- * states a jurisdiction figure.
- *
- * WHY THIS FILE EXISTS (production defect, click-through audit 2026-09-08,
- * /map): one screen printed three different jurisdiction counts and two
- * different immediate-jurisdiction counts. Root cause [CONFIRMED by reading
- * both call sites on train 60]: the masthead in src/app/map/page.tsx keyed
- * every item as `r.jurisdiction || "global"`, while the body in
- * src/components/map/MapPageView.tsx keyed it as
- * `r.jurisdiction || getJurisdiction(r) || "global"`. An item whose
- * `jurisdiction` column is blank but whose title/tags name a jurisdiction
- * therefore collapsed into "global" in the masthead and resolved to its real
- * jurisdiction in the register, so the masthead under-counted the distinct
- * set ("6 jurisdictions live") against the register's own rollup of the same
- * rows ("8 jurisdictions"), and the same divergence gave "4 jurisdictions
- * with immediate items" beside a rail card headed "IMMEDIATE · 3
- * JURISDICTIONS".
- *
- * The fix is not to patch either display: it is that there is now exactly one
- * key function and one rollup, and both surfaces call it. A future surface
- * that needs the same figure imports it rather than inlining a third variant.
- */
-
 import type { Resource } from "@/types/resource";
 import { getJurisdiction } from "@/lib/scoring";
 import { bandFromPriority } from "@/lib/urgency/bands";

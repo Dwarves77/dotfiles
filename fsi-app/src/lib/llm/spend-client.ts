@@ -1,20 +1,3 @@
-// SPEND CHOKEPOINT (operator ruling 2026-07-04). The generation-side analog of dedup-before-ground: the
-// ONE client every model call in the pipeline routes through. Necessity was never mechanized and generation
-// spend had no chokepoint — every new runner started ungated (3rd instance: wave quote, GLEC duplicate,
-// proof-batch routing + void full-set quote). The operator asking "did you check the free lever first?" was
-// the detection mechanism; that is the defect this closes.
-//
-// EVERY call requires a SpendTicket (spend-guard.mjs). Ticketless = THROW. A per-item ticket whose failure
-// set is fully deterministically-resolvable, OR whose standing disposition is DELETE, = REJECTED. Sanctioned
-// always-cheap classifiers (Rule 016) carry a standing ticket class. Budget (per-ticket cap + standing
-// ceiling) is enforced INSIDE the guard. Telemetry is single-homed here (the 4f agent_runs write relocates
-// in). The pure guard is spend-guard.mjs (node-testable, red-then-green); THIS module wraps it with the
-// Anthropic API call, the model→cost mapping, and the DB telemetry write.
-//
-// F15 (fitness) enforces that no Anthropic API call / client instantiation exists outside THIS module and
-// its sanctioned transport (anthropic-stream.mjs), with an A2-pattern shrinking allowlist for not-yet-
-// migrated legacy call sites; any NEW ungated call site is F15-RED.
-
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { streamMessagesText, ANTHROPIC_MESSAGES_URL } from "@/lib/agent/anthropic-stream.mjs"; // F46: api.anthropic.com's one home (lane L35)
 import { anthropicError } from "@/lib/agent/anthropic-error.mjs";

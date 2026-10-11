@@ -1,33 +1,5 @@
 #!/usr/bin/env node
-// grid-queue-producer.mjs — spec 09 §1.6, grid_connection_queues (migration 297). $0 SOURCING STATUS:
-// GAP — see scripts/spec09/SOURCES.md. No $0 structured feed was confirmed for DSO/TSO demand-connection
-// queue MONTHS by capacity band; UK National Grid ESO's TEC register and ENA's DFES describe GENERATION
-// connection queues, a different dataset, and conflating them would be fabrication (rule 2).
-//
-// ROWS-FILE EXTENSION (lane SPEC09-A, 2026-09-05, plan §W5.1). This sandbox's egress proxy 403s every
-// non-allowlisted host (confirmed 2026-09-05: ofgem.gov.uk-class hosts unreachable, "CONNECT tunnel
-// failed, response 403"), so this producer cannot itself fetch a live feed this session. Same posture as
-// scripts/spec09/reroute-producer.mjs's rows-file extension (see that file's header for the full
-// reasoning): a `--rows-file` (JSON) of CALLER-ASSERTED, fully-cited DSO connection-queue observations,
-// validated + written through scripts/spec09/lib/rows-file.mjs's shared citation/source-rating plumbing.
-// `grid_connection_queues.jurisdiction_id` is a NOT NULL FK to `entities(kind='jurisdiction')` (migration
-// 297) — this producer resolves it by exact canonical_name match against the LIVE spine (63 jurisdiction
-// rows exist today, including 'GB' [CONFIRMED, live SQL, 2026-09-05]) and never mints one (entities/
-// entity_kind territory, out of this lane's write set). `grid_connection_queues` has no `source_id`
-// column (migration 297's header carries the same no-entity-kind-fits-a-source-row reasoning as 296), so
-// each row's citation is carried in its own guarded-write `cite` (one guardedInsertMany call per row).
-//
-// BROWSER-LANE WORKLIST (named here, not chased in this sandbox): Ofgem's "Connections Reform" programme
-// (ofgem.gov.uk) requires every GB DNO to publish a standardised Connections Register; ENA's Open Data
-// Portal (data.ena.energynetworks.org / connecteddata.nationalgrid.co.uk for the ESO side) is the
-// candidate aggregation point. [HYPOTHESIS, unverified this session — training-knowledge lead, not a
-// live-fetched confirmation] whether that register's DEMAND-side rows (as opposed to the TEC/DFES
-// GENERATION-side ones SOURCES.md already ruled out) carry queue MONTHS by capacity band at the
-// granularity this table wants. A browser lane should open the Ofgem/ENA URLs above, confirm (or refute)
-// that a demand-connection-queue-months table exists in a structured (CSV/table), not prose, format, and
-// either produce a real --rows-file from it or record the refutation in SOURCES.md.
-//
-// DRY BY DEFAULT. deps-injected so this runs with zero DB access under `node --test`.
+
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "../maintenance/lib/cli.mjs";

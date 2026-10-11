@@ -1,20 +1,5 @@
-// SHARED-WRITER: staged_updates
 // @ts-check
-// change-sweep — B4 of the scrape-and-build plan (docs/plans/scrape-and-build-content-plan-2026-07-19.md):
-// the change-to-analysis consumer, closing Step 1 F2 ("change-detection terminates"). Everything upstream
-// and downstream of this module already exists — this is ONLY the bridge:
-//
-//   detection   check-sources contentFingerprint/isContentChange + reconcile.ts recordItemChange (built)
-//   THIS        a changed source → enumerate its VERIFIED items → verifyItem each (the ONE snapshot-first
-//               entry, F21) → record the disposition split
-//   routing     decideVerify (built, ruled): spans intact vs stored → verified_cheap (record only);
-//               source changed → STALE_FLAG queue row; spans broken/no snapshot → needs_acquire (LOCKED
-//               behind GROUNDING_ACQUIRE_ENABLED — paid re-ground stays operator-priced, unchanged)
-//
-// SCOPE: VERIFIED items only. A detected change threatens the VERIFIED status of items grounded on that
-// source; quarantined items belong to research-or-erase, not this sweep. READ-ONLY by default (act:false
-// — the verify-item contract: build/tests/dry-runs move $0); side effects only with an explicit act:true.
-// BOUNDED: per-source, with a limit; the summary reports what was NOT swept (never silent).
+
 import { verifyItem } from "./verify-item.mjs";
 import { readSnapshotBody } from "./snapshot-store.mjs";
 import { diffDocuments } from "./amendment-diff.mjs";

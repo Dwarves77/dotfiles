@@ -1,39 +1,4 @@
 #!/usr/bin/env node
-// family-registry.mjs, the harness family descriptor loader (lane N2, 2026-09-19, build plan section 6.8
-// Rule A: "a harness family is a directory with a descriptor, never a line in three shared files").
-//
-// WHY THIS EXISTS. On 2026-09-18 three lanes (M8, M9b, M9a) each registered or touched a harness family
-// and each stopped the merge train, because registering a family meant appending to the SAME spot in
-// three files at once: GOVERNING_FILES (scripts/harness-runs/governing-files.mjs), ALLOWED_FAMILIES
-// (scripts/lib/run-artifact.mjs), and two places in CONVENTION.md (the directory-layout block and the
-// harness_version table, which F28-harness-run-integrity.test.mjs's CONVENTION-TABLE-PARITY test parses).
-// Three lanes racing to append to the same three shared files is a structural collision, not a discipline
-// failure, nothing about "append carefully" fixes a race on the same insertion point.
-//
-// THE FIX: a harness family is now a DIRECTORY with a family.json descriptor, nothing else. Registering a
-// new family means adding a new subdirectory under scripts/harness-runs/ with its own family.json, no
-// shared file is edited, so two lanes registering two different families in the same window cannot
-// collide (proven by this module's own test: a fixture with two new family directories added side by side
-// loads both). GOVERNING_FILES and ALLOWED_FAMILIES are now DERIVED from FAMILIES (see governing-files.mjs
-// and run-artifact.mjs), not hand-maintained, this module is the one place that reads the descriptors off
-// disk and turns them into the FAMILIES array everything else derives from.
-//
-// SHAPE of family.json (one per family directory):
-//   {
-//     "family": "<dir name>",           // must equal the directory name, no rename-without-moving
-//     "registered": "YYYY-MM-DD",       // when this family entered the harness-run convention
-//     "registered_by": "<lane or task>", // the lane/task/wave that registered it
-//     "governing_files": ["...", ...],  // non-empty array of fsi-app-relative path strings
-//     "rationale": "<prose>"            // why these files, in the family's own words
-//   }
-// No unknown keys. A descriptor that fails validation throws a NAMED error (never silently skipped) , 
-// same fail-closed posture as scripts/lib/run-artifact.mjs's validateRunArtifact.
-//
-// No I/O side effects on import, loadFamilies() is a function, not a top-level read, so importing this
-// module never touches the filesystem; only calling loadFamilies() (or the frozen FAMILIES export below,
-// which calls it once at import time deliberately, mirroring GOVERNING_FILES/ALLOWED_FAMILIES's own
-// "computed once, frozen, exported" shape) does. $0, no network, no DB, same discipline as
-// governing-files.mjs and run-artifact.mjs.
 
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";

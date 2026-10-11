@@ -1,22 +1,6 @@
 // @ts-check
-// TIER-ORDERED synthesis/grounding block builder + the per-item-type authority floor. Pure (no I/O), so
-// the MOAT PROPERTY is unit-testable red-then-green by node --test. Consumed by src/lib/agent/canonical-
-// pipeline.ts (both synthesis R1 and grounding R2 call it over the SAME pool/budget/tiers → identical
-// window = the span-grounding coupling).
-//
-// THE MOAT (operator ruling 2026-07-03): any source that qualifies the item's authority floor
-// (tier <= floorTier) reaches the model COMPLETE, never truncated — so a FACT is matchable in its
-// floor-qualifying source and grounds AT the floor, not to a sub-floor corroborator. Truncation pressure is
-// TIER-ORDERED: floor-qualifiers first, in full; the remaining budget is shared by the rest lowest-tier-
-// first. A floor-qualifying source larger than hardCeiling is the (rare) chunking case — NOT silently
-// sliced; returned as a `ceilingWall` the caller surfaces (truncation-guard flag + item stays quarantined).
-// This REPLACED the prior order-based builder (fetched[0] = "primary") whose non-tier-ordered corroborator
-// split truncated a floor-qualifying T2 that happened not to be fetched[0] → the fact_below_authority_floor
-// wall (Lane-#4 batch-1, 2026-07-03).
-
 /** @typedef {{ url: string, text: string, tier: number|null }} SourceForBlock */
 /** @typedef {{ url: string, collected: number, fullLength: number, cap: number, transport: string }} TruncEvent */
-
 /**
  * The per-item-type AUTHORITY FLOOR: the max tier number a CRITICAL/HIGH item's FACT claims may ground to.
  * A source at/above it (tier <= floor) is floor-qualifying. market_signal / initiative / regional_data are
@@ -31,6 +15,7 @@
  * @param {string | null | undefined} itemType
  * @returns {number | null}
  */
+
 export function authorityFloorFor(itemType) {
   switch (itemType) {
     // reg family — MUST match migration 141 exactly (no 'law'): regulation/directive/standard/guidance/framework

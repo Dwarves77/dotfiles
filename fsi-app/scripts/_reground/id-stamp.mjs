@@ -1,13 +1,5 @@
 #!/usr/bin/env node
-// SHARED-WRITER: intelligence_items
-// id-stamp.mjs — PROMOTE a subject-matched item to id-confirmed (Lane B-grade) by STAMPING its canonical
-// instrument_identifier, which is already verbatim in its staged primary, then RE-VERIFYING target-match.
-// This is the 4ff5cf56 promotion pattern factored as a tool for the B-CANDIDATE lane. Verify-before-write:
-// with --apply it stamps ONLY if the proposed id makes target-match MATCH via instrument-id or raw-id
-// (clearance-grade). If it does not confirm, it REFUSES the stamp and prints REASSIGN-TO-A (the capture is
-// suspect or the id is not this instrument, a judgment item, not mechanical). Runs under the item's mutation
-// lease, which THIS holder must already hold (heartbeat check; no lease, no touch). Guarded write, no spend.
-// Usage: node id-stamp.mjs <itemKey> <proposedId> <holder> [--apply]
+
 import { createJiti } from "jiti";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

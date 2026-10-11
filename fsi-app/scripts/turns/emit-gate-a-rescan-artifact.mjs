@@ -1,29 +1,4 @@
 #!/usr/bin/env node
-// emit-gate-a-rescan-artifact.mjs -- gate-a-rescan's own harness-run artifact writer (lane M6b,
-// 2026-09-21, build plan section 6.1 row M6). Modeled on emit-brief-export-artifact.mjs: reuses
-// resolveHarnessRunContext (scripts/lib/loop-run-id.mjs) and buildRunArtifactEnvelope
-// (scripts/lib/run-artifact.mjs), never a second copy of either (F45). "Emission is CODE" --
-// gate-a-rescan.yml calls this in its own final step, `if: always()`, so a chained firing that
-// selected zero stale items still leaves a record ("record it every batch, even when zero,"
-// MINT-RUNBOOK.md section 5).
-//
-// This is NOT a canonical entry point in run-mint-batch.mjs's sense: it runs no scan itself. Its only
-// job is to read back what THIS run's own gate-a-rescan.mjs step (and, when it ran, the chained
-// attach-found-sources.mjs step) already decided -- their own summary.json files, per
-// scripts/maintenance/lib/cli.mjs's `--out` contract -- and record the outcome as this family's own
-// CONVENTION.md-shaped artifact.
-//
-// Reads its configuration entirely from environment variables (GAR_*), set by gate-a-rescan.yml's own
-// "Record this run's own harness-run artifact" step -- this script has no CLI flags because it has
-// exactly one caller and that caller already has every value as a workflow-step output/env.
-//
-// loop_run_id (resolveHarnessRunContext -> resolveLoopRunIdFromUpstream): this family's own upstream
-// is whichever of "Brief apply" / "Population turn" fired this run -- the ONE shared name-to-family map
-// in scripts/lib/loop-run-id.mjs (FAMILY_BY_WORKFLOW_NAME), never a second copy of that map here.
-//
-// Exit 0 on a successful write. Throws (non-zero exit) on a schema-invalid artifact (writeRunArtifact's
-// own fail-closed validation) or an id-claim collision after 50 attempts (claimRunId) -- both real
-// conditions a coordinator should see, not swallow.
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

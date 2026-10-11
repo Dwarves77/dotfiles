@@ -1,17 +1,3 @@
-// Coverage Index data path (B1). The Coverage Index is the DISCOVERY layer made visible: the census's
-// would_mint set — instruments identified as relevant to freight sustainability and DUAL-VERIFIED on two
-// axes (relevance: firm-core vs soft-tail; identity: does the pointer resolve to a real primary source on
-// a registered host). It renders as the CoverageIndexPanel mounted INSIDE the existing five surfaces
-// (primarily Regulations; each surface gets its own category slice via getCoverageIndex(surface)) — NOT a
-// sixth top-level surface (PI-1). On each surface it sits as a layer BELOW the verified-brief ledger,
-// deliberately distinct from it: the ledger gates on provenance_status='verified'; this is the catalogued-
-// pointer layer. A catalogued instrument is a POINTER, not a grounded brief; the panel's scope statement
-// makes that boundary explicit so the index never fabricates coverage.
-//
-// Counts are computed over the FULL would_mint set for the surface (paginated, exact); the returned entry
-// list is capped for paint with an honest "showing N of M". Platform-global (not org-scoped) — the
-// discovered universe is the same for every workspace; per-workspace relevance is a surface concern.
-
 import { getServiceSupabase } from "@/lib/supabase-service";
 
 export type IdentityState = "verified" | "unresolved" | "dead" | "pending";

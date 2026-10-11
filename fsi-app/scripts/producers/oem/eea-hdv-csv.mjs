@@ -1,23 +1,3 @@
-// eea-hdv-csv.mjs -- the reader for the EEA heavy-duty vehicle CO2 monitoring extract (lane S8-E1, 2026-10-08).
-//
-// THE DATASET. EEA "CO2 emissions from heavy-duty vehicles", the vehicle-level extract
-// HDV_CO2Emission_VehicleExtract_24042025.csv: one record per registered vehicle, 461 columns, quoted fields that
-// can hold commas, a UTF-8 byte order mark and CRLF line ends, about 4 GB in total (Content-Length 4029364100 on
-// 2026-10-08). Everything here is therefore a STREAM: csvRecords parses chunks as they arrive, aggregateHdvCsv folds
-// the records into a few small groups and never holds the file. Pure apart from the iteration of its input; no fs,
-// no network, no clock.
-//
-// WHAT IS READ. Eleven columns, named in EEA_HDV_COLUMNS, found by header name (never by position), so a reordered
-// or widened extract still reads and a missing one is refused by name. The columns are the ones the committed real
-// sample (fixtures/eea-hdv-sample.csv) shows: the manufacturer, the zero-emission / hybrid / dual-fuel flags, the
-// engine and registration fuel types, the electric flag, the registration country and date, and the Match and
-// UniqueData markers. The sample proves the value "Match" for Match and "Yes" for UniqueData; a record with any other
-// value in either column is EXCLUDED and counted under its raw value ("Match=<value>", "UniqueData=<value>"), because
-// what such a record means is not in the sample and is not guessed.
-//
-// WHAT IS NOT READ. No Wh/kg, no C-rate, no pack size and no announcement date exist in this extract; the
-// oem_tech_roadmaps columns that need them stay NULL (eea-hdv-map.mjs).
-
 export class EeaHdvFormatError extends Error {}
 
 /** The columns the aggregator needs, by header name. */

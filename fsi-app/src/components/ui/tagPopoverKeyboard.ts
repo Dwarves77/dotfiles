@@ -1,18 +1,3 @@
-/**
- * TagPopover — pure keyboard model (lane uitags, 2026-09-07, README
- * "Workspace tags" / ruling R6). Split out of TagPopover.tsx so the
- * ↑ ↓ / Enter / Esc / Backspace behaviour can be unit tested without a DOM
- * (this repo's *.npmtest.mjs convention has no jsdom/testing-library
- * dependency — every component-adjacent test in the tree exercises a pure
- * sibling module via jiti instead, e.g. src/app/api/watchlist/logic.ts).
- * TagPopover.tsx imports these functions and owns only the DOM/React glue.
- *
- * Row order (fixed, matches the rendered list): the filtered existing tags,
- * in the order the API returned them, followed by ONE optional "Create
- * ⟨typed⟩" row when the query is non-empty and matches no existing tag
- * name exactly (case-insensitive — the DB's own uniqueness key).
- */
-
 export interface TagOption {
   id: string;
   name: string;

@@ -1,38 +1,5 @@
 #!/usr/bin/env node
-// SHARED-WRITER: intelligence_items
-// stamp-wo26-archive-reason.mjs — hygiene stamp: archive_reason = 'out_of_scope_wo26' on the WO-26
-// scope-purge rows that were archived without one (Lane POP, 2026-09-01).
-//
-// WHY THIS EXISTS. `docs/ops/session-log.md` Addendum 28 (2026-08-21, "the operator caught a paraphrase
-// wearing a ruling's clothes, and 632 customs items came out reversibly") executed the WO-26 scope purge
-// under the operator's ADR-020 ruling ("Caro's Ledge is a freight-sustainability platform, first" —
-// customs/transport-administration law is a PARKED FUTURE VERTICAL, archived reversibly, never deleted):
-// 632 customs/transport-administration EUR-Lex items were archived, but the operation never stamped
-// `archive_reason` on the rows it touched. `docs/audits/system-review-2026-09-01.md` measured the live
-// consequence: "513 verified archived, 491 were archived on 2026-08-21 with archive_reason = NULL...
-// [and] 456 would_mint queue rows are blocked by holders in that unstamped wave" — the mint family's
-// canonical-key holder check (mint-run-006.json's M4 pre-check, "not_applied_holder_conflict") cannot
-// distinguish an ALREADY-RULED-ON WO-26 exclusion from any other archived holder without a reason on the
-// row, so every one of those 456 blocked census rows reads as an unexplained collision instead of an
-// honest, decided scope exclusion.
-//
-// TARGET (Addendum 28 + system-review-2026-09-01.md's population section, re-measured LIVE by this
-// script before any write — never trusted from the doc alone):
-//   intelligence_items WHERE is_archived = true AND archive_reason IS NULL
-//                        AND archived_date = '2026-08-21' AND provenance_status = 'verified'
-//   — 491 rows expected. A live count that disagrees is REPORTED, never silently overridden by
-//   EXPECTED_COUNT (this script proceeds on the live measurement either way; the mismatch is a signal
-//   for a human to look, not a reason to refuse — Addendum 28's own 632-vs-491 gap is itself explained
-//   there: not every one of the 632 was verified+live by 2026-09-01).
-//
-// WHAT THIS TOUCHES. ONLY `archive_reason` — never `is_archived`, `provenance_status`, or any other
-// column. Purely descriptive metadata over an already-decided, already-executed archive; this script
-// mints nothing, un-archives nothing, and re-litigates no scope decision.
-//
-// DRY-RUN by default (the default posture every guarded script in this repo takes); --apply writes via
-// db.mjs's guarded path (cite + prior-value snapshot + read-back verification — see guardedUpdate).
-// Idempotent: a second run finds 0 matching rows (archive_reason is no longer NULL on the ones already
-// stamped). Rule-012: import.meta.url-relative env load, no hardcoded absolute paths.
+
 import { readAll, guardedUpdateByIds } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard

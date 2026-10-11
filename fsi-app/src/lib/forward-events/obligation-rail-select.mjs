@@ -1,22 +1,3 @@
-// obligation-rail-select.mjs — the pure window/cap selection behind the Regulations rail card
-// "OBLIGATIONS · NEXT 30 DAYS" (artboard 02/id="p2", the card the artboard draws BELOW the Filters
-// card and ABOVE Legend).
-//
-// WHY A SEPARATE PURE MODULE. The card itself (ListSurfaceRailCards.tsx, ObligationsRailCard) is a
-// client component whose only I/O is a fetch of the EXISTING bounded read GET
-// /api/obligations/upcoming (src/app/api/obligations/upcoming/route.ts -> read-upcoming.mjs's
-// fetchUpcomingObligations, request-scoped client, RLS-gated, jurisdiction-defaulted). No new
-// Supabase read is introduced by that card. What IS new is the artboard's own two constraints on
-// top of that read: a 30-DAY WINDOW ("next 30 days" is in the card's own title) and the artboard's
-// ROW COUNT (four rows drawn). Both are pure functions of the fetched array plus "now", so they
-// live here where `node --test` can prove them without a browser, a bundle, or a database.
-//
-// PLAIN ESM, NO `@/` ALIAS — the same portability constraint read-upcoming.mjs and
-// forward-event-format.mjs state for themselves, for the same reason: importable by a plain
-// `node --test` proof with zero tsconfig/Next resolution, and by a client component through the
-// normal bundler path.
-
-/** The window the artboard's own card title states: "Obligations · next 30 days". */
 export const OBLIGATION_RAIL_WINDOW_DAYS = 30;
 
 /** Rows the artboard draws in this card (four). The brief's "at most the artboard's row count". */

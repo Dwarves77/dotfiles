@@ -1,28 +1,3 @@
-// src/lib/agent/timeline-harvest.mjs
-//
-// §14 TIMELINE HARVEST (Phase-3b, DATE-AND-DEDUP-AUDIT DD-01/DD-02). The corpus audit found the
-// single most decision-critical field in the product broken two ways: ~85% of verified reg briefs
-// carried NO structured timeline at all (the dates lived only in prose — often a fully-written
-// "Confirmed Regulatory Timeline" §14 the model DID assemble), and of the ~16 stored timelines all
-// but one were wrong or missing their nearest deadline (PPWR stored Aug-1 where the enacted text
-// says 12 August 2026). Root cause confirmed in code: item_timelines had NO production writer —
-// only a one-time seed migration ever filled it. This module is the writer's PURE half.
-//
-// EDIT-THE-SOURCE (ICM discipline): the extraction step harvests §14 into item_timelines on every
-// future generation (canonical-pipeline sectionBrief), and the backfill script re-harvests the
-// stored corpus — one parser, both directions (scripts/backfill-item-timelines.mjs).
-//
-// PRECISION HONESTY (the PPWR-class defense): item_timelines.milestone_date is a strict DATE, but
-// §14 prose dates carry many precisions ("12 August 2026", "Q3 2026", "2027", ranges). Forcing a
-// non-day-precision token into a bare date FABRICATES a day — exactly the Aug-12→Aug-1 defect.
-// Rule: a DAY-precise token maps to its exact date and the label stays clean; ANY other precision
-// (month / quarter / half / year / range) keeps the ORIGINAL token IN the label ("Q3 2026 — …")
-// and milestone_date carries the period START purely for sort order. An unparseable date token is
-// SKIPPED AND REPORTED (never silently dropped — the no-silent-truncation rule).
-//
-// PURE — no I/O. Input is TimelineEntry[] from extractRegulationSections (§14's existing parser —
-// reuse-before-construction; that parser was display-only and its output was never persisted).
-
 const MONTHS = {
   jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5,
   jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9,

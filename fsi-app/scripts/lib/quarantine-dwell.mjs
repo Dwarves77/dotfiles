@@ -1,18 +1,3 @@
-/**
- * QUARANTINE DWELL/ENQUEUE computation (shared, pure). Extracted from scripts/verify/
- * quarantine-disposition-audit.mjs (lane QUARANTINE-DISPOSITION, 2026-09-28) so the audit's read-only
- * invariant check and the new disposition planner (scripts/plan-quarantine-disposition.mjs) compute the
- * SAME classification from the SAME inputs, never two copies that can drift (F45 duplicate-code; prior-art
- * rule in docs/dispatches/lane-common-contract.md section "Prior art").
- *
- * GOVERNING SKILL: remediation-discipline (Section 2.1 -- Quarantine Is an Open Investigation;
- * Section 2.2 -- Deferred vs Undispositioned).
- *
- * Pure function, no I/O, no Date.now() unless `now` is omitted -- the caller supplies `items` (live-
- * quarantined intelligence_items rows: id, legacy_id, title, item_type, provenance_status, updated_at)
- * and `flags` (open integrity_flags rows: subject_ref, created_at, status, created_by, category,
- * recommended_actions), exactly as quarantine-disposition-audit.mjs already reads them.
- */
 import { isValidDeferral } from "./deferral.mjs";
 
 export const DWELL_BOUND_DAYS = 14;

@@ -1,14 +1,4 @@
 // @ts-check
-// HOLDINGS-AUDIT PURE CORE (operator dispatch 2026-07-14, "SUPABASE HOLDINGS AUDIT", amended).
-//
-// Classifies a stored capture (a raw_fetches snapshot body, or a pool aggregate) against KNOWN DEFECT
-// CLASSES. It NEVER proves completeness (operator amendment): completeness='NO-KNOWN-DEFECT' means "no
-// defect THIS audit can detect", not "provably whole". The integrity guarantee is grounding-side (the
-// floor-first truncation moat in source-credibility-model / source-blocks.mjs). This core is the
-// deterministic, node-testable classifier; all DB + Storage I/O lives in scripts/holdings-audit.mjs.
-//
-// Completeness vocabulary (closed): NO-KNOWN-DEFECT | TRUNCATED | FURNITURE | STUB.
-// Sufficiency vocabulary (closed):  covers_grounding | corroborators_only | insufficient.
 
 import { authorityFloorFor } from "../agent/source-blocks.mjs";
 

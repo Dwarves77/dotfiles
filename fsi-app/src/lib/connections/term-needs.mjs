@@ -1,29 +1,3 @@
-// term-needs.mjs (lane G5-NEED, 2026-10-07, buildout plan Stage 5 last clause and the Stage 2 lineage item):
-// PURE planning of source search targets. Node builtins only, no I/O: every read and write is injected by
-// scripts/connections/raise-term-needs.mjs, so this module runs in the no-npm discipline job.
-//
-// THE CLASS, NOT THE EXAMPLE (CLAUDE.md rule 19). The question this module answers: "which things does the
-// system know it needs a better source for, and how is that stated so a free discovery runtime can search it?"
-// Two inputs reach it: (1) an ADOPTED vocabulary term (any of the six kinds: standard, material, theme,
-// scenario, compliance_object, term) with no authoritative holding; (2) an absent lineage parent whose
-// identifier is not a CELEX id. A CELEX id is not a need at all, it is an explicit target for the EUR-Lex
-// register walker (run-source-sweep.mjs --targets-file); only the split is decided here.
-//
-// "AUTHORITATIVE HOLDING" (the floor this module reuses, never a second table). A held item qualifies when it
-// is verified, not archived, not sourced only from Community (ADR-041), has a primary source, and that source's
-// tier is at or above the item type's authority floor: `authorityFloorFor(item_type)` in
-// src/lib/agent/source-blocks.mjs, the JS mirror of the floor table validate_item_provenance criterion 3 reads
-// (migration 141: regulation family <= 2, research_finding <= 4, technology family <= 5; migrations 138, 202,
-// 302). A type with no floor (market_signal, initiative, regional_data, named exempt in the credibility skill)
-// needs only a rated source. The tier compared is the source's STATIC base_tier, or its tier_override, the one
-// sanctioned escape: dynamic effective_tier never confers reg-fact eligibility (the moat, SC-9, fitness F12).
-// Deliberate simplification, named: the standard own-authoring-body floor of 4 (migration 202) is NOT applied
-// here, so a standard needs a floor-2 holding to close its need; the stricter reading keeps looking.
-//
-// A need is raised and closed by rule; no human step. Closing is the reflect convention
-// (scripts/connections/propose-tags.mjs planReflect): an open need no longer reproduced by the fresh plan is
-// resolved by the writer.
-
 import { TERM_NEED_NAMESPACE, TERM_NEED_ACTION, createdBy } from "./flag-namespaces.mjs";
 import { authorityFloorFor } from "../agent/source-blocks.mjs";
 import { VALIDATORS } from "../entities/crosswalk.mjs";

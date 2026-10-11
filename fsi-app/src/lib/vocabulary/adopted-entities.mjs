@@ -1,21 +1,3 @@
-// adopted-entities.mjs (lane G5-READ, 2026-10-07). An ADOPTED `standard` or `material` term is held by the
-// system, so it is a real entity on the spine (migration 282 `entities`), minted through entity-id.mjs like every
-// other entity id and never hand-assembled.
-//
-// KIND RULE (stated, as the lane brief asks). src/lib/entities/canonical-entities.mjs defines its dictionary as
-// "a LIVING dictionary of NAMED standards/frameworks/programmes ... Each names ONE specific instrument", and
-// the entity spine already mints a named instrument as kind `instrument` (entity-plan.mjs planInstrumentEntities,
-// seed = the upper-cased name). An adopted `standard` therefore mints kind `instrument`, with the same seed rule,
-// so "ISO 14083" adopted here and "ISO 14083" minted from a canonical_instrument_key are ONE entity. `method`
-// is not used: a method is a way of calculating something (spec 08), a named standard is the instrument that
-// prescribes it. An adopted `material` mints kind `material` (added to entity_kind by migration 357); its seed is
-// the normalised term key (lower case), so a material is one entity however a brief spells it.
-//
-// IDEMPOTENT, the posture of link-item-entities.mjs: the ids are read first and only the delta is written, with
-// an ignore-duplicates upsert so a concurrent minter that landed the same deterministic id first wins.
-// `scenario`, `theme`, `compliance_object` and `term` adopted kinds mint nothing: they are vocabulary, not
-// real-world things.
-
 import { entityId } from "../entities/entity-id.mjs";
 import { fetchAllByIdChunks } from "../db/paginate.mjs";
 import { adoptedEntries } from "./adopted-terms.mjs";

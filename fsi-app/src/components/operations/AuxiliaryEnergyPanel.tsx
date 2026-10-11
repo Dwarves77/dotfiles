@@ -1,27 +1,3 @@
-/**
- * AuxiliaryEnergyPanel — spec 09 §1.5, stationary auxiliary load (never a per-tonne-km factor). Lane
- * SPEC-09, wave 3, 2026-09-03.
- *
- * SELF-CONTAINED SERVER COMPONENT, same pattern as market/OemRoadmapPanel.tsx (see that file's header
- * for the fetch/soft-fail contract this one shares: request-scoped service client via supabase-server.ts,
- * small LIMIT, no polling, no client fetch).
- *
- * WHAT THE VIEW COMPUTES: src/lib/spec09/auxiliary-energy.mjs's computeEnergyConsumedKwh() per row
- * (kw_draw * duty_cycle * hours_typical — the one figure this table's own columns fully supply).
- * convertKwhToGco2e() needs a live grid_intensity gCO2e/kWh number this table only NAMES a source for
- * (grid_intensity_source, migration 297's own comment) and does not itself carry a value for, so the
- * gCO2e conversion is not attempted — the view states plainly that the kWh figure is the load, not its
- * footprint, rather than silently treating an unconverted kWh number as a carbon figure.
- *
- * ORG SCOPE (migration 311, lane SPEC09-B, 2026-09-05): this component reads with the service-role
- * client (bypasses RLS), so it is its own job, not the database's, to filter to the viewer's org via
- * resolveOrgIdFromCookies(); a viewer signed in with no org membership sees the honest empty state,
- * never another org's rows.
- *
- * VIEW/FETCH SPLIT: this file is data-only. The render code lives in the separate file
- * `AuxiliaryEnergyPanelView.tsx`, see market/OemRoadmapPanelView.tsx's header for why.
- */
-
 import { isSupabaseConfigured, getServiceSupabase } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { AuxiliaryEnergyPanelView, type AuxiliaryEnergyRow } from "./AuxiliaryEnergyPanelView";

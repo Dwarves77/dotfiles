@@ -1,19 +1,3 @@
-// Pure global scrape-schedule logic (NO DB) — unit-testable. The global cadence on the `system_state`
-// singleton is the SINGLE source of truth for WHEN the whole system scrapes (Option 1: per-source
-// `update_frequency`/`next_scheduled_check` cadence is RETIRED — it no longer decides anything).
-//
-// Model (operator-controlled from the admin screen):
-//   - cadence: 'off' | 'weekly' | 'monthly'
-//   - start_date: the anchor — the FIRST scrape day AND the recurrence phase. "weekly from a Tuesday"
-//     => Tuesdays; "monthly from the 1st" => the 1st. Before the start date, nothing runs
-//     ("paused until started"). Set cadence='off' to stop at any time.
-//   - an independent EMERGENCY STOP (system_state.global_processing_paused) can hard-halt regardless of
-//     the schedule WITHOUT erasing the saved cadence/start_date (the panic button must not wipe the plan).
-//
-// Enforcement split (decision C): the per-request fetch gate (pause.ts isGloballyPaused) blocks when
-// scraping is OFF (cadence 'off' OR emergency stop) — operator paths obey only this. The AUTOMATED
-// worker ADDITIONALLY calls scrapeWindowOpen() so it fires only on a scheduled scrape day.
-
 export type ScrapeCadence = "off" | "weekly" | "monthly";
 
 export interface ScrapeSchedule {

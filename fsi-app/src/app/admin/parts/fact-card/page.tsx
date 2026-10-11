@@ -1,18 +1,3 @@
-/**
- * /admin/parts/fact-card: the FactCard sign-off page (lane w10-factcard-b, 2026-09-20;
- * Amendment 1 section B.2): "The part page renders, from static fixture models and NO database
- * read: every one of the nine kinds, every form, the no-lead case, density="matrix", a long claim,
- * and a card with no provenance."
- *
- * NO DATABASE READ. Every model on this page comes from src/lib/detail/fact-card-fixtures.ts,
- * hand-built fixture data - not a query.
- *
- * F49 (parts-not-pages): this page imports FactCard (@/components/ui/FactCard) and renders each
- * fixture through it; no part's literal shell styles are retyped here.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check
- * applies; see this lane's final report).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { PageMasthead } from "@/components/shell/PageMasthead";
 import { FactCardGallery } from "@/components/admin/FactCardGallery";

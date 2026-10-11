@@ -1,21 +1,5 @@
 #!/usr/bin/env node
-// backfill-source-type.mjs — classify every active source's `source_type` (migration 288) and, with
-// --apply, write it through the guarded path. Dry by default (Lane HYG-2, finish plan 2026-09-02).
-//
-// WHY: migration 288 adds `sources.source_type TEXT[]`, NULLable, no default. This is the one-shot
-// backfill named in docs/plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md §4.2, using classifySourceType()
-// (src/lib/sources/source-type-taxonomy.mjs) — the STOPGAP's own environmental_body/legislature
-// regexes, ported verbatim so coverage-gaps.ts's read-path fallback and this backfill agree by
-// construction (same function, two call sites).
-//
-// NEVER overwrites a row that already carries a non-null source_type — idempotent by construction, and
-// it leaves any prior manual/admin classification untouched. A row the classifier cannot place (returns
-// []) is reported as unclassifiable and left NULL for a manual/admin pass or a future classifier
-// extension; this script never guesses.
-//
-// USAGE:
-//   node scripts/sources/backfill-source-type.mjs            # dry: distribution + unclassifiable count
-//   node scripts/sources/backfill-source-type.mjs --apply    # write source_type through guardedUpdateByIds
+
 import { classifySourceType, SOURCE_TYPE_VALUES } from "../../src/lib/sources/source-type-taxonomy.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard

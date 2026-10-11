@@ -1,10 +1,3 @@
-/**
- * section-index-data, the one table SectionIndex's regulation-surface entries read from (lane
- * W10-ActionCard-a, 2026-09-21, operator review item 4). Plain .ts, no JSX, so
- * section-index-data.test.mjs can assert the 14-character short-name bound directly under bare
- * `node --test`, without pulling in SectionIndex.tsx's React tree.
- */
-
 export interface SectionIndexEntry {
   id: string;
   /** <= 14 characters (SECTION_INDEX_SHORT_NAME_MAX). The full section title is the section's own

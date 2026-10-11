@@ -1,13 +1,3 @@
-/**
- * Shared types for the Phase C community shell.
- *
- * The /community page server component fetches data into these shapes,
- * then passes them to CommunityShell (client) which threads them down
- * to CommunitySidebar / CommunityMasthead / CommunityRegionTabs.
- *
- * Posts, group detail, threads — all out of scope for this shell PR.
- */
-
 type CommunityRegionCode =
   | "EU"
   | "UK"

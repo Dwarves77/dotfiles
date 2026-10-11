@@ -1,19 +1,3 @@
-// src/lib/sources/vertical-fit-gate.ts
-//
-// THE vertical-fit GATE on the discovery / ingestion path (root-cause fix for the ungated
-// 2026-05-08 discovery pass that bulk-added off-vertical legislature portals).
-//
-// Operative rule (per the 2026-06-04 decision): legislatures are KEPT BY DEFAULT, so this gate
-// does NOT block new legislatures. What it enforces is the NEGATIVE LIST: any source already
-// SUSPENDED as off-vertical (status='suspended' with the `off_vertical_suspended` marker in
-// notes — written by the authorized relevance retirement, suspend-not-delete) must never be
-// silently re-added by discovery/promotion. A new source whose registrable host matches a
-// retired one is BLOCKED; the operator must consciously re-authorize it.
-//
-// Dormant-safe: supply is paused, so this runs only when a source is actually created via the
-// admin promote/decide paths. The check is a single indexed query; fail-OPEN on query error
-// (a transient DB failure must not wedge source onboarding) but logs the failure.
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyInstitutionalType, isOffVerticalByIdentity } from "@/lib/sources/vertical-fit";
 

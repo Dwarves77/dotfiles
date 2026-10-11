@@ -1,24 +1,3 @@
-// coverage-gaps-rollup.ts — the pure region-rollup half of coverage-gaps.ts, split out so it is
-// testable with plain `node --test` (Lane HYG-2, migration 288 refactor).
-//
-// WHY THIS IS A SEPARATE FILE. coverage-gaps.ts imports `next/cache` (unstable_cache) and
-// `./supabase-service` (@supabase/supabase-js) for its I/O half. Node's ESM resolver cannot resolve
-// `next/cache` at all without a bundler — Next.js's package.json `exports` map does not declare a
-// `./cache` condition, so `import { unstable_cache } from "next/cache"` fails with
-// ERR_MODULE_NOT_FOUND under plain `node --test`, in EVERY CI job including the one that runs
-// `npm ci` first (confirmed empirically this lane: the failure is a resolution gap, not a missing
-// install). That makes the file that owns those imports untestable outside a full Next.js build,
-// which is the same reason `src/lib/propagation/drain.ts` and `src/lib/watchlist-scope.ts` keep their
-// own pure logic dependency-free and let a server-only sibling do the I/O. `sourceTypesFor` and
-// `rollupRegions` have no I/O of their own — they are pure functions of the rows and regions handed to
-// them — so they live here, importable (and tested) with zero npm dependencies. coverage-gaps.ts
-// imports rollupRegions from this module for its cached entry point and re-exports RegionCoverage for
-// its existing consumers (MapPageView.tsx imports `type RegionCoverage` from "@/lib/coverage-gaps" —
-// unchanged by this split).
-// Relative imports, deliberately — not the "@/lib/..." alias. glob-portability.test.mjs (this repo's
-// discipline suite) enforces relative imports for every file `node --test` must resolve without a
-// bundler; an "@/" alias only resolves inside the Next.js build, and would silently pass locally
-// (where tsconfig paths + a loader might be configured) while reddening in a bare `node --test` CI leg.
 import { classifySourceType } from "./sources/source-type-taxonomy.mjs";
 import { TIER1_PRIORITY_REGIONS, type Region } from "./tier1-priority-jurisdictions.ts";
 

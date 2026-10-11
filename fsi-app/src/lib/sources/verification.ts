@@ -1,28 +1,3 @@
-// W2.F — auto-verification pipeline.
-//
-// Pure module that triages each discovered candidate URL into one of three
-// confidence tiers (H/M/L) and acts on the classification:
-//
-//   H — auto-approved   → INSERT INTO sources    (status='active', admin_only=false)
-//   M — queued-provisional → INSERT INTO provisional_sources (status='pending_review')
-//   L — rejected        → no source-row write; only audit log
-//
-// Every candidate writes one row to source_verifications regardless of
-// outcome (migration 037). The pipeline is idempotent: running twice on
-// the same candidate produces two source_verifications rows but only one
-// downstream source/provisional row — the duplicate check rejects the
-// second pass.
-//
-// Cost model: Haiku-only. We never call Sonnet from this pipeline. A
-// single combined Haiku call returns relevance + freight + trust tier
-// + rationale in one JSON payload (~600 tokens out, ~3500 tokens in).
-//
-// Failure semantics: every step has a defined fallback. Reachability
-// failure → tier L immediately (no Haiku call). Haiku failure → tier
-// M (don't auto-approve a row we couldn't classify, but don't toss
-// it to L either — operator review is the safety net). Domain regex
-// gives a confidence band that tilts but never alone forces L.
-
 import { type SupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { haikuVerifyCandidate } from "@/lib/llm/haiku-classify";

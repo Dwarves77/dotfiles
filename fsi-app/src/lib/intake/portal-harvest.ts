@@ -1,34 +1,3 @@
-// portal-harvest — B1 of the scrape-and-build plan (docs/plans/scrape-and-build-content-plan-2026-07-19.md):
-// the CONSUME half of the P2-5 portal deep-link discovery slice, closing the half-slice the structure
-// audit named (portal_link_candidates had a writer, no reader).
-//
-// Two halves, both REUSE-ONLY at the seams:
-//
-//   persistPortalCandidates  the ONE ledger write-site (extracted from the check-sources inline loop so
-//                            the scheduled crawl and the manual harvest share identical upsert semantics:
-//                            onConflict url refreshes last_seen_at/anchor_text ONLY — status, first_seen_at
-//                            and dispositions are never overwritten by a re-crawl).
-//
-//   consumePortalCandidates  ledger rows (status='candidate') → fetch (injected; live = the transport
-//                            escalation ladder, direct-HTTP first) → firstFetchClassify (the LIVE content
-//                            gate: error-body pre-gate + entity_verdict portal/uncertain/specific_document)
-//                            → the intake chokepoint via applyStagedUpdate/runIntakeCycle.
-//
-// GATE PLACEMENT (mint-item dispatch §1, binding): this module PRECOMPUTES inputs (verdict, item_type,
-// severity mapping, source link) — every gate DECISION stays in the chokepoint. The consumer presets
-// seed.source_id from the ledger row's parent portal (the caller-preset path the scan route uses),
-// because a deep-link URL is deliberately NOT in the sources registry — its parent portal is.
-//
-// MODES (dryRun-first, ruled): 'plan' is READ-ONLY and free of grounding — every candidate runs the real
-// chokepoint gates via dryRun and NOTHING is written (no ledger update, no staged row, no mint, no fetchless
-// spend beyond the classify Haiku call). 'apply' runs plan's dry pre-pass first, then pushes ONLY the
-// would-mint candidates through the full runIntakeCycle (stage → mint → ground → validate) and stamps the
-// ledger disposition (mig 220: status + disposition_reason + item_id) — a disposition without a recorded
-// reason is the RD-6 silent-backlog shape, so every status change carries its machine reason verbatim.
-//
-// SPEND: plan mode costs ~$0.001/candidate (Haiku classify) + free direct-HTTP fetches. apply mode enters
-// the ONE grounding contract (generateBriefWorkflow) per minted item — the operator-priced path; the runner
-// defaults to plan and requires an explicit flag for apply.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { firstFetchClassify, type FirstFetchClassifyOutput } from "@/lib/llm/first-fetch-classify";
 import { toDbSeverity } from "@/lib/agent/metadata-vocab";

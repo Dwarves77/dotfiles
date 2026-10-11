@@ -1,12 +1,3 @@
-// SHARED-WRITER: monitoring_queue
-// Decision logic + per-source assessment for POST /api/worker/check-sources, split out of
-// route.ts (BUILDGATE, 2026-09-02, F34's named residual / build-graph proof). Next 16's
-// route-type validator rejects a route.ts that exports anything besides route handlers/config
-// fields — `next build --webpack` type-checks the whole route module and rejects any other
-// export field on it — so these functions move to this sibling module and route.ts imports
-// them. Behaviour is unchanged; only the file they live in moved. route.npmtest.mjs now
-// imports this module directly instead of route.ts.
-
 import { d3GuardRejection } from "@/lib/d3/hooks.mjs";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { classifyReachability } from "@/lib/sources/reachability.mjs";

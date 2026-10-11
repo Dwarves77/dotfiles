@@ -1,18 +1,3 @@
-// GET /api/health/surfaces — honesty probe for the customer surfaces (R0.2).
-//
-// Customer surfaces are auth-walled, so an external uptime probe cannot read
-// them directly. This dedicated endpoint runs server-side with the service
-// client and reports, per surface, whether its BACKING DATA is present — a
-// cheap real count of the rows the surface renders from. The uptime workflow
-// (.github/workflows/uptime-probes.yml) curls this with the WORKER_SECRET
-// header and asserts every must-have surface ok.
-//
-// Auth: WORKER_SECRET header (workerAuthGuard) — same pattern as every
-// worker/cron route (src/lib/api/worker-auth.ts). Not customer-facing.
-//
-// The ok / zero-legal decision logic lives in the pure, unit-tested module
-// src/lib/telemetry/surface-health.mjs; this route only GATHERS the counts.
-
 import { NextRequest, NextResponse } from "next/server";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 import { checkRateLimit } from "@/lib/api/rate-limit";

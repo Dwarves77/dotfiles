@@ -1,11 +1,3 @@
-// scope.mjs — Axis 4 (scope: topics / modes / verticals) classifiers.
-// docs/plans/source-classification-framework-2026-05-10.md, "Axis 4: Scope" — the only MUTABLE axis
-// (re-evaluated as a source's content evolves), three sub-fields, each multi-valued, closed vocabulary
-// (src/lib/classification/vocab.mjs). Deterministic name/role keyword matching only — no content fetch,
-// no LLM. Every function documents the rule it encodes so a reviewer can trace a proposal back to the
-// framework text; low-confidence or undeterminable results are returned honestly (never guessed) for
-// the calling script to surface as a proposal, not a write.
-
 import { LEG_MODE_CODES } from "../contracts/vocabularies.mjs";
 import { SCOPE_TOPICS, SCOPE_VERTICALS } from "./vocab.mjs";
 

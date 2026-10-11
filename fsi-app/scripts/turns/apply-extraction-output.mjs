@@ -1,41 +1,4 @@
 #!/usr/bin/env node
-// SHARED-WRITER: item_forward_events
-// apply-extraction-output.mjs — corpus-turn family (RT lane, 2026-09-01). The "load" half
-// `scripts/harness-runs/forward-events/PROTOCOL.md` §2 always assigns to the coordinator/guarded-write
-// path, never to the extraction lane itself: "Turning a run's events array into live rows is the
-// coordinator's act... never by the extraction lane applying its own INSERTs directly against the live
-// database." This script IS that guarded-write-path act, run under the corpus-turn harness.
-//
-// INPUT: `scripts/forward-events/run-extraction.mjs --execute`'s own `<out-basename>.events.json` output
-// — the exact `allEvents` shape that runner's `runExtraction()` builds: one object per emitted event,
-// `{ item_id, event_date, date_precision, event_kind, obligation_text, source_kind, source_claim_id,
-// source_section_id, source_span, confidence, extractor_version }` (see that runner's own header/
-// `runExtraction` doc comment).
-//
-// IDEMPOTENCY RESPECTS MIGRATION 307's DEDUPE KEY (lane FE-DEDUP, 2026-09-04), NOT AN EARLIER ONE. 274
-// shipped `UNIQUE (intelligence_item_id, event_date, event_kind, source_span)`; 275 replaced it (see that
-// migration's own header — the first full-corpus run showed the 274 key silently collapsing 54% of
-// distinct events sharing a bare-year span) with
-//   (intelligence_item_id, event_date, event_kind, md5(obligation_text), coalesce(source_claim_id, source_section_id));
-// 307 replaced 275's key in turn — the source-object term let a claim-backed row and a section-backed row
-// with byte-identical obligation_text coexist as an undetected duplicate (359 live groups, measured; see
-// 307's own header) — with the narrower
-//   (intelligence_item_id, event_kind, event_date, md5(obligation_text))
-// THIS FILE'S `dedupeKey` MUST MIRROR WHICHEVER KEY IS LIVE: it existed to keep this script's own
-// pre-insert idempotency check in step with the DB's actual unique index, not to independently invent a
-// notion of "same event" — a divergence here does not fail silently, it fails LOUD, as a real unique-
-// violation from `guardedInsertMany`'s bare INSERT the next time a stale, wider key wrongly calls a true
-// content-duplicate "new". `db.mjs`'s `guardedInsertMany` is a BARE INSERT (no ON CONFLICT) — a naive
-// re-run would throw a unique-violation against the live index rather than skip cleanly. This script makes
-// a re-run idempotent the same way `db.mjs`'s own `registerSource` does for the `sources` table: read the
-// existing keys for the items in this batch FIRST, compute the same key client-side (Node's `crypto` `md5`
-// hex digest is byte-identical to Postgres's `md5()` text function for the same input string), and insert
-// only the rows that are genuinely new.
-//
-// Usage:
-//   node scripts/turns/apply-extraction-output.mjs --events path/to/x.events.json [--execute]
-// --execute is required to write; the default is a dry preview (compute + report, write nothing).
-// Exit 0 done · 1 bad args / malformed input · 2 no DB creds (cannot run here).
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { readFileSync } from "node:fs";

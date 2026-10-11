@@ -1,19 +1,3 @@
-// schema.mjs: the theme-briefs file contract and its pre-write validator (lane S3-C, 2026-10-04).
-//
-// PURE and dependency-free apart from the one hash recipe (src/lib/connections/brief-staleness.mjs): no
-// database, no network, no model call. A session lane authors a batch `theme-briefs-NNN.json` offline from
-// the export bundle (scripts/turns/export-themes-for-briefs.mjs); this module is the enforcement the apply
-// step (scripts/turns/apply-theme-briefs.mjs) runs before any write. The README beside this file is the same
-// contract in prose; theme-briefs.test.mjs is the executable spec.
-//
-// Same family shape as scripts/turns/record-briefs/schema.mjs (a committed batch file, a pure validator,
-// whole-entry refusals), narrowed to what a THEME brief is: the system saying what a connection between
-// items on several pages means over the long term, and what follows from it for a reader of each page.
-//
-// WHOLE-ENTRY REFUSAL. An entry that fails any check below is refused in full and never partially applied;
-// the refusal reasons are returned so the residue is recorded with its reason. A refused entry never blocks
-// the valid entries beside it (no human gate: the decision is made by rule, the residue is reported).
-
 import { computeMemberHash } from "../../../src/lib/connections/brief-staleness.mjs";
 
 export const THEME_BRIEFS_SCHEMA_VERSION = "tb1-2026-10-04.1";

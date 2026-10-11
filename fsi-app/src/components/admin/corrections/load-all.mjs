@@ -1,10 +1,3 @@
-// load-all.mjs , the Corrections tab's read (lane G7-UI, 2026-10-06; orphan check batched in lane DFIX-2). The
-// G7-CORR API lists corrections per item only, so the tab reads the whole table through the existing platform-admin
-// SELECT policy (migration 356, the readers' own readAllCorrections). "Orphaned" is the one thing the per-item API
-// computes (findOrphanedFactCorrections over the item's current claims); the tab computes it with the SAME function
-// over ONE batched read of the claims of every item that holds an active fact correction (chunked id lists, each
-// chunk paged to the end), instead of one API request per item (which hit the route's rate limit and needed a cap).
-// The client is injected; nothing here constructs one.
 import { readAllCorrections, latestPerTarget, findOrphanedFactCorrections } from "../../../lib/corrections/item-corrections.mjs";
 import { fetchAllByIdChunks, fetchAllRows } from "../../../lib/db/paginate.mjs";
 

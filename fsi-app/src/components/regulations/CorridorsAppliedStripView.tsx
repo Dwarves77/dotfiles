@@ -1,25 +1,3 @@
-/**
- * CorridorsAppliedStripView — the pure, sync render half of the "Corridors this applies on" block
- * (regulation detail, lane SCOPE-READER 2026-09-06). Split from CorridorsAppliedStrip.tsx for the SAME
- * reason every spec-09 panel is split (see OemRoadmapPanelView.tsx / spec09-smoke.mjs
- * headers): the data-fetch half transitively imports Next's server request-tracing chain
- * (`@opentelemetry/api`), which a plain esbuild browser bundle cannot resolve — this file imports NOTHING
- * from `next/*` or `@/lib/supabase-server`/`@/lib/entities/corridor-scope-cache`, so the rendering guard's
- * smoke harness can mount it directly.
- *
- * NOTHING RENDERS EMPTY BY DESIGN (plan §W5): `corridors.length === 0` returns `null` — no card, no
- * "no corridors" line, exactly the honest-omission contract NoticesRail already uses
- * elsewhere on this same route.
- *
- * Each corridor links to `/market#corridor-<entityId>` — an anchor onto its exact card in the carbon-cost
- * overlay (CarbonCostOverlay.tsx's own `id={corridor-<entityId>}`, matching this file's link), rather than
- * a `?corridor=` query param: a searchParams-driven filter would force /market's whole index page dynamic
- * again, undoing the PERF-10 lane's deliberate removal of `force-dynamic` there (see market/page.tsx's own
- * header) for a filter the overlay's small, single-screen corridor count (4 at authoring time) does not
- * need — every corridor already renders on that page, so scrolling to the right card serves the same
- * "show me this regulation's corridor" intent without the perf regression.
- */
-
 import Link from "next/link";
 
 export interface CorridorAppliedRow {

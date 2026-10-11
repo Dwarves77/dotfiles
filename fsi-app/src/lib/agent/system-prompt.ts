@@ -1,18 +1,3 @@
-// Operative contract for /api/agent/run. Synced to
-// fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md
-// (canonical, 2026-04-28). The skill is reference + contract; this file
-// is what the agent actually receives at runtime. Parity between the two
-// — the same numbering/wording in "The 16 Rules for All Output" and the
-// same 20-field database contract enumeration in "Database Field
-// Emission" (which lives in that skill's references/storage-and-field-emission.md) — is enforced by
-// fsi-app/src/lib/agent/skill-prompt-parity.test.mjs (registered as
-// invariant EP-13-skill-prompt-parity), separate from and in addition to
-// contract-version.test.mjs, which only checks the
-// regeneration_skill_version literal.
-
-// G5-READ (2026-10-07): the optional mentioned_terms ask names the SAME kinds and caps record-briefs/schema.mjs and
-// parse-output.ts validate (one definition, term-recurrence.mjs), and the adopted-term glossary below is read
-// through the one adopted-terms loader's shapes.
 import { MENTIONED_TERM_KINDS, MENTIONED_TERMS_MAX, MENTIONED_TERM_TEXT_MAX } from "../connections/term-recurrence.mjs";
 import { adoptedEntries } from "../vocabulary/adopted-terms.mjs";
 

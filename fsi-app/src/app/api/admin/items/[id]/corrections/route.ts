@@ -1,10 +1,3 @@
-// GET  /api/admin/items/[id]/corrections , list every admin correction of one item (machine value, active state)
-// POST /api/admin/items/[id]/corrections , create a correction (reason mandatory, created_by = the session user)
-//
-// Lane G7-CORR (2026-10-06): the admin correction layer over item data, migration 356 (item_corrections). The
-// request and response shapes are documented at the top of src/lib/corrections/admin-api/logic.mjs. Platform-admin only: requireAdminRoute is
-// the ONE gate (src/lib/api/route-guard.ts, fitness F2); the handlers in src/lib/corrections/admin-api/handlers.ts run it first and never
-// touch the database for a refused caller.
 import { NextRequest } from "next/server";
 import { requireAdminRoute } from "@/lib/api/route-guard";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";

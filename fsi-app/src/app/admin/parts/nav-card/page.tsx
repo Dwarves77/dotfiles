@@ -1,32 +1,3 @@
-/**
- * /admin/parts/nav-card: the NavCard sign-off page (lane W10-NavCard, 2026-09-23, parts-brief 2.14
- * NAV CARD).
- *
- * "Read parts-brief 2.10 (NAV CARD)...": coordinator note, the live parts-brief renumbered this
- * section to 2.14 (2.10 is now CHIPS) since the dispatch was written; NAV CARD's content (252px
- * always; margin 20px 0 16px 16px; four-band 3px cap; two-row footer) is unchanged, only the
- * section number moved. This page cites the live section number, 2.14, per "the artboard [and the
- * live doc] wins over the README and you say so."
- *
- * NavCard is `Sidebar.tsx` (`data-part="nav-card"` on both the desktop `<aside>` and the mobile
- * drawer `<aside>`), already the ONE nav-card implementation site-wide before this lane (AppShell.tsx
- * is its only call site; the auth frame at /login, /signup, /onboarding renders AuthFrame.tsx instead,
- * per bundle ruling 3, and CommunityShell.tsx only hides the global card with scoped CSS, it does not
- * retype one). This lane's own work is the `data-part` marker, this fixture page, and the /market/series
- * + Research-facet-row fixes named in the same brief section.
- *
- * Renders the real `Sidebar` part against `NAV_COUNTS_FIXTURE` (nav-counts-fixture.ts), frozen via a
- * read-only SELECT against the live corpus (project kwrsbpiseruzbfwjpvsp), 2026-09-23, that file's
- * own header carries the exact queries and date. NO DATABASE READ at request time on this page: the
- * fixture file is a static import; NavCardPartsDemo.tsx patches the client bootstrap fetch to return
- * the frozen counts (same mechanism as CommandBarPartsDemo.tsx, reuse before construction).
- *
- * F49 (parts-not-pages): this page imports Sidebar (via NavCardFixtureFrame) and renders it
- * unmodified; no nav-card literal style is retyped here.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check
- * applies; see this lane's final report).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { PartsPageHeading } from "@/components/admin/PartsPageHeading";

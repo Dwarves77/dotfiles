@@ -1,25 +1,3 @@
-/**
- * joinMetaSegments — THE one way a detail page's sub-line is assembled.
- *
- * COUNTS-61 (production defect, click-through audit 2026-09-08, /market/[id]): the sub-line printed
- * the source name twice —
- *   "Sustainable Packaging Coalition (a project of GreenBlue) ·
- *    Sustainable Packaging Coalition (a project of GreenBlue) · published Sep 2 2026"
- *
- * ROOT CAUSE [CONFIRMED by reading src/app/market/[slug]/page.tsx]: `publisher` was used TWICE for
- * the same line — once inside `groupLabel` ("Market / <publisher>") and once as the first element of
- * `deck` — and `MarketSignalDetailSurface` joins `[crumbGroup, deck, ...]` with " · ". One value,
- * two slots, neither producer aware of the other.
- *
- * All four detail surfaces compose this line the same way, from segments computed by different code
- * in different files, so patching the market page's own `deck` would leave the class alive on the
- * other three. This function is the class fix: it drops any segment already present in the line,
- * compared case- and whitespace-insensitively, and drops empties. It cannot invent, reorder or
- * reword a segment — the first occurrence is what survives, so the line reads exactly as its author
- * intended minus the repetition.
- */
-
-/** Normalised form used only for the duplicate comparison; never printed. */
 function key(segment: string): string {
   return segment.trim().replace(/\s+/g, " ").toLowerCase();
 }

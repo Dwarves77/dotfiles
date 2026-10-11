@@ -1,33 +1,3 @@
-// SHARED-WRITER: intelligence_items
-// POST /api/admin/integrity-flags/[id]/resolve
-//
-// Resolve a single agent-integrity flag on an intelligence_items row.
-// Marks agent_integrity_resolved_at = NOW() and records the resolving
-// admin via agent_integrity_resolved_by. The trigger from migration 035
-// only manages the flag/phrase/flagged_at columns; the resolution columns
-// are owned exclusively by this endpoint, so the trigger doesn't fight us.
-//
-// Body:
-//   {
-//     action: "replace_url" | "regenerate" | "mark_resolved",
-//     note?: string,
-//     newSourceUrl?: string  // required only for action=replace_url
-//   }
-//
-// Audit: per-task spec, the note + action are written to console.log. We
-// chose console-log over a new staged_updates row for two reasons:
-//   1. staged_updates is shaped for content proposals (proposed_changes
-//      JSONB, status approval flow). A flag-resolution event doesn't fit
-//      that schema cleanly, so reusing it would require a freshly-typed
-//      update_type and shoehorned columns.
-//   2. The platform doesn't yet have a generic admin_audit_log table. A
-//      proper audit row should land with the W4 audit_log surface, at
-//      which point this handler can be promoted from console.log to a
-//      typed insert. For now console.log preserves the trail in Vercel
-//      function logs.
-//
-// Auth: requireAuth + admin role check. Rate-limited.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

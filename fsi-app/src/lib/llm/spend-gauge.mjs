@@ -1,14 +1,4 @@
 // @ts-check
-// SPEND GAUGE (Phase 2, snapshot-first rebuild; spend-control refactor 2026-07-13). A FREE, read-only status
-// view of the spend ledger — the thing that "already held all of this; it just was never read."
-//
-// SPEND-CONTROL REFACTOR: the gauge no longer frames spend against a machine limit. Per the operator's final
-// rulings there are NO standing dollar figures as limits, so there is NO "of $N" denominator, NO pct-of-ceiling,
-// and NO frozen / at-cap threshold here. The gauge reports MTD (and today, and per-item) actuals as pure
-// INFORMATION, plus paid-run TRACEABILITY coverage: how many paid runs trace to an operator-priced line. It
-// NEVER gates or halts — the only halt is the operator-priced line (priced-line.mjs / assertPricedSpend).
-//
-// It NEVER spends. It reads agent_runs.cost_usd_estimated — the same ledger everything else reads.
 
 import { fetchAllRows } from "../db/paginate.mjs";
 

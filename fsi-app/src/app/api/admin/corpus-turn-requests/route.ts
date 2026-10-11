@@ -1,30 +1,3 @@
-// SHARED-WRITER: corpus_turn_requests
-// /api/admin/corpus-turn-requests
-//
-// Read/write surface for corpus_turn_requests (migration 277) — the "this item needs a flywheel turn"
-// queue the migration's own trigger (`enqueue_corpus_turn_request`) fills mechanically for every producer
-// that bypasses the in-app rule-16 chokepoints. This route does NOT run a turn itself (no discovery, no
-// forward-event extraction) — same posture as admin/forward-events and admin/themes (this file's own
-// header states it): it only ASSEMBLES/APPENDS what the trigger (GET) and the operator (POST) put there.
-// The actual turn is `scripts/turns/consume-turn-requests.mjs` (reads + marks consumed) feeding
-// `scripts/connections/discover-for-items.mjs --ids <...>`, or the corpus-turn GitHub Actions workflow a
-// sibling lane owns.
-//
-// Methods:
-//   GET   — list OPEN requests (consumed_at IS NULL), joined with the item's title/legacy_id so the admin
-//           panel can render something meaningful without a second round trip, plus open_count and
-//           last_consumed_at (MAX(consumed_at) across every row, open or not — "when did a corpus turn
-//           last actually run" is the useful operator signal, not just today's open count).
-//   POST  — insert a MANUAL request: { itemId: "<uuid>" } for one item, or { all: true } to backfill a
-//           reason='manual' request for every live (verified, non-archived) item that does not already
-//           carry an open one. 'manual' is the one reason value the trigger itself never writes (migration
-//           277's own header) — reserved for exactly this operator action.
-//
-// Auth: requireAuth + isPlatformAdmin + checkRateLimit (house admin-route pattern — mirrors
-// admin/forward-events, the freshest example at time of writing). Cache-Control: no-store on GET — this
-// is an operator queue read, not a cached surface (same posture admin/forward-events documents for
-// itself).
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute, type ServiceSupabase } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

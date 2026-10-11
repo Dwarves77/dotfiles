@@ -1,27 +1,3 @@
-/**
- * GridQueuePanelView — the sync, render-only half of GridQueuePanel.tsx's VIEW/FETCH split. Separate file
- * for the same reason as market/OemRoadmapPanelView.tsx (see that file's header).
- *
- * DECISION HORIZON: src/lib/spec09/grid-queue.mjs's evaluateGridQueueGate() takes the CALLER's own
- * decision horizon — it is never invented by the calculator. This view is a read-only status board (no
- * per-row decision to make on this screen), so it evaluates every row against one shared, clearly
- * labelled standing horizon (DECISION_HORIZON_MONTHS below) rather than fabricating a per-row horizon the
- * table carries no column for. A caller with a real per-decision horizon should call
- * evaluateGridQueueGate() directly rather than read this view's BLOCKED/CLEAR label as its own answer.
- */
-/**
- * SECTION BODY, NOT A PANEL (UI fix round 2026-09-08, item D3). This used to render as a full-width
- * strip below the /operations list, under artboard 08's last card, carrying its own page-frame wrapper
- * (max-width 1180, 36px side padding) and its own `spec09-panel-header` heading. The operator's
- * page-scope ruling moves the material onto the Operations PROFILE page as an S-section, so this file
- * now renders ROWS ONLY: the frame is DetailShell.tsx's <DetailSection>, which supplies the card, the
- * 3px section rule, the heading and the `aside` the subtitle below now fills. The heading element that
- * carries `data-guard-title` (F35's squeezed-title detector) is that <DetailSection> h2 — this file
- * deliberately renders no second title of its own, the same delegation ObligationRegister.tsx states
- * for itself.
- */
-
-
 import { evaluateGridQueueGate } from "@/lib/spec09/grid-queue.mjs";
 import "@/components/market/spec09.css";
 import { CoverageState } from "@/components/ui/CoverageState";

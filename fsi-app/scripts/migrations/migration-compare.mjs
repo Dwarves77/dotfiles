@@ -1,23 +1,3 @@
-// migration-compare.mjs -- the ONE definition of "does this migration file say what production ran"
-// (lane MIG-HIST-1, 2026-10-07). Shared by the APPLIED-MAP generator (build-applied-map.mjs) and the
-// hard data audit (scripts/verify/migration-history-audit.mjs) so the map and the gate can never
-// disagree about a row. Pure: no filesystem, no database, no network.
-//
-// Normalisation (the same idea as the 2026-10-07 export's reconcile step): comments are removed (line
-// and block, outside quoted text), the text is split into statements outside quotes and dollar-quoted
-// bodies, a transaction wrapper (BEGIN, COMMIT) is dropped (the migration runner supplies the
-// transaction, and the stored statements never carry one), and each statement is compared with all
-// whitespace removed and a trailing semicolon ignored.
-//
-// Classes of a (stored statements, file text) pair:
-//   identical      the two statement lists are equal in order (comments and whitespace aside).
-//   comments-only  not equal as raw lists (a BEGIN or COMMIT wrapper in one side), or not equal in order, but every file statement appears in the stored text and every
-//                  stored statement that is not in the file is a FRAGMENT (does not begin with an SQL
-//                  command word). That is exactly the artefact of the Supabase CLI splitting a comment
-//                  that contains a semicolon: the tail of the comment is stored as a stray "statement".
-//   code-differs   anything else (a statement the file has that production did not run, or the reverse).
-
-/** Remove `--` and block comments outside single-quoted strings and dollar-quoted bodies. */
 export function stripSqlComments(sql) {
   const s = String(sql);
   let out = '';

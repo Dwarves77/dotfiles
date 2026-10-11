@@ -1,11 +1,3 @@
-// indexation.mjs — spec 09 §1.3's dynamic carbon contract indexation: MECHANICS AND ARITHMETIC ONLY.
-// Spec 09 §5 open decision 2, taken with its own stated conservative default: "drafted text reads as
-// legal advice however it is captioned" — this module computes an indexed value and returns the inputs
-// that would go into a worked example; it never returns clause TEXT, and draftClauseText() below exists
-// only to throw ("refuse loudly, don't silently compose").
-//
-// Pure functions; no I/O, no fs (F34).
-
 import { labelled, missing } from "./label.mjs";
 
 /**

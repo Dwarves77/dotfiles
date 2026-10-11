@@ -1,28 +1,3 @@
-// inference-view.mjs: the pure view model for the customer "Inferences" section on the four detail pages
-// (lane P2, 2026-10-05; ADR-044 decision 3: an inference "is shown to customers labelled as an inference";
-// ADR-039 section (a): the pool-position inference stays internal). PURE: no I/O, no clock, dependency-free
-// beyond the learning-loop constants, so a plain `node --test` process runs its test.
-//
-// WHAT THE READ KEEPS (stated once, here; supabase-server.ts fetchInferencesForItem applies it):
-//   1. cites this item          cited_item_ids contains the item (the database does that filter);
-//   2. current, never stale     admissibility = 'current' (a stale row is waiting on the governed drain);
-//   3. not superseded           no other row names it in `supersedes` (migration 338: a recompute inserts a
-//                               NEW row that points at the prior one, so "current" is the row nothing points
-//                               at, NOT the row whose own supersedes is null);
-//   4. a customer-visible method  method_id is in CUSTOMER_INFERENCE_METHOD_IDS below. This is the ADR-039(a)
-//                               filter: an ALLOWLIST, so a method added later (the modelled pool-position
-//                               inference, any future internal one) is hidden until someone adds it here on
-//                               purpose, instead of leaking until someone remembers to block it.
-// What a customer then SEES is decided by `admissibleForInference` (components/shared/InferenceClaim.tsx,
-// use "display"): a REFUTED row and an uncited row never show. This module does not re-implement that gate;
-// pickVisibleInferences takes it as a function so the one gate stays the one gate.
-//
-// THE QUESTION IN WORDS. inference_records.trigger_question_ref is the question's subject_ref, built as
-// buildSubjectRef(itemId, surface, productQuestion) (connections/flag-namespaces.mjs, written by
-// learning/trigger-questions.mjs). The product-question token is the last segment. It is shown as the plain
-// question below, never as the raw reference. A reference that does not end in one of the four known tokens
-// shows no question line (nothing is guessed).
-
 import { PRODUCT_QUESTIONS } from "../learning/constants.mjs";
 
 /** Methods whose inferences customers may see. ADR-039(a): an allowlist, the pool-position inference is not on it. */

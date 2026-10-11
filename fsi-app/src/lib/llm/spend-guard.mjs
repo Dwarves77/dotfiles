@@ -1,15 +1,4 @@
 // @ts-check
-// PURE guard core for the spend chokepoint (operator ruling 2026-07-04; spend-control refactor 2026-07-13).
-// No I/O — so the guarantees are red-then-green node --test. spend-client.ts wraps this with the actual
-// Anthropic API call, model→cost mapping, and the agent_runs telemetry write.
-//
-// SPEND-CONTROL REFACTOR (operator final rulings 2026-07-13): the fixed-constant HALTS are RETIRED — there is
-// no monthly ceiling, no per-item circuit breaker, and no standing SPEND_CEILING comparison here anymore. The
-// SOLE dollar authorization is the operator-priced line (priced-line.mjs): a spend must carry a line with an
-// operator-set cost + an inventory-miss citation, and it halts per pricedLineHalts. The INTEGRITY gates
-// (ticket-required, verified-item, junk-pool, deterministic-$0-lever rejection, and the unlogged-telemetry
-// invariant) are NOT dollar limits and REMAIN. assertBudget survives ONLY as the unlogged-telemetry invariant
-// plus an optional per-ticket (operator-supplied) ledger cap — it no longer enforces any standing machine figure.
 
 import { paidQueueVerdict } from "../agent/deterministic-lever.mjs";
 import { assertPricedLine, pricedLineHalts } from "./priced-line.mjs";

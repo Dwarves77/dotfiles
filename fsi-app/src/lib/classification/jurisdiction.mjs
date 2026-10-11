@@ -1,15 +1,3 @@
-// jurisdiction.mjs — Axis 3 (legal/geographic scope the SOURCE operates under) classifier.
-// docs/plans/source-classification-framework-2026-05-10.md, "Axis 3: Jurisdiction": "the legal scope
-// under which the source operates, NOT the geographic scope of its content" (NREL is us-federal even
-// reporting on global solar). Deterministic from institution HOST identity only — no content fetch, no
-// LLM, no name-keyword guessing (a name can describe a document title, not the publisher; the sibling
-// classify-source-role.ts's "host outranks name" doctrine — 2026-08-11 — is the same lesson applied to
-// a different axis here).
-//
-// Returns null when genuinely undeterminable (mirrors classifySourceRole's own contract) rather than
-// guessing a jurisdiction from weak signal — a wrong jurisdiction poisons conflict resolution (Axis 2)
-// and coverage displays downstream, so "flag for operator assignment" is the only honest fallback.
-
 import { isValidJurisdictionValue } from "./vocab.mjs";
 
 /** Host-suffix -> Axis-3 jurisdiction value. Each entry is a HIGH-CONFIDENCE institutional-domain

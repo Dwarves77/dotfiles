@@ -1,31 +1,3 @@
-// SHARED-WRITER: item_forward_events
-// mint-enrichment.ts -- rule-16 enrichment (discovery + forward-event extraction), the ONE shared
-// implementation both mint paths call so a batch-minted item receives the identical unconditional
-// post-insert participation a single mint always has (audit stage-audit-2026-09-18/s2-mint-gate.md
-// finding 4: apply-mint-batch.mjs's own path skipped rule-16 discovery/forward-events entirely; lane M3,
-// 2026-09-19, build plan section 6.1 row M3, item 4). This file's OWN direct write is item_forward_events
-// only (the SHARED-WRITER line above); connection discovery's own item_cross_references write happens
-// inside the imported run-discovery.mjs/write-edges.mjs (that pair's own SHARED-WRITER, unchanged by this
-// lane), never duplicated here.
-//
-// EXTRACTED FROM mint-item.ts (this repo's ONE mint chokepoint, F13-single-mint-chokepoint.mjs), lines
-// 307-377 per the stage audit: rule 16(a) connection discovery and rule 16(b) forward-event extraction,
-// moved here VERBATIM in behaviour (same calls, same non-fatal try/catch, same recordFlywheelDefect
-// posture). mint-item.ts now calls this function instead of running the two blocks inline; nothing about
-// what it does or how it fails changed. This does NOT include rule 16(c) compliance-deadline sync, 16(e)
-// entity linking, or 16(f) timeline backfill -- the audit's finding 4 and this lane's brief scope the
-// "rule-16 enrichment" gap to discovery + forward-events only (apply-mint-batch.mjs's own header:
-// "discovery scoring or forward-event extraction... this script has no DB creds for [them] and is not the
-// right place to add them" -- that gap is what this module closes).
-//
-// EVERY IMPORT BELOW IS A RELATIVE PATH, NEVER AN "@/..." ALIAS. apply-mint-batch.mjs (the batch mint
-// path) is a plain `node` script with no bundler/jiti loader for that alias -- see its own imports of
-// "../../src/lib/domains.ts" for the established precedent of a plain-node-importable src/lib file. This
-// module must resolve identically whether Next.js's webpack loads it (via mint-item.ts's own
-// "@/lib/intake/mint-enrichment.ts" import) or plain `node` loads it directly (via apply-mint-batch.mjs's
-// relative import). run-discovery.mjs and read-and-extract.mjs already import only relative paths
-// themselves; flywheel-defect.ts's own single "@/..." import was corrected to a relative path in this same
-// lane so it, too, is plain-node-importable.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { runConnectionDiscovery } from "../connections/run-discovery.mjs";
 import { readAndExtractForwardEvents } from "../forward-events/read-and-extract.mjs";

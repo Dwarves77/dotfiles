@@ -1,18 +1,3 @@
-// effective-confidence.mjs — the JS mirror of migration 285's SQL `effective_confidence()` (docs/specs/
-// 08-flywheel-design.md §3.2, byte-identical formula). Lane DP-ENGINE, system-completion train,
-// 2026-09-02.
-//
-// WHY A MIRROR RATHER THAN ONE SHARED IMPLEMENTATION. The SQL function is what actually computes the
-// value the database stores/serves (derived_values_admissible's effective_confidence column); this JS
-// function is what admissible-for.ts calls when it is handed a Value object already read out of the DB
-// (or a fixture in a test) rather than issuing a second round-trip to ask Postgres to recompute a number
-// it could derive locally. The two must AGREE — effective-confidence.test.mjs proves it on fixtures
-// (including the exact half-life-arithmetic table ADR-024 §3 works through for the FLOOR ruling), and
-// this file's own header states the formula is transcribed, not re-derived, from the SQL text.
-//
-// PURE. TIME IS INJECTED, NEVER READ (same discipline src/lib/contracts/envelope.mjs states for itself):
-// every call takes `nowMs`/`nowIso` explicitly rather than calling Date.now() internally.
-
 /**
  * Mirrors migration 285's `effective_confidence(base, asserted_at, half_life_days, now_ts)` SQL function,
  * which mirrors spec §3.2's own formula: `base * 0.5 ^ (age_days / half_life_days)`, rounded to 3 decimal
@@ -26,6 +11,7 @@
  * @param {string|Date} now - the current instant, injected
  * @returns {number} effective confidence, rounded to 3 decimal places
  */
+
 export function effectiveConfidence(base, assertedAt, halfLifeDays, now) {
   if (typeof base !== "number" || !Number.isFinite(base)) {
     throw new TypeError(`effectiveConfidence: base must be a finite number (got ${JSON.stringify(base)})`);

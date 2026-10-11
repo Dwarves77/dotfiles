@@ -1,24 +1,4 @@
 // @ts-check
-// PURE core for the FLAG-AGE audit (operator ruling 2026-07-13, flag-system item 5) — the dwell-gap closer.
-// quarantine-disposition-audit enforces dwell on quarantined ITEMS (RD-4/RD-6); it CANNOT see open-flag age
-// for (a) non-item subject_types (surface/source/system) or (b) item-flags whose item is not quarantined
-// (e.g. skill-conformance on verified items). So 450 open flags >30d tripped nothing. This audit enforces
-// open-FLAG age across ALL subject_types, reconciled against RD-28.
-//
-// EXEMPT (valid long-dwell, NOT a violation):
-//   - RD-28-HELD (recommended_actions[].hold_class === 'rd28-resting-state') — held-with-named-reopener; a
-//     verified resting-state item legitimately rests until change-evidence or a contract migration. (item 5
-//     wires this explicitly so the 65 held-mints don't red immediately.)
-//   - disposition_deferred — owned by deferral-hygiene-audit (avoid double-counting; that audit checks expiry).
-//   - standing-debt / lane markers (created_by in STANDING_DEBT) — a class-fix record, not a dwelling defect.
-//   - QUARANTINED-ITEM flags (operator ruling 2026-07-13, backlog disposition) — an open item-flag whose
-//     subject item is LIVE-QUARANTINED is owned by quarantine-disposition-audit (RD-4/RD-6: it enforces
-//     dwell on the ITEM, whose disposition CLOSES the flag — "flag follows item"). Counting it here too
-//     double-counts the same backlog under two audits. This restores flag-age's intended scope: it covers
-//     the GAP quarantine-disposition can't see — non-item flags (surface/source/system) and flags on
-//     NON-quarantined items (e.g. skill-conformance on verified items). Requires the caller to pass the
-//     live-quarantined item id set; when not passed, no quarantined-item exemption applies (safe default).
-// Everything else past the bound is PAST-BOUND (the dwell tripwire this audit adds).
 
 export const DWELL_BOUND_DAYS = 30;
 const STANDING_DEBT = new Set(["register-step-gap", "data-audit-lane"]);

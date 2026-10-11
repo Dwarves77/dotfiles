@@ -1,9 +1,3 @@
-/**
- * Workspace tags — shared types (lane uitags, 2026-09-07, migration 313 /
- * README "Workspace tags"). Used by the API routes, the client fetchers in
- * src/lib/tags/client.ts, WorkspaceTagPill (Chips.tsx) and TagPopover.
- */
-
 export interface WorkspaceTag {
   id: string;
   orgId: string;

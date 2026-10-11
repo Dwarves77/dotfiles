@@ -1,35 +1,3 @@
-// series-deltas.mjs — Lane SURF, spec 02 §6 item 1 ("Comparative ribbon: 6 to 10 headline metrics,
-// each `level · Δ1w · Δ1m · ΔYoY · sparkline · as-of`") and §3's "standard row"
-// (`current | Δ1w | Δ1m | Δ3m | ΔYoY | 52w range position | sparkline`).
-//
-// THE LIVE FACT THIS MODULE IS BUILT AGAINST: `market_series` has 6 series keys, 1 row each, today
-// [CONFIRMED 2026-09-02]. Every delta computed against today's live data is therefore, correctly,
-// "one observation, no delta yet" — this is NOT a bug in this module, it is the honest read of a table
-// mid-backfill, and the plan names this exact state as the acceptance bar (§9: "Comparative read
-// Absent in substance"; the fix is to make it comparative WHEN THE DATA SUPPORTS IT, and say plainly
-// when it does not, never to fabricate a delta from a single point).
-//
-// NEVER FABRICATE A DELTA FROM ONE POINT. A single-observation series has no prior value to subtract
-// against; rendering "+0.0%" or "—" indistinguishably from a real zero-change delta would be exactly
-// the false-precision failure spec 00 §2 names ("Publishing €47.83/tCO2e when the honest read is €45 to
-// 50"). This module returns `null` for a window with no comparable point and a stated `insufficientHistory`
-// reason, never a zero.
-//
-// NEVER COMPARE ACROSS A UNIT CHANGE. Two "diesel prices" on different units are different commodities
-// (spec 00 §2: "unit, currency, fx_date — two 'diesel prices' on different units are different
-// commodities"). A pair of observations whose `unit` or `currency` differ is refused for that pair
-// specifically (not the whole series — a later, unit-consistent pair may still compare), with reason
-// `unit_mismatch`.
-//
-// NEAREST-AT-OR-BEFORE, NOT EXACT-DATE MATCH. eu-oil-bulletin publishes weekly, not on exact 7/30/365-day
-// boundaries from "today", so a window comparison looks for the OLDEST observation at or before
-// (latest.date - windowDays) — the nearest fully-elapsed match — never a point AFTER the window target
-// (which would understate the elapsed time and overstate how fresh the delta is).
-//
-// PLAIN ESM, ZERO DEPENDENCIES. TIME IS INJECTED via each row's own `reference_period` (or `as_at_date`
-// fallback) — this module never reads the clock; "latest" is the greatest date INSIDE the input, not
-// "now" (mirrors refresh-published-price-statistics.mjs's own `latestPerSeries` convention).
-
 function pointDate(row) {
   return row?.reference_period ?? row?.referencePeriod ?? row?.as_at_date ?? row?.asAtDate ?? null;
 }

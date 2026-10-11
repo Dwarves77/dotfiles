@@ -1,29 +1,3 @@
-// scripts/spec09/lib/rows-file.mjs — shared rows-file plumbing for the spec-09 producers that have no
-// live $0 feed to read (reroute-producer.mjs, grid-queue-producer.mjs, oem-roadmap-producer.mjs).
-//
-// WHY ROWS-FILE-DRIVEN, NOT A LIVE FETCH (same reasoning as scripts/propagation/write-statutory.mjs's own
-// header, applied to these three tables). SOURCES.md's own conclusion for these three is unchanged by this
-// module: no bulk/API $0 feed was confirmed at authoring time, and this sandbox's egress proxy 403s every
-// non-allowlisted host (confirmed 2026-09-05: gov.uk, imo.org, ember-energy.org, api.eia.gov all "CONNECT
-// tunnel failed, response 403"), so this session cannot itself fetch a live workbook the way
-// fetch-desnz-factors.mjs's runner does. Rather than guess a dataset's byte-level shape from training
-// knowledge and risk shipping a fabricated "extraction" (rule 2: never fabricate), each producer instead
-// takes a `--rows-file` (JSON) of CALLER-ASSERTED, fully-cited rows — the same shape write-statutory.mjs
-// established for "the first writer of a table with no live feed yet". A rows-file is not a shortcut around
-// sourcing: every row's `citation` block is REQUIRED (url/title/retrieved_at/quote) and its host is rated
-// through the SAME institution class table (`src/lib/sources/host-authority.ts` classTierForHost — SC-13,
-// "no LLM guess, no default") every other lane's provenance heal uses, then registered through
-// `scripts/lib/db.mjs` registerSource — never a hand-typed tier (rule 18: "get the source, then rate the
-// source"). A row whose host classifies ambiguous (ANALYSIS/aggregator/unrecognized) is REFUSED, not
-// force-published at a guessed tier.
-//
-// NEITHER `reroute_events` NOR `grid_connection_queues` carries a `source_id` column (migrations
-// 296/297 — see their own headers: no entity_kind fits a "source" subject, and neither table's spec text
-// asked for one). Their per-row citation is therefore carried in the guarded write's own `cite` object
-// (scripts/lib/db.mjs rule-015: cite + snapshot, one insert per row so each row's snapshot carries its own
-// distinct citation) rather than a DB column. `oem_tech_roadmaps.source_id` IS a NOT NULL FK to
-// `sources(id)` (migration 296) — for that table `registerCitedSource`'s returned `source_id` is a
-// required column value, not just an audit-trail nicety.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { hostOf } from "../../lib/institution-key.mjs";

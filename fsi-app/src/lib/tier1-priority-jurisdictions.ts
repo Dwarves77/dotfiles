@@ -1,36 +1,3 @@
-// ══════════════════════════════════════════════════════════════
-// Tier 1 priority jurisdictions — region-grouped configuration
-// (Wave 4 AGENT 4 / Coverage gaps data-driven)
-// ══════════════════════════════════════════════════════════════
-//
-// Hand-curated config-as-code listing all Tier 1 priority jurisdictions
-// per FINISHING-DISPATCH-2026-05-06.md, broken out by region for the
-// Coverage gaps card and (future) Research / Admin coverage surfaces.
-//
-// SOURCE-OF-TRUTH NOTE
-// --------------------
-// The dispatch document lists these regions and per-region scopes:
-//   - US sub-national (50 states + DC + 5 territories = 56)
-//   - EU member states (27)
-//   - UK nations (4)
-//   - CA provinces+territories (13)
-//   - AU + states + territories (9)
-//   - APAC priority (SG, HK, JP, KR = 4)
-//   - MENA priority (UAE/AE, SA, IL, etc.)
-//   - Latam priority (BR, MX, AR, CL, etc.)
-//   - Africa priority (ZA, EG, KE, NG, etc.)
-//
-// `lib/jurisdictions/tiers.ts` holds the canonical Tier 1 list (a flat
-// `TIER_1_JURISDICTIONS` array) and treats MENA / Latam / Africa as
-// Tier 2. The dispatch promotes select MENA/Latam/Africa codes to "Tier
-// 1 priority" for coverage-gap reporting purposes. Both views are kept
-// in sync by composing this region grouping from the same ISO codes;
-// we do NOT duplicate the source-of-truth membership lists. If a future
-// edit promotes/demotes a code, both files must be updated together.
-//
-// Updates are code-edits — see `tiers.ts` header for the policy.
-// ══════════════════════════════════════════════════════════════
-
 interface PriorityJurisdiction {
   iso: string;
   name: string;

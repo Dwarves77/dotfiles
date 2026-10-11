@@ -1,23 +1,4 @@
 #!/usr/bin/env node
-// scripts/turns/read-brief-export-queue.mjs -- the CONSUMER end of the brief-export auto-queue (lane R22,
-// 2026-10-02, coordinator-directed). The queue itself is harness_runs rows (family "brief-export",
-// scripts/turns/brief-export/queue.mjs), landed by run-population-flywheel.mjs's step 12, never a file.
-// This is how a session lane reads it -- the replacement for "open scripts/turns/brief-export/pending/
-// and read the JSON" (that path is gone; see queue.mjs's own header for the full story).
-//
-// Usage:
-//   node scripts/turns/read-brief-export-queue.mjs --list
-//     Lists every still-pending queue row (run_id, mint_run_id, ids, part count), oldest first.
-//   node scripts/turns/read-brief-export-queue.mjs --run-id <brief-export-run-NNN>
-//     Prints that row's own queued content (inputs_ref -- the parts, claims/sections + pool text) as
-//     JSON to stdout, so a session lane can pipe it straight into whatever it was reading a file for.
-//
-// READ-ONLY, by construction: this script has no write path at all (no guardedUpdate import, no
-// "mark drained" flag). "Drained" is a pure, derived read over a LATER brief-apply row's own per_item ids
-// (queue.mjs's pendingQueueRows) -- see that module's own header for why no mutation is needed.
-//
-// Exit codes: 0 = printed. 1 = usage error or DB read error (real failure). 2 = missing credentials,
-// self-skip (rule 15: diagnosable, never a false red).
 
 import { readAll } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";

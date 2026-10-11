@@ -1,13 +1,3 @@
-// POST /api/admin/sources/recommend-classification
-//
-// For a given provisional source, return an AI-recommended classification
-// (tier 1-7, domains 1-7, jurisdictions, transport_modes, topic_tags) plus
-// a 1-2 sentence rationale. Cached on the provisional row so subsequent
-// reviews don't re-call the model.
-//
-// Uses Haiku — the task is taxonomy mapping against a fixed schema, not
-// regulatory analysis. Sonnet would be overkill.
-
 import { NextRequest, NextResponse } from "next/server";
 
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";

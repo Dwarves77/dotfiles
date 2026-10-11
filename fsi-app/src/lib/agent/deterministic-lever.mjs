@@ -1,30 +1,5 @@
 // @ts-check
-// DETERMINISTIC-FIRST GATE (spend-routing correction, operator ruling 2026-07-04). The generation-side
-// analog of dedup-before-ground: before ANY per-item generation spend, enumerate the item's $0 deterministic
-// levers; an item with an UNEXERCISED $0 lever is REJECTED from the paid queue with a named reason, so the
-// free operation runs first and the paid path only handles the genuine residual. Pure (no I/O) so the gate
-// is red-then-green unit-testable; the impure evidence (which levers are exercisable for THIS item) is
-// computed by the caller from stored provenance + pool and passed in.
-//
-// ROOT CAUSE THIS CLOSES: the $52.97 full-set quote priced full re-synthesis for all 66 items without first
-// enumerating deterministic resolution from existing stored data. Generation spend had no mechanical gate.
-// This is that gate — the operator never has to be the one who asks "did you check the free lever first?".
-//
-// WHICH CLASSES CARRY A $0 DATA LEVER (established from validate_item_provenance, migration 145):
-//  - fact_below_authority_floor (criterion 3): 4b standalone re-home — re-point source_id/tier/search_result_id
-//    on the EXISTING row WHEN a walling FACT's source_span verbatim-matches a floor-qualifying pool source.
-//    Exercisable ONLY when such a match exists (reattributeToFloor != null); otherwise no $0 lever (the span
-//    is a corroborator paraphrase, needs 4c relabel / re-ground = generation).
-//  - fact_span_not_in_source (criterion 3): re-point the span to another POOL source whose content contains
-//    it verbatim (any tier). Exercisable only when such a source exists.
-// GENERATION-ONLY (no $0 data lever — the label/prose is baked into intelligence_item_sections.content_md,
-// or the required content is absent): unlabeled_assertion (criterion 4 line 278 — label in markdown),
-// missing_required_slot / no_section_content (criterion 5 — content absent), analysis_missing_label_syntax,
-// legal_not_routed_to_callout, legal_claim_mislabeled_analysis. ungrounded_url is CONDITIONAL (register a
-// real source = $0 data write, but a hallucinated URL needs a prose edit) — treated as NON-auto-$0 here:
-// registration is a per-URL judgment, never a blanket lever, so it does not gate the paid path by itself.
 
-/** Failure classes that CAN carry a $0 deterministic data lever (subject to per-item exercisability). */
 export const DETERMINISTIC_LEVER_CLASSES = new Set([
   "fact_below_authority_floor",
   "fact_span_not_in_source",

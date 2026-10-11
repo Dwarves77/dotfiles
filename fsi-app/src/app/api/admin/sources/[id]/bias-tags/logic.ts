@@ -1,13 +1,3 @@
-// Pure logic behind PATCH /api/admin/sources/[id]/bias-tags, split out of
-// route.ts per the BUILDGATE 2026-09-02 convention (route.ts exports only
-// route handlers; testable decision logic lives in a sibling module, e.g.
-// src/app/api/admin/recompute-trust/logic.ts, src/app/api/admin/sources/
-// bulk-import/logic.ts, src/app/api/worker/check-sources/logic.ts).
-//
-// No DB access here. The route wires this against the real supabase client;
-// tests wire it against nothing at all, since none of it touches a network.
-
-// LEGACY pending value: no writer produces it since lane S1-B (2026-10-04); rows written earlier may carry it.
 export const PENDING_ASSIGNMENT_SOURCE = "haiku_proposed_low_confidence";
 // The value machine promotion now stores for every tag at or above 0.65, confidence kept in its own column.
 const ADOPTED_ASSIGNMENT_SOURCE = "haiku_auto_high_confidence";

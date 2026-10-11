@@ -1,9 +1,3 @@
-// load-item-targets.mjs , what the item Corrections screen shows as each correctable target's CURRENT value
-// (lane G7-UI, 2026-10-06). Server side, read only, the client injected (the page passes its cookie scoped
-// platform admin client). Every read is paginated or chunked, so no list is silently cut at 1000 rows.
-//
-// Facts are the item's FACT claims (a correction targets a claim by id; the API refuses a non fact claim).
-// Connections are the edges on either side, with the other item's title.
 import { fetchAllRows, fetchAllByIdChunks } from "../../../lib/db/paginate.mjs";
 import { TAG_COLUMNS } from "../../../lib/corrections/item-corrections.mjs";
 

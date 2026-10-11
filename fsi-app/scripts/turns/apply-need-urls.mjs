@@ -1,43 +1,4 @@
 #!/usr/bin/env node
-// SHARED-WRITER: integrity_flags, census_worklist
-// apply-need-urls.mjs: the apply half of the needs-search batch pattern (lane G5-SEARCH, 2026-10-07, buildout plan
-// Stage 5 last clause). It replaces the human step that used to stand between a found URL and the pipeline (the
-// ratify-flag-to-census note an operator wrote by hand) with a committed session batch applied by rule.
-//
-// Takes one named, committed batch (scripts/turns/needs-search/batches/needs-search-NNN.json, contract in
-// scripts/turns/needs-search/README.md), validates EVERY entry against the live open needs with the pure validator
-// (scripts/turns/needs-search/schema.mjs: the need is open, the url is http(s) without credentials, the host is
-// rated by the class table or placed by a host verdict, no tier in the batch). An entry that fails is refused whole,
-// never partially applied, its reasons recorded as residue; a refused entry never blocks the valid ones.
-//
-// WHAT A VALID ENTRY DOES (with --execute), in this order so a crash between steps is repaired by the next run:
-//   1. registers the source for the url's host through registerSource (scripts/lib/db.mjs, idempotent by
-//      institution key). The tier is the class table's tier for the host, or the table tier of the accompanying
-//      host verdict's class; it is never taken from the batch. An existing source is reused as it stands.
-//   2. creates what the need kind calls for (schema.mjs OUTPUT_FOR_KIND):
-//        term-need, holdings-need, flywheel-gap -> a census_worklist row (lane C), made by ratify-flag-to-census.mjs
-//          ensureCensusRow (the same row shape, identity and skip-if-exists check the operator ratification path
-//          uses; this file holds no second copy);
-//        lineage-gap -> a portal_link_candidates row (the ledger the EUR-Lex register walk already feeds),
-//          written by run-source-sweep.mjs upsertPortalLinkCandidates through the guarded upsert.
-//   3. resolves the need flag by rule: status resolved, resolved_by apply-need-urls, resolution_note carrying the
-//      need key, the url, the source id, the tier and the row created. The export reads that note back so a need
-//      the generator raises again under a new flag id, while the document is still working through the pipeline,
-//      is not searched twice.
-// Each write is read back. IDEMPOTENT: a second apply of the same entry writes nothing.
-//
-// RULE 17: the run artifact states sources registered or reused, census rows and portal candidates created or
-// reused, and flags resolved, so nothing is left for a coordinator to connect by hand. The census row then flows to
-// the population turn and the portal candidate to the ledger consume through their existing readers.
-//
-// DRY BY DEFAULT: without --execute it validates, prints the plan and writes nothing (it still writes its
-// harness-run artifact). --fixture <corpus.json> runs the whole step over an in-memory corpus with no database;
-// --execute then writes into memory only and no artifact is written.
-//
-// FREE: no model call, no network. Usage:
-//   node scripts/turns/apply-need-urls.mjs --batch <batch.json> [--execute] [--fixture <corpus.json>]
-// Exit 0 done (refused entries are residue, not a failure), 1 bad args / invalid file / a write that did not read
-// back, 2 no database credentials.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { readFileSync } from "node:fs";

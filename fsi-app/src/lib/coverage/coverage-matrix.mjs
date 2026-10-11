@@ -1,28 +1,3 @@
-// coverage-matrix.mjs: the generated Coverage surface, pure half (lane COV-1, 2026-10-08).
-//
-// Spec 00 section 4 asks for a first-class Coverage surface: mode x geography x data class, with a numerator
-// and a denominator in every cell, versioned, dated, publicly linkable, exportable, and GENERATED from the
-// data rather than hand-written. This module is the generator. It takes the entries `getCoverageIndex` /
-// `getCoverageEntries` (src/lib/coverage/index-data.ts) already produce and builds the matrix, the per-cell
-// links, the view for one query, and the CSV. It reads no database and no clock: the entries and the
-// generation instant come in as arguments, so every property below is provable with `node --test`.
-//
-// WHAT THE NUMBERS MEAN (stated on the page too, from DEFINITIONS below):
-//   denominator  instruments the discovery census catalogued as relevant, in that cell (census_worklist
-//                would_mint). A catalogued instrument is a pointer, not a grounded brief.
-//   numerator    those whose identity resolved to a registered primary source AND that scored firm-core
-//                relevance: the index's own "dual-verified" set. Still a pointer. The count of grounded,
-//                verified briefs is a separate platform-wide figure (`verifiedBriefs`) and is never mixed in.
-//
-// THE AXES. Data class is the surface the instrument is tagged to (regulations, operations, market_intel,
-// research; an instrument with no tag is its own class, never dropped). Geography is the instrument's
-// jurisdiction (an instrument with none is its own bucket). Mode is the transport mode of the instrument's
-// SOURCE (sources.transport_modes, read by index-data.ts since COV-1): an instrument whose source carries no mode
-// falls in the `untagged` mode, which the page names as a gap instead of inventing a split. An instrument that
-// serves two modes is counted once in each mode and once in the "all modes" cell.
-//
-// PLAIN ESM, relative imports only (the no-npm test glob).
-
 import { TRANSPORT_MODES, normaliseMode } from "../contracts/vocabularies.mjs";
 
 export const MATRIX_SCHEMA_VERSION = 1;

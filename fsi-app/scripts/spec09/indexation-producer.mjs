@@ -1,16 +1,5 @@
 #!/usr/bin/env node
-// indexation-producer.mjs — spec 09 §1.3, indexation_clauses (migration 296, org-scoped by a follow-up
-// migration this lane — see docs/inventories/shared-dataset-ownership.md).
-//
-// OPERATOR-SUPPLIED EXTERNAL ROWS ONLY (ADR-042, 2026-10-03): the app has no customer upload route and
-// indexation_clauses takes no customer-entered contract terms. This CLI parses a rows file an operator
-// dispatches (public-source index/clause data) through the one shared column contract
-// scripts/spec09/lib/operator-rows-contract.mjs. Never customer data. Its reader is IndexationPanel.tsx
-// on Market. Public-source intake for this table is owed (coordinator design).
-//
-// The WORKED_EXAMPLE below is retained unchanged (spec text's own illustrative clause) and is still
-// emitted in every run's summary regardless of whether an operator rows file was given, it documents the
-// mechanics computeIndexedValue() applies, independent of whether any real clause exists yet.
+
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "../maintenance/lib/cli.mjs";

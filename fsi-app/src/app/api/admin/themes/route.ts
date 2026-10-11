@@ -1,20 +1,3 @@
-// GET /api/admin/themes
-//
-// Returns the last connection-cluster pass (flywheel U1/U2): connection_themes ordered by
-// convergence desc, plus the most recent connection_theme_runs row so the UI can show when/how the
-// snapshot was computed. No compute happens here — connection_themes is a cache U2's
-// scripts/connections/analyze-corpus.mjs already replaced wholesale; this route only reads it.
-//
-// Query params:
-//   limit (default 50, max 500) — cap returned rows (themes are pre-sorted by convergence desc, so
-//     this is "top N most convergent themes", matching the intersections route's limit semantics)
-//
-// Auth: requireAuth + rate limit + platform-admin gate (mirrors admin/intersections, admin/coverage).
-// Superseding note (flywheel U3 — EXECUTED 2026-08-17): the detect_intersections RPC is retired
-// (migration 265) and admin/intersections now assembles pairs from the persisted graph via
-// pair-view.mjs. The two admin views split the same graph by grain: this route serves THEMES
-// (clusters), admin/intersections serves PAIRS (edges). One scoring home (discover.mjs) feeds both.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

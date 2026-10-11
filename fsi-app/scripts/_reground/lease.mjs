@@ -1,9 +1,5 @@
 #!/usr/bin/env node
-// lease.mjs — standalone per-item mutation-lease CLI for the promotion lane. id-stamp.mjs requires the lease to
-// be ALREADY HELD by the caller (heartbeat check; no lease, no touch), so the caller acquires here, runs id-stamp
-// / drain-clear, and releases here (or drain-clear releases in its own finally). acquire/heartbeat/release wrap
-// the mig-211 RPCs (mutation-lease.mjs). Resolves an item key (id/legacy_id prefix) to the uuid, same as the
-// other _reground tools. Usage: node lease.mjs <itemKey> <acquire|heartbeat|release> <holder> [lane]
+
 import { createJiti } from "jiti";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

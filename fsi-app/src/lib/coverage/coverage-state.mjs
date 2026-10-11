@@ -1,18 +1,3 @@
-// coverage-state.mjs: the copy and decisions behind the ONE coverage-state renderer (lane COV-1, 2026-10-08).
-//
-// Spec 00 section 4: six states of absence, six treatments, never one grey dash. The six codes live in
-// src/lib/contracts/vocabularies.mjs (COVERAGE_STATE); the renderer is src/components/ui/CoverageState.tsx.
-// This module is the pure middle: given a state and what the call site knows, it decides the words and the
-// action. It is plain ESM with relative imports only, so `node --test` proves every treatment without a
-// bundler, and so the component holds no copy of its own (a second wording of a state is a second state).
-//
-// HONESTY RULES, carried from the specs:
-//   - a state the call site cannot name returns null from `describeCoverageState`, and the caller keeps its
-//     existing render (fallback preserved where the state is unknown);
-//   - nothing is guessed: no hidden count is stated unless the caller passes one, no last value or as-of
-//     date unless the caller has it, no roadmap position unless one is recorded;
-//   - the text uses no dash glyphs (discipline rule 022).
-
 import { COVERAGE_STATE, SUPPRESSION_REASON } from "../contracts/vocabularies.mjs";
 
 /** The kinds of action a treatment can carry. The component maps each to one control. */

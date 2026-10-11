@@ -1,20 +1,3 @@
-// expected-output.mjs — Axis 5 (Expected Output) default distributions.
-// docs/plans/source-classification-framework-2026-05-10.md, "Axis 5: Expected Output / Default
-// distributions per Role" — "Derived from Axes 1-4 at registration". The published table is indexed by
-// Role ALONE (jurisdiction/scope do not shift the default distribution in the framework's own table),
-// so this is a deterministic lookup keyed on the source's already-classified Axis-1 role — the same
-// `source_role` column classify-source-role.ts populates at registration. No LLM, no re-derivation of
-// role (that axis is already BUILT; see this directory's README-equivalent note in
-// propose-classification.mjs's header for the phase-2/phase-3 scope this module serves).
-//
-// CATEGORY NAMES: this repo already has ONE drift-guarded home for "which of the four customer-facing
-// buckets does an item belong to" — src/lib/surface-of.mjs's SURFACES. Axis 5's five framework buckets
-// {Regulatory, Research, Market Intel, Operations, Out of Scope} map onto SURFACES {regulations,
-// research, market, operations} plus one sentinel this module adds, "out_of_scope" — see vocab.mjs.
-// Reusing SURFACES rather than inventing a sixth spelling of the same four names is deliberate: a
-// classifier here that disagreed with surfaceOf about what "market" or "research" means would be
-// exactly the two-homes drift class vocab-drift-guard.test.mjs exists to catch, one axis over.
-
 import { AXIS5_CATEGORIES, AXIS5_OUT_OF_SCOPE } from "./vocab.mjs";
 
 export { AXIS5_CATEGORIES, AXIS5_OUT_OF_SCOPE };

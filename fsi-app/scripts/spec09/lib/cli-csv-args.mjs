@@ -1,9 +1,3 @@
-// cli-csv-args.mjs — the ONE place every spec09 CSV producer reads its `--csv <path>` / `--org-id <uuid>`
-// CLI flags from process.argv. `runCli` (scripts/maintenance/lib/cli.mjs) only
-// parses --mode/--arg/--out itself and hands nothing else through to a wrapper's buildDeps, so each
-// producer's buildDeps reads these directly off `process.argv` (same process, no extra plumbing needed
-// in cli.mjs, which is shared infra outside this lane's write set). One shared reader here, not a copy
-// per producer.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 

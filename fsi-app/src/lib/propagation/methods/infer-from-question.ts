@@ -1,27 +1,3 @@
-// SHARED-WRITER: integrity_flags
-// methods/infer-from-question.ts, M, learning-loop-design-2026-09-25.md section 6 ("M - inference_record
-// object + admissibleFor-gated renderer"), ADR-036 decisions 2/3. Lane W2-G, wave2b, 2026-09-29.
-// Coordinator ruling, same day: drain.ts's Pass 2 dispatches on RECORD KIND (derived_values vs
-// inference_records), so this file's own registry and method are now symmetric with the numeric
-// methods/index.ts shape (MethodContext in, a result out) rather than a bespoke trigger_question/answer
-// pair, the SAME dispatch key (method_id, method_version) drain.ts already reads off a stale row, just
-// against a second table and a second small registry (INFERENCE_METHODS, kept separate from METHODS
-// because a narrative result is not a numeric MethodResult, see below).
-//
-// WHY INFERENCE_METHODS IS ITS OWN REGISTRY, NOT methods/index.ts's METHODS. That registry's
-// `MethodResult` is shaped for `derived_values`: a numeric value/valueLow/valueHigh, `derivation`/
-// `lifecycle`/`admissibility` from derived_values' own 8-9 value vocabularies. `inference_records`
-// (migration 338) is a narrative table (claim_text/status_token/cited_item_ids/origin_class); forcing it
-// through MethodResult would manufacture fake numeric/derivation/lifecycle fields a claim does not have.
-// `computeInferFromQuestion` therefore takes the SAME `MethodContext` shape methods/index.ts already
-// defines (entityId/inputs/priorValue/now, reused, not re-declared) and returns its own
-// `InferenceMethodResult`. drain.ts imports `INFERENCE_METHODS` from here the same way it imports
-// `METHODS` from methods/index.ts, and dispatches to whichever registry matches the stale row's own
-// table (migration 339, drain.ts Pass 2).
-//
-// A METHOD IS A PURE FUNCTION OF ITS RESOLVED INPUTS (methods/index.ts's own discipline, reused here):
-// no network, no Date.now(), `now` is injected.
-
 import { FLOOR } from "../../entities/decisions.mjs";
 import { STATUS_TOKENS, ORIGIN_CLASSES } from "../../learning/constants.mjs";
 import { generateTriggerQuestions, triggerQuestionFlagRow } from "../../learning/trigger-questions.mjs";

@@ -1,25 +1,3 @@
-/**
- * search-results-fixture.ts (lane W10-CommandBar-parts, 2026-09-23).
- *
- * Frozen from a real read-only SELECT against the live search path CommandBar's Standard Search
- * uses (`runSearch`, `src/app/api/search/logic.ts`): the `search_intelligence_items` RPC (migration
- * 159) followed by the same re-fetch shape (`id, title, item_type, domain, priority, jurisdictions,
- * transport_modes, category as topic`, `is_archived = false`, `provenance_status = 'verified'`),
- * project kwrsbpiseruzbfwjpvsp, 2026-09-23:
- *
- *   select id, title, item_type, domain, priority, jurisdictions, transport_modes, category as topic
- *   from intelligence_items
- *   where is_archived = false and provenance_status = 'verified'
- *   and id in (select id from search_intelligence_items(q => 'carbon', max_rows => 5))
- *   order by title limit 5;
- *
- * SELECT only, no write. Query term: "carbon". Row ids frozen below, byte-for-byte from the result
- * set; nothing here is invented (operator ruling: "fixtures render from a frozen real record ...
- * never invented strings"). `SEARCH_FIXTURE_VERIFIED_COUNT` is a second, separate real SELECT
- * (`count(*) ... where is_archived = false and provenance_status = 'verified'`), same project, same
- * date, used for the default "Search or ask across N items..." placeholder in the idle-state demos.
- */
-
 import type { SearchResultRow } from "@/app/api/search/logic";
 
 export const SEARCH_FIXTURE_QUERY = "carbon";

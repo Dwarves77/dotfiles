@@ -1,27 +1,3 @@
-// Pure composition + once-only-apply logic behind BootstrapBoundary.tsx / AuthProvider.tsx
-// (PERF-4, 2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (1): "DOCUMENT loads
-// still block first paint on `await resolveServerBootstrap()`"). Kept import-free — no react, no
-// next/*, no @supabase/* — so it is plain `node --test`-able, the same "pure core, real wiring in the
-// .tsx/.ts sibling" split this repo already uses for load-detail-core.ts and
-// regulation-obligations-core.ts (see each module's own header for the rationale: `node --test` cannot
-// resolve a bare `next/*` value import outside Next's bundler).
-//
-// WHY THIS EXISTS: src/app/layout.tsx used to `await resolveServerBootstrap()` (a real Supabase round
-// trip: auth.getUser + org_memberships + profiles + workspace_settings) BEFORE returning any JSX — a
-// plain synchronous block on RootLayout's own render that blocked the RSC stream and every route's own
-// `loading.tsx` on every DOCUMENT (cold/hard-reload/first-visit) load. PERF-3 (2026-09-03) already
-// stopped AWAITING it on client-side (RSC) navigations; this lane stops awaiting it on document loads
-// too: the layout now creates the promise and returns the shell immediately, and BootstrapBoundary.tsx
-// (a small client component sitting OUTSIDE the shell's own render path — see its own header) is the
-// only thing that actually blocks on it, via React's `use()`, inside its own `<Suspense fallback={null}>`.
-// Once the promise resolves, BootstrapBoundary calls AuthProvider's seed callback exactly once — this
-// module is that "exactly once, compose the right shape" logic, extracted so it's provable without a
-// browser.
-
-/** Structural echo of ServerBootstrap (src/lib/api/server-bootstrap.ts) — restated here, not imported,
- *  so this file has zero runtime dependency on that module (which itself value-imports
- *  supabase-server-client.ts → @supabase/ssr → eventually next/headers). Only the fields this module's
- *  logic actually touches. */
 export interface BootstrapLike {
   user: { id: string; email?: string | null } | null;
   orgId: string | null;

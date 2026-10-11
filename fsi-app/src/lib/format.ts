@@ -1,8 +1,3 @@
-/** Format an ISO date string to human-readable form. THE one home (C6 consolidation, 2026-07-12).
- *  Output is US month-first ("Jun 5, 2024") — the MAJORITY/LIVE behavior all customer surfaces already
- *  rendered via local copies (behavior-preserving consolidation; this export was previously dead + day-first).
- *  US-vs-day-first-vs-locale-aware is a DEFERRED product decision (owner: the operator, no dwell) — changeable HERE,
- *  in one place. String-parsed (not `new Date(iso)`) so a YYYY-MM-DD never TZ-shifts off by a day. */
 export function formatDate(iso: string | undefined | null): string {
   if (!iso) return "";
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

@@ -1,31 +1,5 @@
 #!/usr/bin/env node
-// SHARED-WRITER: intelligence_items
-// rederive-record-provenance.mjs — heal a record-grade item whose ROW provenance_status disagrees with
-// what validate_item_provenance derives for it now (Lane POP, 2026-09-02).
-//
-// WHY THIS EXISTS. `provenance_status` is stamped ONLY by the set_provenance_status trigger (migrations
-// 115/118: an AFTER INSERT OR UPDATE trigger on intelligence_items, intelligence_item_sections and
-// section_claim_provenance that re-runs validate_item_provenance and writes the result; a direct write of
-// 'verified' is refused by guard_provenance_flip unless it comes from that derivation, pg_trigger_depth
-// >= 2). So the status a row carries is the derivation AT THE LAST TRIGGERING WRITE. Two things can leave
-// it stale: (1) a write sequence whose last triggering write happened before the row's evidence was
-// complete — population-turn run #8 (2026-09-02) wrote item_gate_a_state AFTER the claims, so the last
-// derivation saw no gate row and stamped `quarantined` on ten items whose validate_item_provenance()
-// answers `verified` today; (2) any later change to a table the trigger does not watch (item_gate_a_state,
-// intelligence_item_citations, agent_run_searches). apply-mint-batch.mjs's write order is fixed for (1);
-// this script is the runtime's own reconciliation for both — it never sets provenance_status itself, it
-// re-fires the derivation by touching the row through the guarded path (guardedUpdateByIds: cite,
-// snapshot, statement-timeout halving — the derivation costs up to ~3.4 s per row, measured 2026-09-02).
-//
-// SCOPE. Record-grade items only (item_grade = 'record'), not archived, whose row status is not
-// 'verified' but whose validate_item_provenance(id) IS valid right now. An item the function still
-// rejects is left exactly as it is — this script heals stale stamps, it never argues with the gate. It
-// runs inside population-turn.yml after apply-mint-batch.mjs (apply mode only) and is safe to run any
-// time: a row with nothing to heal is never touched (idempotent, $0, no LLM).
-//
-// USAGE:
-//   node scripts/mint/rederive-record-provenance.mjs            # dry: list what would be touched
-//   node scripts/mint/rederive-record-provenance.mjs --apply    # touch through the guarded path
+
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 

@@ -1,20 +1,3 @@
-/**
- * /admin/inferences, the operator surface for `inference_records` (migration 338/339, ADR-036). Lane
- * W2-G, wave2b, coordinator ruling 2026-09-29 ("mount it in a new operator surface"). Read-only, no
- * mutation controls (see InferenceReview.tsx's own header for the full rationale, matching
- * `src/app/admin/factors/page.tsx`'s precedent). Platform-admin infrastructure chrome, not a
- * customer-facing surface (caros-ledge-platform-intent's five-surface model does not include an admin
- * screen, see this lane's report's Value Delivery Check section).
- *
- * WHY A SERVICE-ROLE READ, NOT `createSupabaseServerClient()`. Migration 338's own header: RLS is
- * ENABLED on `inference_records` with NO SELECT policy for anon/authenticated ("service-role-only write
- * path... a service-role API route, not directly from the client"); the session-scoped client the
- * factors page uses (`emission_factors` DOES grant SELECT to authenticated, migration 258) would read
- * ZERO rows here regardless of the caller's admin status. `getServiceSupabase()` (`src/lib/
- * supabase-service.ts`, the ONE fail-closed service-role client home) is used AFTER `requirePlatformAdmin`
- * gates the request, the gate is what makes a service-role read safe on this route, the same posture
- * every worker-secret/service-role route in this codebase already documents.
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { Masthead } from "@/components/ui/Masthead";

@@ -1,36 +1,3 @@
-// D3 living-set probe — the "non-answer-as-negative" bug class.
-//
-// THE BUG CLASS (found THREE times, three operations -> characteristic, not exhausted):
-//   a fetch that FAILED TO ANSWER (4xx/5xx/timeout/dns/abort/empty body) is scored as a
-//   SUBSTANTIVE NEGATIVE conclusion (unreachable / dead / fabricated / excluded /
-//   inaccessible / rejected) instead of INCONCLUSIVE. "method-failed-to-answer
-//   != answer-is-negative" (the fetchOk principle).
-//   Confirmed instances: (1) the ~420 reachability rejection; (2) the recovery 429/500
-//   classification; (3) the fabrication detector audit-optionc-reachability
-//   (UNREACHABLE -> FABRICATED_URL).
-//
-// SCOPE (operator ruling): fetch-DRIVEN classifications are guilty-until-proven; role-/
-// metadata-derived ones (base_tier from source_role) are already proven sound and are NOT
-// swept. This probe only looks where a FETCH RESULT drives the conclusion.
-//
-// THREE REQUIREMENTS this satisfies (or it is not a real sweep):
-//   1. SEMANTIC not signature — it locates each fetch-FAILURE HANDLER (catch / !ok /
-//      status-error / .catch(->neg) / BrowserlessError) and asks what that handler
-//      CONCLUDES, rather than grepping the three known string mappings.
-//   2. COMPLETE COVERAGE — it rides the D3 surface registry (routes, workers, crons,
-//      build/seed runners, lib, edge) and emits the walked/not_walked coverage block, so
-//      a class it did NOT search is visible, not silently absent. (Two of three confirmed
-//      instances lived in .mjs runners — a src/-only sweep is blind exactly there.)
-//   3. KNOWN-ANSWER + honest residual — it must re-catch all three confirmed; it states
-//      what a sufficiently-obfuscated instance can still evade.
-//
-// HONEST DEPTH: the failure-handler -> conclusion link is matched by a token lexicon over
-// a brace-bounded window. A mapping that reaches its negative conclusion through an
-// indirection the lexicon does not name (a helper that returns a negative, a numeric
-// sentinel, a downstream caller that interprets a thrown error as negative) is NOT caught
-// here — that residual is stated, never papered over. Flags are CANDIDATES for semantic
-// review, not verdicts.
-
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { SURFACE_CLASSES, discoverSurfaces, emptyCoverage, validateCoverage } from "./surface-registry.mjs";

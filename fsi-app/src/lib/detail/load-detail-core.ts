@@ -1,35 +1,3 @@
-// Pure control-flow core for "load a detail page" — see load-detail.ts's
-// header for the full design rationale (the split across item-scoped/viewer-
-// scoped, the cache-tag scheme, why this shared shape exists at all).
-//
-// Split out from load-detail.ts SPECIFICALLY so this file issues ZERO
-// runtime (value) imports of next/* or @supabase/supabase-js: every such
-// binding (unstable_cache, the service-role client, resolveOrgIdFromCookies,
-// fetchIntelligenceItem/Sections, relevance) arrives only through the
-// REQUIRED `deps` parameter — real bindings come from load-detail.ts for
-// production callers, stubs from load-detail-core.test.mjs. The concrete
-// domain types (Resource, ItemConnection, ...) ARE imported below, but only
-// as `import type` — TypeScript type-only imports are erased entirely by
-// Node's built-in type-stripping (verified empirically: an `import type`
-// from a nonexistent path, or from `next/cache` itself, loads fine under
-// plain `node --test` because the import statement is removed before the
-// module ever tries to resolve it), so this file stays free of the ESM
-// resolution problem that blocks value imports of `next/*` (see below) while
-// still getting full type safety wherever `.ts` tooling (tsc, editors) reads
-// it.
-//
-// WHY THE SPLIT IS NECESSARY, NOT STYLISTIC: the `next` package ships no
-// package.json "exports" map, so Node's ESM loader cannot resolve the bare
-// extensionless specifier `next/cache` outside of Next's own bundler
-// (confirmed empirically: `node --test` on a file with `import { unstable_cache }
-// from "next/cache"` throws ERR_MODULE_NOT_FOUND, suggesting the literal
-// `next/cache.js` path — webpack resolves the bare specifier fine via its own
-// resolver, but plain node does not). Any module that VALUE-imports
-// `next/cache` (or anything that transitively does, like supabase-server.ts)
-// cannot be loaded by any `node --test` process, npm-deps job or not. Keeping
-// this core free of that import is what makes the (a)/(b)/(c) structural
-// proof (perf-lane brief task 6) actually runnable as a plain, portable
-// *.test.mjs — no *.npmtest.mjs / CI-npm-step wiring needed at all.
 import type { SupabaseClient } from "@supabase/supabase-js";
 // lane G7-CORR: a claim an admin suppressed (item_corrections, migration 356) is hidden from this customer read.
 // Relative path with the .mjs extension, like fact-card-model.ts: this file is loaded by plain `node --test`.

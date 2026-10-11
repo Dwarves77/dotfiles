@@ -1,7 +1,3 @@
-// grid-queue.mjs — spec 09 §1.6's electrification feasibility GATE. "Grid queue becomes a gate, not a
-// cost line. A region with cheap power and a 36-month queue is BLOCKED for a 2027 electrification
-// decision regardless of €/kWh, and no amount of cheap electricity un-blocks it." No fs, no I/O.
-
 import { labelled, missing } from "./label.mjs";
 
 /**

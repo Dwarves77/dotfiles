@@ -1,9 +1,3 @@
-// SHARED-WRITER: integrity_flags
-// trigger-question-deps.mjs, lane L4-A (2026-10-05): the ONE builder of the dependency object that
-// src/lib/learning/trigger-questions.mjs's mainForQuestions needs (readExistingOpen + insertMany), over
-// scripts/lib/db.mjs. Extracted from run-population-flywheel.mjs's stepTriggerQuestions so the mint-time
-// step and the change-time step in run-propagation-drain.mjs write through one function, never two copies.
-// The write goes through db.guardedInsertMany (rule 015, cite required, snapshot of inserted ids).
 import { QUESTION_NAMESPACE } from "../../src/lib/connections/flag-namespaces.mjs";
 import { CITE as TRIGGER_QUESTIONS_CITE } from "../../src/lib/learning/trigger-questions.mjs";
 

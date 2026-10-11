@@ -1,47 +1,4 @@
 #!/usr/bin/env node
-// SHARED-WRITER: integrity_flags
-// apply-question-answers.mjs: the apply half of the question-answers batch pattern (lane L4-B, 2026-10-05,
-// ADR-044) and the FIRST writer of inference_records (through register_inference_record, via the first-write
-// function in src/lib/propagation/methods/infer-from-question.ts).
-//
-// Takes one named, committed batch (scripts/turns/question-answers/batches/question-answers-NNN.json, contract
-// in scripts/turns/question-answers/README.md), validates EVERY entry against the live database with the pure
-// validator (scripts/turns/question-answers/schema.mjs: the question is open (or answered against a held pool
-// that has since changed), pool_hash matches the live held pool, every span is verbatim in the cited item's pool
-// text, every claim id belongs to the cited item, no cited item archived, unverified or Community-only,
-// ceilings, the CONFIRMED quotation rule). An entry that fails is refused whole, never partially applied, and
-// its reasons are recorded as residue; a refused entry never blocks the valid ones (no human gate).
-//
-// WHAT A VALID ENTRY DOES (with --execute):
-//   answered              writes ONE inference (origin derived, trigger_question_ref = the question's
-//                         subject_ref, method infer-from-question@v1), then closes the question flag through
-//                         the guarded writer: resolution_note names the inference id, and the flag's
-//                         recommended_actions gains an answered_from_holdings element carrying the pool_hash the
-//                         answer was written against (pool-hash drift is the invalidation signal: the export
-//                         lists the question again when the held pool differs). A RE-ANSWER (the pool moved)
-//                         writes the new inference with supersedes = the prior inference id and re-closes the
-//                         flag. Any open holdings-need target for the question is closed (it is answered).
-//   unanswerable_from_holdings
-//                         records the outcome on the question flag (an unanswerable_from_holdings element with
-//                         the pool_hash and the plain-words need; the flag stays open and the export skips it
-//                         until the held pool changes) and raises ONE open holdings-need target for the question
-//                         (flag namespace holdings-need:, one open row per question subject_ref, the need and its
-//                         item, surface and product question in structured fields), which the research walker
-//                         reads as a search input (scripts/research/research-walker.mjs).
-// IDEMPOTENT: a second apply of the same entry writes nothing; an inference written but its flag not yet closed,
-// after a crash, only closes the flag.
-//
-// RULE 17: the run artifact states inferences written, questions closed, outcomes recorded, targets raised and
-// targets closed, so nothing is left for a coordinator to connect by hand.
-//
-// DRY BY DEFAULT: without --execute it validates, prints the plan and writes nothing (it still writes its
-// harness-run artifact). --fixture <corpus.json> runs the whole step over an in-memory corpus with no database;
-// --execute then writes into memory only and no artifact is written.
-//
-// FREE: no model call, no network. Usage:
-//   node scripts/turns/apply-question-answers.mjs --answers <batch.json> [--execute] [--fixture <corpus.json>]
-// Exit 0 done (refused entries are residue, not a failure), 1 bad args / invalid file / a write that did not
-// read back, 2 no database credentials.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { readFileSync } from "node:fs";

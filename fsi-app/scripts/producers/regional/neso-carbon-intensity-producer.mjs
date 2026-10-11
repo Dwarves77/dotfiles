@@ -1,54 +1,5 @@
 #!/usr/bin/env node
-// neso-carbon-intensity-producer.mjs, lane S8-E5 (2026-10-08). GB grid carbon intensity from the NESO Carbon
-// Intensity API into regional_data_facts, dimension `grid_intensity` (migration 378), envelope first.
-//
-// WHERE THIS LANDS AND WHY (coordinator ruling A, 2026-10-08). Spec 09 section 1.5 names auxiliary_energy_profiles,
-// whose grid_intensity_source column only NAMES a source of gCO2/kWh. The VALUE is a regional fact:
-// scripts/spec09/SOURCES.md already routes it through regional_data_facts (migration 106). auxiliary_energy_profiles
-// is untouched. Region UK (regions.iso_codes holds GB); one current-state fact refreshed in place.
-//
-// Usage: node scripts/producers/regional/neso-carbon-intensity-producer.mjs [--input <file>] [--apply]
-//   (no flag)   dry run: fetch (or read --input), parse, rate the source, plan the upsert, write nothing (DEFAULT)
-//   --apply     execute the plan through the guarded write path (scripts/lib/db.mjs); refused unless ENABLED, the
-//               kill switch REGIONAL_PRODUCER_NESO_CARBON_INTENSITY_ENABLED=1 and DB creds are all present
-//
-// DATASET (PROD-SRC register 1.5 row D, fetched 2026-10-08 by that lane and again by this one for the fixture):
-//   GET https://api.carbonintensity.org.uk/intensity/stats/{from}/{to}/24, keyless (HTTP 200 with no key, this lane,
-//   2026-10-08), JSON. Each element of `data` is one 24 hour block {from, to, intensity:{max, average, min, index}}.
-//   Licence: CC BY 4.0 (register quote: page states "CC BY 4.0"; "API Terms of Use" on GitHub). Attribution ships in
-//   data_sources.attribution (migration 378).
-//
-// CHOICES, stated:
-//   * PERIOD. Daily blocks (the 24 hour stats block), not the half-hourly series: a daily figure is what an
-//     auxiliary-load profile needs, and the API publishes it directly, so the value is the source's own number
-//     (derivation observed), never an average this producer computed.
-//   * WHAT IS CARRIED. `average` only. max, min and index are published but are not the fact; they are not stored.
-//   * UNIT. gCO2/kWh, the unit the repo's own spec 04 section 7 names for this dataset family. The response body
-//     itself carries no unit field; the label is not read from it.
-//   * ONE ROW. regional_data_facts is current-state (UNIQUE region, dimension, fact_label). fact_label carries no
-//     date, so the 14 daily periods in one payload reduce, via run-envelope-producer's latestPerNaturalKey, to the
-//     newest period; reference_period names that day and as_at_date is the API's period end. History belongs to a
-//     series table, not this one.
-//   * AS_OF. The API's `to` (the period end), as a date. Only complete days are requested (see buildUrl).
-//   * NOT CARRIED, NEVER ESTIMATED: n_observations (the response gives no sample size), currency, status, trend.
-//   * BASIS NOT STATED BY THE SOURCE. The stats response does not say whether `average` is over forecast or actual
-//     half-hour values. That is recorded here, not guessed; it is a property of the source's published number.
-//
-// SOURCE RATING (rule 18). The publisher is registered in `sources` through registerSource, rated by the ONE shared
-// step (scripts/lib/rate-source-by-class.mjs): the institution class table plus the committed host verdict batches,
-// a verdict outranking the residue name rule (host-authority.ts classTierForHostWithVerdicts), never hand-typed.
-// host-verdicts-001.json classes carbonintensity.org.uk as gov (NESO is publicly owned), so the table answers tier 2;
-// with no batch the residue ruling alone answers tier 7 (company). The fact row carries the registered source's id in
-// regional_data_facts.source_id. Separately, regional_data_facts.source_key is an FK to data_sources; the producer
-// REFUSES to write when that row is absent (migration 378 inserts it), naming the row.
-//
-// DOWNSTREAM (rule 17). regional_data_facts already carries the propagation outbox trigger (migration 284) and the
-// coverage trigger (migration 109); entity linkage is by the region's refs (L4-E, migration 373). Nothing further
-// is wired from this file.
-//
-// KILL SWITCH, default OFF. ENABLED is a reviewed-code-change gate (no population until every build layer is
-// complete): a dry run always works, --apply is refused while it is false.
-// (regional_data_facts is written by siblings in this directory under the same shape; it is not a registered shared table.)
+
 import { readFileSync } from "node:fs";
 import { toCandidateRows, latestPerNaturalKey } from "./run-envelope-producer.mjs";
 import { planUpsert } from "../../../src/lib/regional/regional-facts-envelope.mjs";

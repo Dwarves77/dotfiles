@@ -1,18 +1,5 @@
 // @ts-check
-// feed-walk — B3 of the scrape-and-build plan (docs/plans/scrape-and-build-content-plan-2026-07-19.md):
-// the one genuinely missing transport (the former rss-fetch was purged as a dead false-header module,
-// dormant-systems P-5). A feed (RSS 2.0 / Atom) is a register the publisher maintains for us: per-entry
-// title + link + date. This module parses ENTRIES (api-fetch's rss/atom branch flattens a feed to text —
-// fine for classification, useless for enumeration) and feeds the SAME ledger B1 consumes (persist
-// injected — the ONE write-site stays one). Downstream (classify → intake chokepoint) is unchanged.
-//
-// ERROR-BODY GATE (ruled in the plan): a bot-block / error page parsed as a feed yields 0 entries — that
-// MUST surface as an error verdict, never as an honest "empty feed" (the fetchOk discipline: unreadable
-// is INCONCLUSIVE). isErrorBody runs BEFORE parsing.
-//
-// PURE + DEP-INJECTED: no network here; the live runner threads assertFetchAllowed + the F16 caller
-// through the injected fetch. Regex parsing, no new deps (house style) — feeds are shallow XML and the
-// ledger's UNIQUE-url dedup absorbs any over-extraction.
+
 import { isErrorBody } from "./entity-gate.mjs";
 
 /** @typedef {{url:string, anchorText:string|null, published:string|null}} FeedEntry */

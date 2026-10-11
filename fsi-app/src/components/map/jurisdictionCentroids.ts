@@ -1,8 +1,3 @@
-// Approximate centroids for jurisdiction/region pins on the map
-// Keys match jurisdiction IDs from constants.ts
-
-// ── Top-level jurisdictions ──
-
 export const JURISDICTION_CENTROIDS: Record<string, [number, number]> = {
   // Americas
   us: [38, -97],

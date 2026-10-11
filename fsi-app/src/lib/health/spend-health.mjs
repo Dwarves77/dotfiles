@@ -1,29 +1,6 @@
 // @ts-check
-// SPEND-WATCH VERDICT (pure core). The health decision behind /api/health/spend, extracted so it is
-// node-testable and so the uptime workflow can trust ONE boolean instead of re-deriving an alarm from raw %.
-//
-// SPEND-CONTROL REFACTOR (operator final rulings 2026-07-13, RECONCILED to the operator-priced model 2026-07-15):
-// spend-watch is a PURE ALARM. There are NO standing dollar limits, so the verdict is NOT "% of a ceiling" (that
-// framing is retired). The alarm is about paid `agent_runs` rows AFTER the acquisition-freeze baseline and ONE
-// question: does each such paid row trace to an OPERATOR-PRICED LINE (an authorization)? Any post-freeze paid row
-// that does NOT trace to a priced line is the anomaly, at ANY amount.
-//
-//   FROZEN-AND-QUIET     — zero paid rows since the freeze baseline. HEALTHY.
-//   TRACED               — there ARE paid rows since the freeze AND every one traces to a pre-logged operator-
-//                          priced line marker (same item/source, logged at or before the paid call). HEALTHY — a
-//                          deliberate operator spend window. The app acquire lock is REPORTED but NOT gated.
-//   ANOMALY              — any post-freeze paid row that does NOT trace to a priced line (untraceable spend /
-//                          missing authorization). UNHEALTHY.
-//
-// 2026-07-15 RECONCILIATION: the app acquire lock is NO LONGER the master gate. Under the operator-priced model
-// the lock is armed only inside the local funded-pass runner process (never the deployed app), so "app lock OFF"
-// is the normal post-run state; gating on it false-reds every legitimate priced run. Traceability to an operator-
-// priced line — written ONLY by an operator-bounded run — is the sole go/no-go. This supersedes the 2026-07-13
-// lock-as-master-gate rule (the retired frozen-state posture). acquireEnabled is retained as an informational
-// field. A "priced-line marker" row is fetch_method='priced-line' (or an errors[] entry with a truthy
-// `pricedLine`), cost 0, carrying the item/source it authorizes; funded-pass writes one per authorized item.
-
 /** Is this a pre-logged OPERATOR-PRICED-LINE marker row? @param {any} r */
+
 function isPricedLineRow(r) {
   if (r?.fetch_method === "priced-line") return true;
   const errs = /** @type {any[]} */ (Array.isArray(r?.errors) ? r.errors : []);

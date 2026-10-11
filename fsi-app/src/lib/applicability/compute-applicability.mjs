@@ -1,38 +1,3 @@
-// compute-applicability.mjs, profile-aware applicability gate (workstream 7, ADR-034 decision
-// points 1-2, lane W2-E). PURE, no DB, no LLM, deps-injected (the band vocabulary is imported, not
-// fetched, matches src/lib/workspace/relevance.mjs's "sectorDefs injected to keep pure" pattern).
-//
-// Prior art checked (lane contract item 6): src/lib/workspace/relevance.mjs's computeItemRelevance
-// is the only existing "does this item relate to the reader" computation in the repo, and its own
-// header is explicit that it is NOT this: "It is a LENS, not a filter ... the value is HIGHLIGHTING
-// which of the reader's dimensions each item touches, not narrowing the corpus." Applicability here
-// is the opposite contract on purpose: a binary/ternary GATE (applies / does_not_apply /
-// needs_profile_input) for an obligation that names a role scope or a size threshold, not a
-// relevance band. No other applicability-gate computation exists in fsi-app/src or fsi-app/scripts
-// as of this lane (grep for "applicab" turned up prose-only usage: the regulatory brief's
-// conditional "Threshold Questions" section in src/lib/agent/system-prompt.ts is free text written
-// by the generation model, not a structured field this module reads or writes).
-//
-// Obligation shape (the caller's structured description of what an item/section requires, this
-// module does not read intelligence_items itself; the caller supplies whatever subset it has):
-//   {
-//     roleScope?: string[]        // ORG_ROLES ids this obligation applies to; absent/empty = every role
-//     sizeThreshold?: {
-//       dimension: 'headcount' | 'revenue' | 'shipment_volume',
-//       band: string,             // the threshold band id (ORG_SIZE_DIMENSIONS[dimension].bands)
-//       comparison: 'at_least' | 'below',   // "applies at this band or above" | "applies below this band"
-//     }
-//   }
-//
-// Profile shape: { orgRoles: string[], orgSize: { headcount_band, revenue_band, shipment_volume_band } }
-// (the shape parseOrgProfile in ../profile/profile-contract.mjs returns).
-//
-// Result: { status: 'applies' | 'does_not_apply' | 'needs_profile_input', reasons: string[],
-//           missingDimensions: string[] }
-// Absence wording (2026-09-25 close, "a value that exists is shown; one that cannot exist yet names
-// the data it needs"): needs_profile_input always names which dimension(s) are missing, never a bare
-// "unknown".
-
 import { ORG_SIZE_DIMENSIONS, findBand } from "../profile/profile-contract.mjs";
 
 /** Evaluate the role-scope gate. Returns one of 'pass' | 'fail' | 'needs_input'. */

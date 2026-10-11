@@ -1,4 +1,3 @@
-// SHARED-WRITER: item_cross_references
 import { mkdirSync, appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { isIntersectionEntry, buildIntersectionEntry } from "./intersections.mjs";

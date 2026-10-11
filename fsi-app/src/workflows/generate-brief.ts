@@ -1,26 +1,3 @@
-// SHARED-WRITER: intelligence_items, integrity_flags, section_claim_provenance, intelligence_item_sections
-// THE canonical generation path (Sprint 4 — step 2b). ONE path, real bodies.
-//
-// The four named steps wrap the canonical-pipeline lib fns
-// (src/lib/agent/canonical-pipeline.ts), each PROVEN by direct execution before
-// being wrapped here (scripts/canonical-pipeline-proof.mjs: generate -> section ->
-// ground -> VERIFIED -> grow on a fresh item). The workflow function only
-// ORCHESTRATES; every Node / fetch / Supabase / Anthropic call happens inside a
-// "use step" body (full Node access — the "use workflow" sandbox has none).
-//
-//   budgetGuard -> generate -> section -> ground -> grow
-//
-// /api/agent/run starts THIS workflow, so it is now the real generation path. The
-// prior Block-1 stub step-skeleton and the scripts-as-path are retired (see git
-// history): canonical-pipeline.groundBrief already does active sourcing (fetch the
-// item + cited URLs, keep only FACT claims whose span is a verbatim substring of
-// fetched content) + validate_item_provenance + the manual cleanup-on-invalid
-// rollback; growSources runs the proven growSourcesFromBrief.
-//
-// HC3 spend cap (decision-log row 38): the start() refactor orphaned the old inline
-// b2-runner cap. It is reconstituted HERE, in the substrate, reading the existing
-// agent_runs.cost_usd_estimated ledger. The cap exists to halt a runaway SCALED
-// pass (step 4); a single pull is ~$0.15, far under any sane cap.
 import { RetryableError, FatalError, getStepMetadata } from "workflow";
 
 // getStepMetadata() throws OUTSIDE the Workflow DevKit runtime (direct/script/test invocation). The two

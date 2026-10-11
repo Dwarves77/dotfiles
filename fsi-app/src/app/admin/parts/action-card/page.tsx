@@ -1,13 +1,3 @@
-/**
- * /admin/parts/action-card: the ActionCard + Timeline sign-off page (lane W10-ActionCard-a,
- * 2026-09-21, operator review, panels 21a/21b + artboard 3). Renders every ACTION_CARD_FIXTURES
- * entry through the real `ActionCard` part, from static fixture data, NO database read.
- *
- * F49 (parts-not-pages): this page imports ActionCard and renders each fixture through it; no
- * part's literal shell styles are retyped here.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { PageMasthead } from "@/components/shell/PageMasthead";
 import { ActionCard } from "@/components/ui/ActionCard";

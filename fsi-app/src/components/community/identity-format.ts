@@ -1,12 +1,3 @@
-/**
- * identity-format.ts — pure formatting/validation helpers for the pseudonymous author-identity
- * surface (spec 05 section 2, section 5 components 1/11). No JSX, no fetch, no DOM, kept separate from the .tsx components that use them so
- * `node --test` can prove the logic directly (Node's built-in type-stripping loader handles a plain
- * relative .ts import; it cannot transform JSX, which is why the components themselves are proven
- * through the rendering guard instead — see .discipline/rendering/smoke/community-smoke.mjs, which
- * mounts the real PostList/Post components).
- */
-
 import type { AuthorIdentityProjection } from "./api-client";
 import { validateEntityIds } from "../../lib/community/entity-binding.mjs";
 

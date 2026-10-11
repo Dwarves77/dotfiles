@@ -1,41 +1,5 @@
 #!/usr/bin/env node
-// oem-roadmap-producer.mjs — spec 09 §1.1, oem_tech_roadmaps (migration 296). $0 SOURCING STATUS: GAP —
-// see scripts/spec09/SOURCES.md. OEM commercial-stage announcements live on manufacturer press pages, not
-// a structured bulk feed; parsing free text without an LLM ($0/no-LLM rule) is not viable at useful
-// accuracy, and no licence-clear aggregator API was confirmed at $0 this session.
-//
-// ROWS-FILE EXTENSION (lane SPEC09-A, 2026-09-05, plan §W5.1). This sandbox's egress proxy 403s every
-// non-allowlisted host this session (confirmed 2026-09-05), so this producer cannot itself fetch a live
-// feed. Same posture as scripts/spec09/reroute-producer.mjs's rows-file extension (see that file's header
-// for the full reasoning): a `--rows-file` (JSON) of CALLER-ASSERTED, fully-cited OEM roadmap rows,
-// validated + written through scripts/spec09/lib/rows-file.mjs's shared citation/source-rating plumbing.
-// `oem_tech_roadmaps.manufacturer_id` is a NOT NULL FK to `entities(kind='organisation')` (migration
-// 296) — this producer resolves it by exact canonical_name match against the LIVE spine (1,293
-// organisation rows exist today, INCLUDING 'volvotrucks.com' [CONFIRMED, live SQL, 2026-09-05]) and never
-// mints one (entities/entity_kind territory, out of this lane's write set). UNLIKE reroute_events/
-// grid_connection_queues, `oem_tech_roadmaps.source_id` IS a NOT NULL FK to `sources(id)` (migration
-// 296's own header: "an OEM announcement with no citable source is not evidence of intent, it is
-// unsourced") — so a row whose citation cannot be rated through the institution class table is refused
-// outright, never inserted with a placeholder source.
-//
-// BROWSER-LANE WORKLIST (named here, not chased in this sandbox): CALSTART's Global Commercial Vehicle
-// Drive to Zero programme publishes a Zero-Emission Technology Inventory (ZETI) —
-// globaldrivetozero.org/tools/zeti-tool/ — a searchable table of medium/heavy-duty ZE vehicle models by
-// manufacturer, powertrain, and commercial-availability status. [HYPOTHESIS, unverified this session —
-// training-knowledge lead, not a live-fetched confirmation] whether ZETI exposes a bulk export (CSV/API)
-// or only an interactive web table, and whether its availability-status vocabulary maps cleanly onto this
-// table's `commercial_stage` enum (announced / pilot_demonstration / small_batch_fleet /
-// mass_series_production). A browser lane should open the ZETI tool, confirm the real column shape, and
-// either produce a real --rows-file from it (source host would presumably classify under
-// classTierForHost's ANALYSIS or an association allowlist entry — a NEW entry may be needed; see
-// src/lib/sources/host-authority.ts) or record the refutation in SOURCES.md. Individual OEM press
-// releases (e.g. volvotrucks.com's own newsroom) are ALSO a valid per-row citation source for a
-// manufacturer already in the spine — a corporate host classifies ambiguous under the current class table
-// (ANALYSIS/LAWFIRM/NEWS none match a manufacturer's own site), so such a row is refused today unless the
-// class table gains a rule for OEM first-party announcements (an operator-ruling question, not this
-// producer's to decide).
-//
-// DRY BY DEFAULT. deps-injected so this runs with zero DB access under `node --test`.
+
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "../maintenance/lib/cli.mjs";

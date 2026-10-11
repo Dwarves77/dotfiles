@@ -1,27 +1,3 @@
-// data-audit: label=holdings-audit hard=false
-/** HOLDINGS AUDIT — read-only classification of every stored capture (operator dispatch 2026-07-14).
- *  $0: no LLM, no Browserless, no paid fetch. Reads the corpus + snapshot bodies from Storage, classifies
- *  each capture against KNOWN DEFECT CLASSES (holdings-audit.mjs pure core), and — with --write — persists
- *  ONE guarded batch to holdings_quality (the single metadata write the dispatch authorizes).
- *
- *  Per capture:
- *    - snapshot (raw_fetches row): byte-size (STUB) + furniture-ratio + publisher-shape structural check
- *      (body downloaded + gunzipped from the raw_fetches bucket; body-read failures recorded, never faked).
- *    - pool aggregate (agent_run_searches): usable-row count (STUB when 0).
- *  Per item: sufficiency (covers_grounding / corroborators_only / insufficient) against the item authority
- *  floor; stale_verified = a VERIFIED item whose backing capture carries a known defect (re-collection flag).
- *
- *  Default = DRY (compute + print the corrected inventory + truncation-cause + stale count; no write).
- *  --write performs the guardedInsertMany. Refuses to write if holdings_quality already has rows (idempotent).
- *  Usage: node scripts/holdings-audit.mjs [--write]
- *
- *  WIRED (lane ONESHOTS, 2026-09-06, F25 expiry-52 disposition) into scripts/verify/run-data-audit-lane.mjs's
- *  AUDITS table as a SOFT (informational, read-only) audit — same self-skip convention every audit there
- *  uses: exit 2 (never a crash) when DB creds are absent. The env-load below is now GUARDED (was an
- *  unguarded process.loadEnvFile that would ENOENT-crash outside a checkout carrying .env.local — the exact
- *  defect run-data-audit-lane.mjs's own header calls out for its other audits) so a no-creds CI run reads as
- *  "cannot verify here", never a false FAIL.
- */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync, mkdirSync } from "node:fs";

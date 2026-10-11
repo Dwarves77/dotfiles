@@ -1,13 +1,4 @@
 // @ts-check
-// SNAPSHOT STORE (Phase 1, operator ruling 2026-07-13, snapshot-first rebuild). The read+write home for the
-// raw_fetches snapshot layer — the 660 hashed May snapshots (bodies gzipped in the Supabase Storage bucket
-// `raw_fetches`) that the old pipeline neither read nor wrote. Snapshot-first verification reads here FIRST
-// (before any fetch); the locked paid-acquire path writes here on every acquisition (invariant I3 — an
-// acquiring run that leaves no raw_fetches row is a violation).
-//
-// The sole prior writer was scripts/wave1-cold-start.mjs::persistRaw (one-time cold start); this module makes
-// that write/read a first-class, reused primitive. Storage key shape is preserved: `${sourceId}/${yyyy-mm-dd}/
-// ${content_hash}.html.gz`. Selection logic (pickLatest) is a pure, node-testable core; I/O is injected.
 
 import { createHash } from "node:crypto";
 import { gzip, gunzip } from "node:zlib";

@@ -1,22 +1,3 @@
-// src/app/api/orgs/[org_id]/invitations/route.ts
-//
-// POST   /api/orgs/[org_id]/invitations — admin creates a new invitation.
-// GET    /api/orgs/[org_id]/invitations — admin lists all invitations for the org.
-//
-// Email delivery goes through the single seam sendInvitationEmail()
-// (src/lib/email/send-invitation-email.ts — Wave-α Track D d3). No provider is
-// configured today, so the seam returns an honest not-configured result; the
-// response carries `email_delivery` so the admin chrome shows the real state
-// (copy-link path) — delivery outcome is NEVER silent, success or failure.
-// We also INSERT the row, the token, and return the URL so the admin chrome
-// can render a copy button.
-//
-// Authorization is enforced by the org_invitations RLS policies; the
-// admin must be owner/admin of the org (the policy's USING/WITH CHECK
-// clause runs on the RLS-aware client).
-//
-// Workstream B (Multi-Tenant Foundation) — 2026-05-15; d3 seam 2026-07-11.
-
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { sendInvitationEmail } from "@/lib/email/send-invitation-email";

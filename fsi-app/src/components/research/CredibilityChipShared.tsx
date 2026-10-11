@@ -1,30 +1,3 @@
-/**
- * CredibilityChipShared — types + the GRADE modifier ledger, shared by CredibilityChipEvidence.tsx
- * and CredibilityChipAuthority.tsx (docs/specs/03-research.md §4 "Credibility: two scores, never
- * merged"). Lane DASH, 2026-09-02.
- *
- * WHAT DATA EXISTS TODAY (read before writing, per this lane's brief — `grep -rn
- * "credib|grade|evidence" src/lib` and the research read path, fetchResearchPipelineRows in
- * src/lib/supabase-server.ts): NEITHER of spec-03 §4's two scores has a data path.
- *   - Score 1 (evidence×agreement, IPCC-shaped) needs n_works / n_independent_groups / n_countries /
- *     evidence-type mix / has_operational_data (evidence dimension) and claim-polarity + estimate
- *     variance + dissent-from-a-high-authority-source (agreement dimension). None of these are
- *     computed or stored anywhere — no evidence-synthesis pipeline exists.
- *   - Score 2 (source authority, computable/free) needs role class, TOPIC-SCOPED institutional/
- *     author standing (OpenAlex), funder independence, and FWCI/citation_normalized_percentile
- *     reception — rendered as a DISTRIBUTION, never a mean. None of these exist either.
- * What DOES exist and is real: `source_bias_tags` (migration 092; funding/methodology/stakeholder
- * dimension + tag + confidence, surfaced as ResearchPipelineItem.biasTags) — a genuine, sourced
- * signal that maps onto exactly one GRADE modifier, "risk of bias". `base_tier`/`effective_tier`
- * (source provenance tier) and `citationCount` also exist, but are NOT source-authority — acceptance
- * criterion 8 explicitly forbids raw `cited_by_count` as a credibility signal, and tier alone is not
- * the multi-component distribution the spec asks for. Both chips below therefore render their own
- * needs-phrase ("needs role-class data" / "needs evidence-synthesis data") today, per the absence
- * rule (2026-09-25 close: a value that cannot exist yet names the data it needs; "not scored" never
- * renders, see Absence.tsx NEEDS_PHRASE), with the GRADE ledger showing biasTags-derived rows as
- * `flagged` and every other GRADE modifier as `not_assessed`, never fabricated, never silently blank.
- */
-
 import { buildGradeModifiers as buildGradeModifiersImpl } from "./credibility-grade-modifiers.mjs";
 
 type GradeModifierStatus = "flagged" | "not_assessed";

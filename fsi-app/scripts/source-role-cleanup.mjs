@@ -1,29 +1,3 @@
-/** source-role-cleanup.mjs — #3 source-classification cleanup (authorized 2026-06-04).
- * Re-runs the deterministic classifySourceRole (name+url, no LLM/Browserless — zero cost) over
- * sources; where it confidently disagrees with the stored source_role, proposes the fix.
- * The migration-123 trigger re-derives category + intelligence_types on UPDATE. Feeds trust
- * scoring + Market's later corroboration-count; routing is now by item_type so surfaces don't move.
- * Guarded: dry-run default; --execute --confirm applies per-row (WHERE source_role=old) + read-back.
- *
- * CONNECTION FIX (lane ONESHOTS, 2026-09-06, rule 13 — fix it now): this script previously hardcoded
- * a LOCAL-ONLY connection path (supabase/.temp/{project-ref,pooler-url}, artifacts of a local
- * `supabase link` that are correctly ABSENT from a fresh CI checkout) with no fallback — an unguarded
- * readFileSync that would ENOENT-crash the moment this ran from GitHub Actions, the ONLY place with DB
- * credentials (per every other MAINT wrapper's own header). Same defect class run-data-audit-lane.mjs's
- * own comment already documents for five other pg-direct audits ("exited 2 on every nightly run...
- * wanted local supabase-link artifacts the workflow never supplied") — fixed there by folding into ONE
- * shared resolver, scripts/lib/pg-conn.mjs (SUPABASE_DB_URL/DATABASE_URL -> local supabase-link ->
- * NEXT_PUBLIC_SUPABASE_URL+SUPABASE_DB_PASSWORD-derived CI candidates). This file now uses that same
- * resolver instead of a fifth private copy of the same connection logic (CLAUDE.md: no copies of
- * logic) — connectPg() returns null when no candidate connects, and this script self-skips (exit 2,
- * "cannot verify here") rather than crashing, the same honest-no-creds convention every other
- * pg-direct tool in this repo uses.
- *
- * REFACTOR (same lane): the read/classify/apply core is now an exported, injectable function
- * (`planAndApply`) so scripts/maintenance/source-role-cleanup.mjs (the maintenance.yml dispatch
- * wrapper) and source-role-cleanup.test.mjs (a fake `query` client, no DB) can both drive it without
- * duplicating the classification logic. Behavior is unchanged — same SQL, same read-back shape.
- */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

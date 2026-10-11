@@ -1,10 +1,3 @@
-// D3 — drift-check engine (intent-vs-code).
-//
-// Predicates are BEHAVIORAL (AST), not text: a token in a comment or string is NOT
-// a CallExpression, so the stale-comment trap (a header comment naming a fn, or
-// `verification.ts` saying "browserlessRender is overkill") cannot false-IMPLEMENT.
-// A predicate that is runtime-only, or expressible only as text, → UNCONFIRMABLE
-// (LOUD — never silent-pass; inconclusive ≠ implemented).
 import { createRequire } from "node:module";
 import { readFileSync, existsSync } from "node:fs";
 

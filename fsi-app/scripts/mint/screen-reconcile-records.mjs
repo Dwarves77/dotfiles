@@ -1,29 +1,5 @@
 #!/usr/bin/env node
-// SHARED-WRITER: intelligence_items
-// screen-reconcile-records.mjs — archive, reversibly, any LIVE record-grade item the relevance screen says
-// is off-vertical; list the ambiguous ones for a ruling (Lane POP, 2026-09-02).
-//
-// WHY THIS EXISTS. Population-turn runs #9–#11 (2026-09-02) minted ~130 record-grade items from the
-// `would_mint` census pool WITHOUT the relevance screen the operator ruled on 2026-08-31 (1,729 mint /
-// 1,676 off-vertical / 256 need-fetch; Addendum 71). Screened afterwards, about half were off-vertical:
-// Coast Guard safety zones, FAA airworthiness directives, federal pay rules, VAT derogation decisions,
-// EC vehicle type-approval SIs — ADR-020's August incident, repeated by the runtime. The export gate
-// (export-census-rows.mjs → partitionByScreen) stops the recurrence; this script is the runtime's own
-// reconciliation for what already landed, and for any future drift between the corpus and the screen.
-//
-// WHAT IT DOES. Reads every live record-grade item, joins it to its census row by URL (for the census
-// title and id — the id is what the operator's reviewed verdicts are keyed by), computes the verdict the
-// one shared way (lib/screen-verdict.mjs), then:
-//   off_vertical → archived through the guarded path (guardedUpdateByIds + archivePatch: is_archived,
-//                  archive_reason = 'off_vertical', snapshot per chunk). Reversible: nothing is deleted.
-//   ambiguous    → left live, listed in the summary for a ruling (the reviewed verdicts decide these;
-//                  a row with no reviewed entry stays exactly where it is until someone rules).
-//   on_vertical  → untouched.
-// Dry by default (lists); --apply writes. Idempotent: an archived item is never a candidate again.
-//
-// USAGE:
-//   node scripts/mint/screen-reconcile-records.mjs            # dry: what would be archived / needs a ruling
-//   node scripts/mint/screen-reconcile-records.mjs --apply    # archive off-vertical records through the guarded path
+
 import { screenVerdictFor } from "./lib/screen-verdict.mjs";
 import { loadReviewedVerdicts } from "./export-census-rows.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";

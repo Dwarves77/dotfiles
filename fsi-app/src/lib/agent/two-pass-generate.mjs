@@ -1,22 +1,3 @@
-// src/lib/agent/two-pass-generate.mjs
-//
-// Reactive 2-pass brief generation, as a PURE orchestration (stream + yaml-locate injected) so the
-// branching is unit-testable without network — same DI pattern as anthropic-stream.mjs.
-//
-// DEFAULT: ONE call (body + New Sources + YAML; NO ledger — it was dropped as vestigial: parseAgentOutput
-// discards the inline ledger and grounding re-extracts its own). Only if that call TRUNCATES
-// (stop_reason==='max_tokens') do we split: the brief BODY is the informative content and MUST come out
-// WHOLE, so PASS 1 regenerates the body alone at the full ceiling and PASS 2 derives ONLY the 18-field
-// YAML from the COMPLETE body. The body is NEVER split across passes (the section-coherence guarantee);
-// pass 2 NEVER re-emits the body (no duplication). Normal briefs stay 1 (now-smaller) call.
-
-// SONNET_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): MODEL below was this module's own
-// hand-typed copy, named as known drift in model-ids.mjs's own header comment. RELATIVE import, not the
-// "@/" alias: this module is run directly by node under the no-npm discipline glob (via
-// two-pass-generate.test.mjs's own relative "./two-pass-generate.mjs" import), and the portability guard
-// (.discipline/glob-portability.test.mjs) is transitive and flags a bare "@/" import string anywhere in
-// that import graph, which would also just fail to resolve under plain node (the alias is tsconfig/webpack
-// -only, see fsi-app/tsconfig.json's "paths").
 import { SONNET_MODEL } from "../llm/model-ids.mjs";
 
 const GEN_MAX_TOKENS = 32000;

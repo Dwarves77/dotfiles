@@ -1,34 +1,3 @@
-// carbon-intensity.mjs — gCO2e-per-unit carbon intensity from a single `emission_factors` row. Lane
-// DP-SURF, system-completion train, 2026-09-02.
-//
-// PURE, ZERO DEPENDENCIES. Neither statutory (no formula prescribed by law — this is a unit-conversion of
-// a factor the source already published) nor an estimate (no model, no uncertainty band — the factor row
-// IS the number, converted to a customer-legible unit). `derivation: "calculated"`, `origin_class:
-// "derived"` (docs/specs/08-flywheel-design.md §2.3 worked example: "Market Intel: carbon-cost-per-FEU on
-// 11 corridors" is exactly this shape, one factor row narrower). Rendered through a plain derived-value
-// display, never `<StatutoryFigure>` — see `DerivedFigure`, exported alongside `EstimatedFigure` from
-// src/components/figures/EstimatedFigure.tsx (that file's own header explains why a third rendering lives
-// there rather than in a fourth component file this lane's write set does not name).
-//
-// UNIT CONVENTION — REUSES, DOES NOT REINVENT. `src/lib/market/carbon-overlay-view.mjs`'s `BASIS_UNIT`
-// already establishes the ONE confirmed convention in this codebase: `emission_factors.quantity_basis =
-// 'tonne_km'` means the stored wtt/ttw/wtw_co2e numbers are `kg CO2e / tonne-km` (that file's own
-// constant, unit-tested by its callers). Every other `quantity_basis` value the schema's own CHECK admits
-// (`vehicle_km`, `teu_km`, `tonne`, `litre`, `kg`, `kwh`, `mj` — migration 258
-// `emission_factors_quantity_basis`) has NO documented kg-CO2e-per-unit convention anywhere in this
-// codebase today — inventing one here would be exactly the fabricated-precision failure ADR-024 and spec
-// §4's isolation design exist to prevent. So: `tonne_km` is SUPPORTED; every other basis REFUSES with a
-// named reason, honestly reporting the gap rather than guessing a unit label.
-//
-// mirror of carbon-overlay-view.mjs's pickHeadlineNumber(): kept, that function is module-private there; drift-guarded by this file's own tests.
-// HEADLINE-NUMBER PREFERENCE mirrors carbon-overlay-view.mjs's `pickHeadlineNumber()` exactly (tank-to-
-// wheel preferred — "what a modal default typically publishes" — falling back to well-to-wheel, then
-// well-to-tank), so the SAME factor row never reports two different headline numbers on two different
-// surfaces. Not imported directly (that function is module-private there) — replicated here at three
-// lines, with this note as the drift guard: if carbon-overlay-view.mjs's preference order ever changes,
-// this file's tests will disagree with it and must be updated together.
-
-/** The one quantity_basis this module has a confirmed CO2e-per-unit convention for. */
 export const SUPPORTED_BASES = Object.freeze(["tonne_km"]);
 
 const KG_TO_G = 1000;

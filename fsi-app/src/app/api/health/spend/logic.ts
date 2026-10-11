@@ -1,9 +1,3 @@
-// Pure response-body builder for GET /api/health/spend, split out of route.ts (BUILDGATE,
-// 2026-09-02, F34's named residual / build-graph proof). Next 16's route-type validator rejects
-// a route.ts that exports anything besides route handlers/config fields, so this function moves
-// to this sibling module and route.ts imports it. Behaviour is unchanged; only the file it lives
-// in moved. route.npmtest.mjs now imports this module directly instead of route.ts.
-
 import type { computeSpendHealth } from "@/lib/health/spend-health.mjs";
 import type { readSpendGauge } from "@/lib/llm/spend-gauge.mjs";
 

@@ -1,17 +1,3 @@
-// First-party error capture (Wave-β R0.2) — the "Sentry or equivalent" with
-// no external service. Writes error GROUPS to the error_events table
-// (migration 195) keyed by (stack_hash, release, side, route), incrementing
-// `count` on repeat occurrences.
-//
-// FAIL-OPEN, DELIBERATELY: a failed capture must NEVER break the request it
-// observes. Every path here swallows its own failures with console.error.
-// This is the CORRECT use of a swallow: the forbidden error-swallow class
-// (agent/run post-mortem, D3 living-set entry 1) is swallowing errors on
-// WRITE-CONSEQUENCE paths — where the swallowed error silently disables a
-// gate or loses a customer-facing write. Telemetry loss has no write
-// consequence for the observed request; the console.error keeps the loss
-// itself observable in Vercel logs. Do not "fix" these catches.
-
 import { getServiceSupabase } from "@/lib/supabase-server";
 import { stackHash } from "@/lib/telemetry/stack-hash.mjs";
 

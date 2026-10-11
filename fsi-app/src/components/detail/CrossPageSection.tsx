@@ -1,29 +1,3 @@
-/**
- * CrossPageSection (lane S3-B): the ONE "Connected intelligence" section every detail page mounts, so a reader sees
- * what an item connects to on the OTHER pages and what that connection means, wherever they start.
- *
- * Two blocks, each rendering nothing when its data is absent (the section itself renders nothing when
- * both are):
- *   1. Intersections: the item's stated coupling (intelligence_items.intersection_summary), then the items
- *      on other pages that share an operational scenario AND a compliance object with it, grouped by page,
- *      each with its coupling in plain words (human labels from tag-labels.mjs, never a slug, never a
- *      score). Strong and medium are inline; weak ones sit in a collapsed "Possible connections" group
- *      (docs/specs/00-foundation-the-spine.md section 6). Same-page intersections follow the other pages.
- *   2. Theme analysis: the cluster this item belongs to. When the theme has a brief: its title, what it
- *      means, what follows on THIS page (only this page's ramifications subsection), what to watch, then
- *      the other members grouped by page, with how the items connect and what is missing behind one
- *      disclosure. A stale brief says so and still shows; a brief written before migration 351 shows its
- *      markdown; a theme with no brief shows its members and names what is missing.
- *
- * View-models are built by pure, tested modules (connection-view-model.mjs buildIntersectionView,
- * research/theme-brief.mjs buildThemeAnalysisView); this file only draws them. There is no async action on
- * this block: the primary action is opening a connected item (every row is one 44px link), and the two
- * disclosures are native <details> with a 44px summary.
- *
- * ARTBOARD NOTE (CLAUDE.md rule 20): no artboard draws this section; it is built from the existing shell
- * parts (DetailSection, DetailSubSection, StateNote, GfmSection) and recorded as a design change owed.
- */
-
 import type { CSSProperties, ReactNode } from "react";
 import { DetailSection } from "@/components/detail/DetailShell";
 import { DetailSubSection } from "@/components/ui/DetailSubSection";

@@ -1,30 +1,3 @@
-// Per-surface count snapshot for the Dashboard five-surface widget.
-//
-// Build 11 deliverable. The Dashboard surface has been regulation-skewed
-// (per OBS-41 + dead-code disposition B.6) because all four hero tiles
-// + the WeeklyBriefing rank Regulations by priority and the other three
-// intelligence surfaces + Community are unrepresented in the editorial
-// body. This module supplies one server-side fetch that returns a stable
-// breakdown across the canonical five customer-facing surfaces.
-//
-// Surface taxonomy mirrors the page-level scope filters that the
-// /market, /research, /operations, /regulations pages already pass to
-// get_workspace_intelligence_aggregates_scoped (migration 069):
-//   - Regulations: domain = 1 OR item_type IN (regulation, directive,
-//                  standard, guidance, framework, law)
-//   - Market Intel: item_type IN (technology, innovation, market_signal)
-//                   OR domain IN (2, 4)
-//   - Research: item_type IN (research_finding)
-//   - Operations: item_type = regional_data OR domain IN (3, 6)
-//   - Community: carries NO count here (ADR-041, 2026-10-03). Community is a
-//                social place, not a source of information, so no
-//                Community-derived count, state or aggregate feeds the
-//                Dashboard or the nav rail.
-//
-// The four subtotals + "uncategorized" are derived so they always sum to
-// the workspace-wide totalItems for intelligence content, so a sharp-eyed
-// user can verify the per-surface tiles add up.
-
 import { unstable_cache } from "next/cache";
 import { fetchAllRows, fetchAllByIdChunks } from "@/lib/db/paginate.mjs";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";

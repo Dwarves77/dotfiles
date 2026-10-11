@@ -1,18 +1,3 @@
-// src/lib/sources/host-authority.ts
-//
-// DETERMINISTIC default tier for a NEWLY-discovered source host, by source-TYPE (not reputation).
-// Used at REGISTRATION so a grounding-pool corroborator gets a tier the authority floor can EVALUATE,
-// instead of NULL — which escapes the floor entirely (the floor cannot compare `null <= T2`), the
-// sub-floor-MASKING defect the unregistered-span-host audit surfaced (1034 FACT claims hidden behind
-// NULL). This is the registration-time seed of the authority-origin axis (Design 3): enacted/official
-// legal text and government/regulator/intergovernmental hosts are authoritative; everything else
-// registers PROVISIONAL + sub-floor until classified/reviewed.
-//
-// FACTS-ONLY host-pattern matching; no content interpretation. CONSERVATIVE: an ambiguous host
-// defaults to sub-floor (honest-quarantine > hollow-pass) — a wrongly-low tier is recoverable via
-// operator override, a wrongly-HIGH tier would let a sub-floor fact pass (the masking we are fixing).
-
-// Enacted primary legal text / official journals (binding law) -> T1.
 const LEGAL_PRIMARY = /(^|\.)(eur-lex\.europa\.eu|federalregister\.gov|ecfr\.gov|govinfo\.gov|legislation\.gov\.uk)$/;
 // Curated legal-publisher allowlist (defect D14, docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12):
 // each host IS the official publisher of that jurisdiction's enacted law / official gazette -- the SAME

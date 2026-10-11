@@ -1,28 +1,3 @@
-// SHARED-WRITER: source_tier_opinions
-// Phase 7 admin chrome: tier-opinion disagreement review surface.
-//
-// GET  /api/admin/sources/tier-opinions
-//   Returns the disagreement rows from get_tier_opinion_disagreements()
-//   joined with source identity (name, url), the source's effective_tier
-//   for the operator to compare against, and the suggested analyst tier
-//   (the modal opined_tier from the array). Empty result means no
-//   un-dismissed disagreements in the 90-day window.
-//
-// POST /api/admin/sources/tier-opinions
-//   Body: { source_id: string, action: 'dismiss', reason?: string }
-//   Marks every non-dismissed opinion for the source as dismissed. Used
-//   when the operator decides the disagreement is not actionable.
-//
-//   The 'accept' action is NOT implemented here. To accept, the UI calls
-//   POST /api/admin/sources/[id]/tier-override with the analyst tier and
-//   a reason like "Disagreement review: 8 analyst opinions favor T3";
-//   then POSTs here with action='dismiss' to clear the opinions. This
-//   keeps each route surface narrow and re-uses the existing audit
-//   pipeline (source_trust_events) for the override write.
-//
-// Auth: requireAuth + isPlatformAdmin per the existing pattern in
-// /api/admin/sources/[id]/tier-override/route.ts.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

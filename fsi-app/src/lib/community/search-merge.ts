@@ -1,10 +1,3 @@
-/** Union of per-column search reads, newest first, deduplicated by id, capped. Lane R21 (CF-SEC-15).
- *
- *  /api/community/search used to match two columns with one `.or("title.ilike.<q>,body.ilike.<q>")` string,
- *  which PostgREST parses for structure (`,` `(` `)` `.` in the caller's text could add filter terms). It now
- *  issues one `.ilike(column, pattern)` read per column (each value is a single parameter) and unions the
- *  results here. Pure so it loads under plain `node --test`. */
-
 export function unionByRecency<T extends { id: string }>(
   lists: ReadonlyArray<ReadonlyArray<T>>,
   recencyKey: keyof T,

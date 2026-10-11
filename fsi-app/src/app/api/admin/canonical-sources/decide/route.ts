@@ -1,36 +1,3 @@
-// SHARED-WRITER: intelligence_items
-// POST /api/admin/canonical-sources/decide
-//
-// Decision flow for a canonical_source_candidates row. Three decisions:
-//
-//   approve →
-//     a. If candidate URL not already in sources registry, INSERT a new
-//        sources row using reviewer-supplied tier/domains/jurisdictions/
-//        transport_modes/topic_tags (typically pre-filled by Haiku
-//        classification but editable). The new source is created with
-//        status='active', admin_only=false, access_method='scrape'.
-//        A source_trust_events audit row records the promotion.
-//     b. If candidate URL already in sources registry, skip creation —
-//        existingSourceId is supplied in the body and reused.
-//     c. UPDATE intelligence_items.source_id to the resolved source UUID
-//        AND intelligence_items.source_url to the candidate URL (keep
-//        the column denormalized for legacy display paths).
-//     d. UPDATE canonical_source_candidates SET decision='approved',
-//        promoted_to_source_id, reviewer_id, reviewed_at, reviewer_notes.
-//
-//   reject →
-//     UPDATE the candidate row SET decision='rejected', reviewer fields.
-//     The intelligence_items row is not touched. Other candidates for the
-//     same item remain pending.
-//
-//   defer →
-//     UPDATE reviewer_notes + reviewed_at. decision stays 'pending'. Used
-//     when reviewer wants to flag for re-review later.
-//
-// Auth: requireAuth (any authenticated user — admin gating is via the
-// /admin route's middleware and the AuthProvider's role check). Rate
-// limited.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

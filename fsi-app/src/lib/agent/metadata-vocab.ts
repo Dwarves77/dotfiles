@@ -1,22 +1,3 @@
-// Single source of truth for the constrained metadata vocabulary AT THE DB BOUNDARY.
-//
-// The skill / system-prompt / parser speak the DISPLAY form (severity = UPPERCASE space,
-// e.g. "ACTION REQUIRED"). intelligence_items stores the DB form (severity = lowercase_underscore,
-// e.g. "action_required") — migration 102 converted the column and declared that form "canonical from
-// here forward". The mismatch silently rejected the whole metadata UPDATE on a CHECK violation, which the
-// unchecked write swallowed (the 2026-06-07 metadata-persist audit).
-//
-// This module is the ONE place the display<->db mapping lives, so the write boundary and (when the
-// surface-severity consolidation follow-on lands) the read/display surfaces share one definition instead
-// of the four divergent per-component vocabularies that exist today.
-//
-// The allowed-value sets are copied VERBATIM from the LIVE pg_constraint definitions on
-// public.intelligence_items (dumped 2026-06-07, scripts/_diag/probe-live-checks.mjs) — the authoritative
-// source, because the migration FILE and an old schema snapshot disagreed and the snapshot was stale.
-// If a migration later changes a CHECK, update the matching set here in the same change.
-
-// G5-READ (2026-10-07): the adopted `theme` terms (vocabulary_terms) widen the held theme vocabulary, so the
-// write boundary below accepts a theme the system has adopted by rule. The code list stays the floor.
 import { adoptedThemeTokens } from "../vocabulary/adopted-terms.mjs";
 
 // ── severity: display (skill/agent) <-> db (stored) ──

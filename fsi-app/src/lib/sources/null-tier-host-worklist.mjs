@@ -1,29 +1,3 @@
-// null-tier-host-worklist.mjs: the ONE null-tier-host worklist mechanism, extracted (defect fix D3,
-// docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12) out of scripts/maintenance/
-// resolve-cited-host-gate.mjs (names and signatures unchanged: planHostDecision, line 92 on master;
-// buildNullTierHostWrite, line 107; NULL_TIER_CREATED_BY, line 69) so a SECOND caller
-// (scripts/maintenance/resolve-provisional-sources.mjs) can route an unclassifiable host into the
-// SAME per-host merged flag instead of building a second, non-idempotent worklist mechanism.
-//
-// Review finding (review-7.5.md, finding 2, CONFIRMED): resolve-provisional-sources.mjs's own
-// buildBatchWorklistFlag inserted a fresh integrity_flags row every run (no read-before-write, no
-// merge against an existing open flag), diverging from resolve-cited-host-gate.mjs's own stated
-// doctrine, "never a second worklist." This module is the fix: the one place that shape lives, so
-// resolve-cited-host-gate.mjs re-exports it unchanged (its own callers do not change) and
-// resolve-provisional-sources.mjs imports it directly.
-//
-// mergeNullTierAggregate/summarizeNullTierAggregate (src/lib/agent/null-tier-flag.mjs, imported
-// unmodified) are the SAME pure per-host merge helpers canonical-pipeline.ts's own
-// surfaceNullTierHosts uses at grounding time; this module does not reimplement them, it composes
-// them into the two functions a maintenance script needs to plan a URL's fate and build the flag
-// write.
-
-// hostOf: byte-identical logic to scripts/lib/institution-key.mjs's own hostOf (both
-// `new URL(u).host.replace(/^www\./, "").toLowerCase()`) -- imported from src/lib/sources/
-// institution.ts instead of reaching from src/lib back into scripts/lib (the wrong dependency
-// direction; scripts/ builds on src/, never the reverse). "Signature unchanged" per the extraction
-// plan refers to planHostDecision/buildNullTierHostWrite's own signatures, which this preserves
-// exactly; the internal hostOf call is the same behavior either way.
 import { hostOf } from "./institution.ts";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "../agent/null-tier-flag.mjs";
 

@@ -1,14 +1,3 @@
-// POST /api/admin/run-intake — the "Run intake now" operator control (Disposition Unit 0c-2).
-//
-// Fires ONE runIntakeCycle over a small candidate set and STOPS (no loop, no schedule side-effect). The
-// machine gates ARE the approval (no-human-finish-of-intake / RD-20) — this route returns the disposition
-// TRAIL for VISIBILITY (discovered / staged / minted / rejected+reason / verified); there are NO approve
-// affordances. Admin-gated to the /api/agent/run standard (auth + isPlatformAdmin + rate limit) because it
-// triggers paid generation. Enters the scrape hold ONLY through the F16 "manual-intake-run" signed caller
-// (the pipeline threads it; the scheduled worker stays blocked — one mechanism, two callers, no third door).
-//
-// The saved-cadence / scheduled-worker mechanism is untouched by this control (ADR-012: manual-triggered by
-// design, auto-cadence built + dormant).
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 

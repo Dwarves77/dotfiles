@@ -1,33 +1,3 @@
-// build-applied-map.mjs -- generates fsi-app/supabase/migrations/APPLIED-MAP.json (lane MIG-HIST-1,
-// 2026-10-07). The map says, for every row production's supabase_migrations.schema_migrations holds, which
-// repo file stands for it and how faithfully; and, for every repo file that has no ledger row, why not.
-//
-// Shape (fixed by PROOF-1's reader, scripts/proof/applied-map.mjs): an object keyed by ledger version, each value
-//   { name, file: <migration file name or null>, class, superseded_by?: <migration file name>, note? }
-// File names are bare (no directory), as the reader compares them with the directory listing. A repo file that
-// has no ledger row and is live or ambiguous is its own entry, keyed by class and file (the reader's convention):
-// `outside:<file>`, `dup:<file>`, value { name, file, class, note: <evidence> }. A file that production has NOT applied has
-// NO entry at all (lane MIGTEST-1, coordinator ruling 2026-10-08): the map is a shared-append file and a `never:` line
-// per new migration conflicted every concurrent PR, so never-applied is derived from the file's own header, by the one
-// function in supabase/migrations/_lib/applied-status.mjs (derivesNeverApplied) that the reader, the audit and this
-// generator all call.
-//   class (ledger rows): identical | comments-only | code-differs | recovered | superseded-by | data-only |
-//     comment-only, plus two classes for matched rows with nothing to compare: statements-null (the ledger
-//     stored no SQL) and apply-record-stub (the ledger stored a provenance note, not SQL); the reader replays
-//     the file for both, the file being the only text there is.
-//   class (files without a row): outside-ledger | duplicate-prefix.
-//
-// Inputs: a reconciliation JSON (the export's sets a, b, c, d), the export directory (one .sql
-// per ledger row: first line a header, the rest the stored statements), and the migrations directory.
-// The classification of the 45 rows that had no repo file, and of the 16 files that had no ledger row, is a
-// set of coordinator rulings (2026-10-07) recorded below as data, each with its reason; everything else is
-// computed with the shared comparison in migration-compare.mjs, the same one the hard audit uses.
-//
-// Usage: node fsi-app/scripts/migrations/build-applied-map.mjs <reconciliation.json> --export-dir <dir> [--write]
-//   --write   writes fsi-app/supabase/migrations/APPLIED-MAP.json (default: prints it to stdout, dry).
-// Every code-differs entry carries a `diff` record (class, file_only, stored_only, sha256) written by this one entry point
-// through annotateMap (scripts/verify/migration-history-diff.mjs); no second command is run after the generator.
-//
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

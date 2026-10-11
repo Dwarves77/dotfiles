@@ -1,27 +1,3 @@
-// harness-run-number.mjs -- the ONE home for "what's the next run_id NUMBER for this harness family,
-// and how do I get a write-capable client for the harness_runs insert." Extracted (lane STATUTORY-WRITER,
-// 2026-09-28) from two near-identical copies F45 (duplicate-code) flagged as a regression the moment a
-// second harness-record-writing script (write-statutory.mjs) copied the shape
-// plan-quarantine-disposition.mjs's own `nextRunNumberFromHarnessRuns`/`buildHarnessRunsClient` had
-// already established (lane QUARANTINE-DISPOSITION, same day). Per the lane-common-contract's "no
-// duplication of an existing module" rule and F45's own remediation ("wire or remove"): one shared home,
-// both callers import it.
-//
-// THIRD CALLER (lane HARNESS-RUN-NUMBER, 2026-09-29, coordinator finding from GitHub run 36610847827):
-// record-harness-run.mjs -- the single chokepoint every family's landing now funnels through since PR
-// #824 removed artifact-branch commits -- imports `nextRunNumberFromHarnessRuns`/`formatRunId` to
-// RENUMBER an artifact's `run_id` at land time against harness_runs' own max, rather than trusting
-// whatever number the family's own runner claimed locally (`claimRunId` in run-artifact.mjs, a
-// filesystem scan of the family's own `scripts/harness-runs/<family>/*.json` directory -- correct only
-// when every prior artifact for that family is still on disk at claim time, which stopped being true the
-// moment artifacts stopped being committed back to the tree). harness_runs is the durable record (rule
-// 15); the local scan is now only ever a fallback for when the DB itself is unreachable at land time.
-// This keeps F28's family-sequence semantics (`<family>-run-NNN`, monotonic per family, one row per
-// number) intact -- the AUTHORITY for "what number is next" simply moves from a stale local directory
-// listing to the table that is the actual gate that will reject a duplicate.
-//
-// $0, no I/O side effects on import -- same discipline as every other scripts/lib/*.mjs module.
-
 /**
  * The next run_id NUMBER for `family`, derived from `harness_runs` (the durable record since #813 --
  * lane HARNESS-LANDING), never from scanning git branches or maintenance-artifact/* checkouts (a second,
@@ -35,6 +11,7 @@
  * @param {string} family
  * @returns {Promise<number>}
  */
+
 export async function nextRunNumberFromHarnessRuns(readAllFn, family) {
   // orderBy: "run_id" -- readAll's own default ("id") does not exist on harness_runs (its PK is run_id),
   // confirmed live (run 36461564054): "column harness_runs.id does not exist". A fake readAllFn in a test

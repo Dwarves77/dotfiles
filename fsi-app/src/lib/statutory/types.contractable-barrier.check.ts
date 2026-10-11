@@ -1,18 +1,3 @@
-// types.contractable-barrier.check.ts — the compiled PROOF of spec §4 Layer 2's type barrier. Lane
-// DP-SURF, system-completion train, 2026-09-02.
-//
-// NOT a node:test file — nothing here is executed; its only job is to be included in `tsc --noEmit`
-// (tsconfig.json's `include: ["**/*.ts", ...]` picks up every .ts file under the repo, this one included,
-// with no test-file exclusion). A `// @ts-expect-error` comment makes `tsc` FAIL if the FOLLOWING line does
-// NOT produce a type error, and SUPPRESS the diagnostic if it does — so this file's presence alone is the
-// gate: if a future edit ever widens `Contractable` (propagation/types.ts) to admit "modelled" or loosens
-// `StatutoryInput`/`computeStatutory`'s parameter type, the `@ts-expect-error` below stops reporting an
-// error where one is expected, `tsc --noEmit` fails, and CI catches the regression at compile time — the
-// exact mechanism the task brief asks for ("test this with a `// @ts-expect-error` case").
-//
-// Both calls below are otherwise IDENTICAL except for one field's `derivation` literal, so the only thing
-// under test is the barrier itself, not some unrelated shape mismatch.
-
 import { computeStatutory } from "./types.ts";
 
 const asOf = { eventDate: "2026-01-01" };

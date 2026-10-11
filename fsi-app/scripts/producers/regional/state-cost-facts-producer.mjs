@@ -1,43 +1,4 @@
 #!/usr/bin/env node
-// state-cost-facts-producer.mjs, lane STATE-COST-PRODUCER (docs/plans/data-machine-tool-gaps-2026-09-25.md
-// "Collect" row: "state_cost_facts producer", operator ruling 2026-09-25 "build the producer"). Builds
-// the ONE producer for `state_cost_facts` (migration 152, 0 live rows, PENDING-by-design), read by
-// src/app/api/ask/route.ts:245 and src/lib/supabase-server.ts:3507, a table with a read dependency and
-// NO producer, ever, until this lane.
-//
-// R14 HOLD (operator, 2026-09-25: "we are NOT updating the data on the site, we are building the tools
-// that manage that data first"): ZERO LIVE ROWS may be written by this lane. Enforced THREE ways, not
-// one:
-//   1. Kill switch below, same convention as bls-oews-producer.mjs / eurostat-nrg-pc-205-producer.mjs, //      ENABLED=false. A reviewed, dated code change is required to ever flip it, exactly the mechanism
-//      those producers document (their own ENABLED history is the precedent this lane follows).
-//   2. This lane's own tests exercise ONLY the fixture/dry path (runStateCostFactsProducer with
-//      mode:"dry" and injected fixture deps), no test calls the real DB-backed default deps.
-//   3. main() below checks ENABLED before doing anything, exit 0 no-op, EVEN IF a future caller passes
-//      --apply, the kill switch is checked before the mode flag is ever read.
-//
-// SOURCES THROUGH THE REGISTRY, TIER FROM THE INSTITUTION CLASS TABLE (CLAUDE.md rule 18: "the source is
-// found and rated, never the figure refused... tier from the institution class table, never hand-
-// typed"). `classTierForHost` (src/lib/sources/host-authority.ts, SC-13's deterministic
-// register-at-grounding class table) computes the tier BEFORE `registerSource` (scripts/lib/db.mjs) ever
-// writes a row, so a brand-new source is never born with a hand-typed or guessed tier. A host the class
-// table cannot classify is NOT silently defaulted (registerSource's own `?? 7` fallback is never reached
-// from this producer), it is refused with a named reason, `refused_unrated_source`, surfaced in the run
-// artifact's defects_found for registry review, matching rule 18's own "find the source and rate it"
-// mandate (a follow-up classification action, not a hand-typed tier here).
-//
-// GROUNDING (CLAUDE.md rule 18 / ADR-016; see state-cost-facts-envelope.mjs's own header for the exact
-// citation, the same verbatim-span requirement validate_item_provenance criterion 3 applies to a
-// regulatory FACT's source_span). A candidate with no span, or a span that is not verbatim in its
-// capture, is refused (`refused_ungrounded`), never written with an invented or paraphrased grounding.
-//
-// DOWNSTREAM TRIGGER (rule 17: "an analysis is not done until its result is written where the surfaces
-// read it... a runtime that ends without triggering its downstream is a defect in the runtime"). The
-// ENTITY-SPINE connection every other jurisdiction-bearing table gets (backfill-entities.mjs's JURISDICTION
-// kind, "every occurrence becomes an entity_refs row on the table it came from"): this producer mints/links
-// a jurisdiction entity for every state_code its run WRITES, through the SAME planJurisdictionEntities /
-// planJurisdictionRefs planners the region-level backfill uses (src/lib/entities/entity-plan.mjs), scoped
-// to `ref_table: "state_cost_facts"`. The wage-versus-automation derived value this producer once also
-// authored was retired by ADR-043 (operator ruling 2026-10-03); the wage and energy facts themselves stay.
 
 import { readAll, guardedInsert, guardedUpdate, guardedInsertMany, registerSource } from "../../lib/db.mjs";
 import { groundCandidate, buildStateCostFactRow, planUpsert, naturalKey } from "../../../src/lib/regional/state-cost-facts-envelope.mjs";

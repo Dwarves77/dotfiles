@@ -1,16 +1,3 @@
-// data.mjs: the reads and the pure need assembly shared by the needs export and the URL apply step (lane
-// G5-SEARCH, 2026-10-07).
-//
-// ONE home for "what an open source need is", so the export that hands an author the request and the apply step
-// that validates the author's batch read the SAME flags the SAME way. Every function takes its database reads as
-// injected deps ({ readAll, readAllByIds }, the scripts/lib/db.mjs shapes) so the fixture tests run with no
-// database, and nothing here writes.
-//
-// REUSE. The term-need and holdings-need targets are read by question-answers/data.mjs `loadOpenNeedTargets`
-// (includeTermNeeds) and shaped by its `needOfFlag`; the absent lineage parents are planned by
-// `planLineageGapTargets`, the planner the lineage consumers use; the authority floors are `authorityFloorFor`.
-// Only the flywheel-gap read and the applied-marker bookkeeping are new.
-
 import { GAP_NAMESPACE } from "../../../src/lib/connections/flag-namespaces.mjs";
 import { LINEAGE_GAP_CREATED_BY, planLineageGapTargets } from "../../../src/lib/entities/lineage-backfill.mjs";
 import { celexOf } from "../../../src/lib/connections/term-needs.mjs";

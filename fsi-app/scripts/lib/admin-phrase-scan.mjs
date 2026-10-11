@@ -1,18 +1,5 @@
 // @ts-check
-// ADMIN HUMAN-GATE PHRASE SCAN — pure core (Unit 0c Part 4, operator ruling 2026-07-13). A SOFT review signal:
-// the intake path has NO human-approval gate (RD-20 — the machine gates ARE the approval), so admin UI copy must
-// state what the MACHINE did and what's VISIBLE ("staged / minted / rejected + why"), never what a human must
-// DECIDE. This scan flags human-gate framing in admin JSX string literals. It is SOFT (a review signal, never a
-// hard build gate) because a phrase is a heuristic, not a correctness invariant — the census enforcement
-// assessment ruled it advisory.
-//
-// RULED ALLOWLIST (legitimate human controls — these are NOT intake human-gates):
-//   - emergency-stop / pause release (the operator's stop-flag control is a genuine human lever)
-//   - SC-3 tier override (the operator's per-source tier_override is a genuine human judgment)
-//   - Community controls (community-is-human-space — moderation / promote-to-public are legitimately human)
-// A line carrying an allowlist marker is exempt even if it matches a forbidden phrase.
 
-/** Human-gate framing forbidden in admin intake copy (the machine gates, no human approves/rejects/reviews). */
 export const FORBIDDEN = [
   /needs? a human (decision|pass|review)/i,
   /awaiting (approval|review|promot\w*|publish)/i,

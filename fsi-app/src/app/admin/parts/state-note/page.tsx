@@ -1,20 +1,3 @@
-/**
- * /admin/parts/state-note: the StateNote sign-off page (lane W10-StateNote, 2026-09-23,
- * parts-brief 2.7). Renders every STATE_NOTE_FIXTURES entry through the real `StateNote` part,
- * from static hand-built fixture data (see state-note-fixtures.tsx header for why this part's
- * fixtures are traceable-to-production-usage rather than a frozen SELECT), NO database read.
- *
- * F49 (parts-not-pages): this page imports StateNote and renders each fixture through it; no
- * part's literal shell styles are retyped here.
- *
- * Coordinator correction (2026-09-23): this page does NOT edit `src/app/admin/parts/page.tsx`
- * (the shared index). Lane ListRow is converting that index to derive its entries from the
- * per-part folders under `src/app/admin/parts`; this page appears there automatically once that
- * lands.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check
- * applies; see this lane's final report).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { PartsPageHeading } from "@/components/admin/PartsPageHeading";
 import { SectionCard } from "@/components/ui/SectionCard";

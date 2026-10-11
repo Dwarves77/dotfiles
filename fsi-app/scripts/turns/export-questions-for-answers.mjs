@@ -1,33 +1,4 @@
 #!/usr/bin/env node
-// export-questions-for-answers.mjs: the READ-ONLY export half of the question-answers batch pattern (lane L4-B,
-// 2026-10-05, ADR-044 decision 1).
-//
-// Lists every open `question:` flag (the trigger generator's rows) that can still be answered from holdings and
-// writes ONE bundle file per run to --out-dir (never into the repo) for a session lane to author answers from.
-// Per question the bundle carries: subject_ref, item id, surface, product question, the question text, event
-// context when the flag recorded one, a `pool_hash` (the identity of the held pool the bundle was read from,
-// echoed back by the batch), and for the question's item and each item connected to it (typed edges first, at
-// most MAX_CONNECTED of them, scripts/turns/question-answers/data.mjs): title, type, surface, jurisdictions,
-// summary, the edge that connects it, grounded FACT claims (claim id, kind, text, source id), forward events and
-// the held pool text. A character budget applies per question (--char-budget); what it omits is counted in the
-// question's `truncation` block, never dropped silently.
-//
-// A question is skipped when: its flag is not parseable (counted as residue); its own item is archived,
-// unverified or sourced only from Community (counted); or an earlier batch recorded it unanswerable from
-// holdings and the held pool has not changed since (same pool_hash). When the pool HAS changed the question is
-// listed again with needs "reasked_after_new_holdings".
-//
-// Held pool retrieval is seek-more.mjs queryHeldPools (the real implementation of seekAnswerForQuestion's step
-// 1, called through data.mjs); the priced branch of seekAnswerForQuestion is not touched and not called.
-//
-// FREE and READ-ONLY: no model call, no network, no write to the database (db.mjs readClient is read only). It
-// writes the bundle file and its harness-run artifact (scripts/turns/question-answers/artifact.mjs). Exits 2
-// without database credentials (rule 15). --fixture <corpus.json> runs the whole step over an in-memory corpus
-// (scripts/turns/question-answers/fixture-deps.mjs) with no database and writes no harness-run artifact.
-//
-// Usage:
-//   node scripts/turns/export-questions-for-answers.mjs --out-dir <dir> [--char-budget N] [--limit N] [--fixture <corpus.json>]
-// Exit 0 done, 1 bad args, 2 no database credentials.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";

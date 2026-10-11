@@ -1,25 +1,3 @@
-// discover.mjs — CONNECTION DISCOVERY core (Pillar A1). PURE, no DB, no LLM.
-//
-// The differentiator: each surface educated by the others. The entity linker (link-items.ts) already finds
-// ONE connection signal — this item's text names another item's entity. This adds the signals text alone
-// can't give: two items connected because they SHARE PROVENANCE — the same source, a shared operational
-// scenario, a shared compliance object, or the same jurisdiction+topic. Same graph
-// (item_cross_references), same moat, complementary discovery. It is source-growth applied to connections:
-// discover what items SHARE, then the connection is grounded in that shared basis.
-//
-// GROUNDING GUARANTEE (non-negotiable, same moat as FACT spans): every connection carries its BASIS — the
-// real shared attribute(s) that justify it. A connection with no basis is never emitted. No invented links.
-//
-// Inputs: two item "provenance signatures":
-//   { id, item_type, source_id?, compliance_object_tags?, operational_scenario_tags?,
-//     jurisdictions?, jurisdiction_iso?, topic_tags? }
-// Optional surfaceOf(item_type) -> surface string; default compares item_type (a proxy for "different page").
-// Optional freqMap (ADR-019) -> { freq: Map<tag,count>, refFreq: number }, from computeTagFrequencies() over
-//   the SAME corpus the caller already loaded — see computeTagFrequencies() below. Absent freqMap ⇒ every
-//   shared-scenario tag scores at full flat weight (exact pre-ADR-019 behavior); this is the back-compat path.
-// Output: { score: 0..1, basis: [{ signal, detail, weight }], crossSurface: boolean, relationship: string }
-//   relationship = the strongest signal's name (stored on the edge); basis = the full grounded reason list.
-
 const arr = (x) => (Array.isArray(x) ? x.filter((v) => typeof v === "string" && v.trim()) : []);
 const lc = (s) => String(s || "").toLowerCase().trim();
 const overlap = (a, b) => {

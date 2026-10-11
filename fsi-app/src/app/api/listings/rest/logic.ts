@@ -1,28 +1,3 @@
-/**
- * Pure paging helper for GET /api/listings/rest, in a sibling module rather than route.ts because a
- * route.ts may export only route handlers and config (F34; the same reason
- * src/app/api/notices/logic.ts exists).
- *
- * COUNTS-61 (production defect, click-through audit 2026-09-08). Root cause [CONFIRMED]: this route
- * asked for the whole remainder in ONE `.range(offset, offset + 5000 - 1)` call. PostgREST caps a
- * single response at its `db-max-rows` setting (1000 on this project), silently, with no error and
- * no truncation signal — the exact class this repo already named CAP-1000 on 2026-09-05 and fixed
- * for `getPublicSurfaceSlugs` with `fetchAllRows`, while this route kept the defect.
- *
- * The arithmetic that confirms it, on the corpus as it stood 2026-09-08: /regulations server-renders
- * the first 60 rows and fetches the rest here, so the ledger held 60 + 1000 = 1060 rows. The listing
- * RPC orders by priority band, and the corpus carries 15 CRITICAL + 14 HIGH ahead of the MODERATE
- * rows, so 1060 - 29 = 1031 — the exact number the production list printed as "showing 5 of 1031"
- * and "All 1031 monitor →", 88 short of the 1,119 its own band tile printed from
- * `get_surface_counts('regulations')`. Not a different corpus slice, not a stale cache: a silently
- * truncated read.
- *
- * The fix is the fix CAP-1000 already prescribes — walk the range one `REMAINDER_PAGE_SIZE` page at
- * a time until a short page proves the end, never one wide range. `cap` stays a genuine safety
- * ceiling, not a per-request limit.
- */
-
-/** One page's worth of rows. Must be <= the server's `db-max-rows`, or a page can itself truncate. */
 export const REMAINDER_PAGE_SIZE = 1000;
 
 interface ListingsPage<R> {

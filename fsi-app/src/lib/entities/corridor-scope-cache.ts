@@ -1,23 +1,3 @@
-// corridor-scope-cache.ts — the thin, Next-bound wrapper around corridor-scope.ts's pure core (ADR-026
-// detail-page cache model: cached, tagged, revalidated; see docs/decisions/ADR-026-detail-cache-and-
-// viewer-state-split.md). Split from corridor-scope.ts for the SAME reason load-detail.ts is split from
-// load-detail-core.ts (that file's own header): this file imports `next/cache` and
-// `@/lib/supabase-service` at RUNTIME, so it cannot be loaded by a plain `node --test` process — every
-// function it exports is a thin composition over an already-tested pure core, nothing here needs its own
-// unit test beyond "does this call the right function."
-//
-// entity_scope/entities/entity_refs/obligations are all corpus-wide, org-independent facts (no viewer,
-// no org, no RLS narrowing beyond "verified" — entities/entity_scope/entity_refs are world-readable per
-// migration 282/283's own RLS posture) — exactly the item-scoped, cacheable half of ADR-026's split, so
-// every wrapper below is a single cached bundle, never a per-viewer read.
-//
-// TAGGED "corridor-scope" (one coarse tag, not per-corridor): the population this reads is small (4
-// corridors, 8 scope rows at authoring time) and changes only when seed-corridors.mjs/write-entity-
-// scope.mjs runs (a maintenance step, not a per-request event) — a coarse tag plus the 1-hour revalidate
-// backstop below is proportionate; a per-corridor tag would add bookkeeping with no real payoff at this
-// scale. A future lane growing the corridor population materially can split this without changing either
-// caller.
-
 import { unstable_cache } from "next/cache";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import {

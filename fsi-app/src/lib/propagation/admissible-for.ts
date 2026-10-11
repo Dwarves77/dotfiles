@@ -1,25 +1,3 @@
-// admissible-for.ts — the pollution barrier (docs/specs/08-flywheel-design.md §3.3, exact). Lane
-// DP-ENGINE, system-completion train, 2026-09-02.
-//
-// "One gate function. Every consumer calls it; nothing reads `derived_values` directly." (spec §3.3).
-// F31 (.discipline/fitness/functions/F31-derived-values-gate.mjs) is the SECOND enforcement point spec
-// names beyond RLS (migration 285): it fails CI on any `.from("derived_values")` / raw SQL read of
-// `derived_values` outside this directory. `derived_values_admissible` (the view) is exempt everywhere —
-// it has ALREADY applied this gate's stale/falsified/obsolete exclusion at the DB layer, so reading it is
-// reading admitted data, not bypassing the gate.
-//
-// PLAIN RELATIVE IMPORTS, NO `@/` ALIAS, NO NPM PACKAGE AT MODULE SCOPE — see types.ts's header for why
-// (Node-native type stripping, no jiti). `FLOOR` comes from src/lib/entities/decisions.mjs (ADR-024
-// decision 3), `isContractable` from src/lib/contracts/envelope.mjs, `isMissing` from
-// src/lib/contracts/vocabularies.mjs — all three already-shipped, plain-ESM, zero-dependency modules
-// (DP-SPINE's own header note for decisions.mjs: "importable from a fitness function, a script, or a
-// Next.js component with no npm install and no bundler"). Imported here, never re-implemented.
-
-// decisions.mjs/envelope.mjs/vocabularies.mjs are plain .mjs with JSDoc types, not .d.ts. No type
-// suppression comment is needed on these imports (this repo's tsconfig does not type-check .mjs
-// imports from a .ts file in a way that flags these; a suppression directive here reports as
-// unused). The VALUES imported are used only at runtime (FLOOR as a lookup table, the two
-// predicates as plain functions).
 import { FLOOR } from "../entities/decisions.mjs";
 import { isContractable } from "../contracts/envelope.mjs";
 import { isMissing } from "../contracts/vocabularies.mjs";

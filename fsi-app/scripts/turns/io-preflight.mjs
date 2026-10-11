@@ -1,30 +1,4 @@
 #!/usr/bin/env node
-// SHARED-WRITER: brief_apply_runs
-// io-preflight.mjs - D32 (defect-fix-plan-2026-09-12.md, lane L21), part (c): a pre-flight IO check the
-// brief-apply driver (apply-record-briefs.mjs) runs before the first item of an --execute run. Two
-// independent refusal branches, either one enough to refuse:
-//
-//   1. COOLDOWN: the last brief_apply_runs row (read via readLastApplyRun) is too recent - either it
-//      finished within --cooldown-min minutes of now, or it has no finished_at and started less than
-//      IN_FLIGHT_STALE_MIN minutes ago (still running, or crashed without recording an outcome). An OLDER
-//      null-finished_at row is ignored (informational only) rather than refusing forever on a row this
-//      module has no way to know is stale vs. abandoned.
-//   2. DISK SAMPLE: two Prometheus metrics samples SAMPLE_GAP_MS apart from the project's own metrics
-//      endpoint (verified live by the coordinator on 2026-09-16 [CONFIRMED]: `GET
-//      https://<project-ref>.supabase.co/customer/v1/privileged/metrics`, HTTP basic auth user
-//      `service_role`, password the service role key, Prometheus text ~244 KB, per-device counters
-//      `node_disk_read_bytes_total{...service_type="db",device="..."}` and
-//      `node_disk_io_time_seconds_total{...}`). For the busiest db device (by io-time delta), a read
-//      throughput over --io-read-mbps-max MB/s or a busy fraction (io-time delta / elapsed seconds) over
-//      --io-busy-max refuses. A non-200, a timeout, or an unparseable body does NOT refuse - it logs
-//      "pre-flight: metrics unavailable (<why>), continuing on cooldown alone" and the cooldown check
-//      alone decides.
-//
-// PURE CORE (no I/O, fully unit-tested against fixtures/fakes): decidePreflight, parseDiskCounters.
-// I/O-BEARING (fetch/sleep/DB injected, exercised against fakes): sampleDiskCounters, readLastApplyRun,
-// recordApplyRunStart, recordApplyRunFinish, preflightOrRefuse (the driver's own single call site).
-//
-// Imported by scripts/turns/apply-record-briefs.mjs (module-liveness gate F25's production importer).
 
 import { guardedUpdate } from "../lib/db.mjs";
 

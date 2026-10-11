@@ -1,22 +1,3 @@
-// Shared pagination constants + keyset-cursor helpers for the listing ledgers.
-//
-// LIST_FIRST_PAGE_SIZE (60) is UNCHANGED and stays exactly what it was: the page size for
-// /operations' own "render N, fetch the rest after paint" mechanism (OperationsLedger.tsx,
-// unaudited — PERF-11 confirmed Operations' live corpus, 25 items, is well under this threshold,
-// so it carries no structural "load everything" defect and this lane leaves it alone) and for
-// ObligationRegister.tsx's unrelated first-page fetch (a different table, its own pagination —
-// ObligationRegisterFilterBar.tsx even keeps its own local `PAGE_SIZE = 60` literal "mirrors
-// LIST_FIRST_PAGE_SIZE", so changing this value would silently desync that comment's own claim).
-//
-// PERF-12 (2026-09-04, ADR-027 §2) replaces /regulations' OWN mechanism — the one-shot
-// LIST_REMAINDER_LIMIT=5000 fetch this constant used to gate — with true cursor pagination
-// (useInfiniteQuery + a keyset cursor against get_workspace_intelligence_listings's own total
-// order). LIST_REMAINDER_LIMIT and the one-shot fetch it gated are DELETED, not left behind (see
-// RegulationsLedger.tsx and /api/listings/cursor/route.ts) — the audit's root cause
-// (docs/audits/perf-waterfall-2026-09-04.md §1) was exactly this "ship up to 5,000 rows in one
-// response" shape, so keeping the constant around unused would leave the defect's own evidence
-// looking live. LIST_PAGE_SIZE below is /regulations' new, much smaller, per-fetch page size.
-
 import type { Resource } from "@/types/resource";
 
 /**

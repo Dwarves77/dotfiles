@@ -1,29 +1,3 @@
-// fake-supabase.mjs: a minimal in-memory fake of the slice of the Supabase JS client this codebase's
-// entity-spine writers actually use: `.from(table).select(cols).eq()/.in()` (chainable, awaitable),
-// `.upsert(rows, {onConflict, ignoreDuplicates})`, and `.update(payload).eq(col, val)`. It is NOT a
-// general postgrest emulator: only the call shapes link-item-entities.mjs (and any future writer test
-// that needs the same shape) actually issues. Extracted (lane W9 part 1, task 1.1, 2026-09-11) from the
-// bespoke injected-fake pattern src/lib/agent/timeline-harvest-unlock.npmtest.mjs established, so a
-// second test does not hand-roll a one-off fake for the same handful of chain shapes, the same "one
-// injected-fake pattern, many callers" posture entity-plan.mjs's planners follow for the plan logic
-// itself.
-//
-// STATE, EXPOSED DIRECTLY (not behind an accessor; a test reads it straight, same as
-// timeline-harvest-unlock.npmtest.mjs's sb.calls):
-//   sb.tables[name]: the LIVE row array for that table. Seed it via the constructor; `.upsert()`
-//                      mutates it in place (new rows pushed, a conflicting row skipped when
-//                      `ignoreDuplicates` is true, the real upsert-ignore-duplicates semantics this
-//                      codebase's own writers rely on for idempotency).
-//   sb.updates[name]: every `.update(payload)` payload applied to that table, in call order. Kept
-//                      SEPARATE from `sb.tables` (mirrors real postgrest: a read and a write are
-//                      different operations) so a test can assert on the exact payload a writer sent,
-//                      not just on post-write row state; `.update()` also mutates matching rows in
-//                      `sb.tables[name]` for a caller that immediately re-reads.
-//
-// Filtering supports `.eq(col, val)` (chainable, ANDed) and `.in(col, arr)`; the only two predicates
-// this codebase's entity-spine reads use. Anything else (`.neq`, `.gt`, …) is out of scope; add it here
-// if a future caller needs it, rather than hand-rolling a parallel fake.
-
 function matchesFilters(row, filters) {
   return filters.every(([col, op, val]) => {
     if (op === "eq") return row[col] === val;

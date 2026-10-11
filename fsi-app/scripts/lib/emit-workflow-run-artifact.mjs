@@ -1,20 +1,4 @@
 #!/usr/bin/env node
-// emit-workflow-run-artifact.mjs -- lane DORMANT-1 (2026-10-09, coordinator grant). One shared emitter for the
-// workflows that execute but ran their own work without recording a harness run: a final `record` job in each
-// of them calls this with the family it registered, the workflow file and the `needs.*.result` list, and (with
-// --land) lands the artifact into harness_runs through record-harness-run.mjs. The record job runs
-// `if: always()`, so it fires on every path, including the early exit of a kill switch (a dispatched run that
-// exits at its gate is a run, and now it leaves a row).
-//
-// WHY ONE SCRIPT, NOT ONE PER WORKFLOW: the envelope is buildRunArtifactEnvelope, the write is writeRunArtifact,
-// run id and harness version come from resolveHarnessRunContext, the landing is record-harness-run.mjs's runCli
-// (all the existing machinery; scripts/proof/emit-chain-proof-artifact.mjs is the closest sibling). What differs
-// per workflow is only the family name and the workflow file, so those are arguments, not seven copies (F45).
-//
-// Usage: node scripts/lib/emit-workflow-run-artifact.mjs --family <family> --workflow <file.yml>
-//          --results "<success,skipped,...>" [--land]
-// Exit: 0 written (and landed when --land); the landing's own code otherwise (1 failed, 2 no-credential
-// self-skip outside Actions, see record-harness-run.mjs).
 
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

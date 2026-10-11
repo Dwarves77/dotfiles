@@ -1,12 +1,3 @@
-// artifact.mjs: the theme-briefs family's harness-run artifact (lane S3-C, CONVENTION.md shape).
-//
-// Both runtimes (the export and the apply) write one artifact per run through the shared writer
-// (scripts/lib/run-artifact.mjs writeRunArtifact / claimRunId / buildRunArtifactEnvelope), never a second
-// copy of the envelope. The workflow's final step lands the artifact into harness_runs
-// (scripts/turns/deliver-artifact-branch.sh -> scripts/lib/record-harness-run.mjs), the same as brief-export.
-// "Emission is CODE": the CLIs call emitThemeBriefsArtifact themselves on every run, including a run that
-// resolved zero themes, so the family's history shows every firing.
-
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, buildRunArtifactEnvelope, claimRunId, hashHarnessVersion } from "../../lib/run-artifact.mjs";

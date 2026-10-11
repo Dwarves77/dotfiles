@@ -1,22 +1,3 @@
-// bias-display: the pure display model for a source's bias tags on customer surfaces (lane P1,
-// 2026-10-05). GOVERNING SKILL(S): source-credibility-model
-//
-// WHAT IT DECIDES, once, for every page: the human label of a stored tag, which tags a dense
-// context (a list row) shows, which wait behind one disclosure (a detail page), and which tags read
-// as lower confidence. Components render this model; none of them re-derives any of it.
-//
-// REUSE, not construction: the bounded slice comes from `selectBiasChipsForDisplay`
-// (chip-selection.mjs, the hotfix 2026-05-22 contract: confidence desc, then dimension, then tag);
-// the confidence line comes from `HIGH_CONFIDENCE_THRESHOLD` (bias-tag-pipeline.mjs, 0.80); the
-// vocabulary is checked against `BIAS_TAG_VOCAB` in this module's test so a vocabulary change
-// cannot leave a tag without a label.
-//
-// SCOPE (skill Section 6 and 8, ADR-041): bias applies to external publisher sources only. Callers
-// pass the tags of a SOURCES-registry row; Community content never reaches this module.
-//
-// ABSENCE: no tags, or no usable tags, is an empty model and the component renders nothing. A tag
-// is never invented and a missing one is never shown as a placeholder.
-
 import { selectBiasChipsForDisplay } from "./chip-selection.mjs";
 import { HIGH_CONFIDENCE_THRESHOLD } from "../sources/bias-tag-pipeline.mjs";
 

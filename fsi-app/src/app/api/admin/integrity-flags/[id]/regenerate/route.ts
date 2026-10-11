@@ -1,28 +1,3 @@
-// POST /api/admin/integrity-flags/[id]/regenerate
-//
-// Queue a brief regeneration for a flagged intelligence_items row by
-// calling /api/agent/run for its source_url.
-//
-// Wave-α A4 (2026-07-11, CODE-3 F-02 + F-04): /api/agent/run is ASYNC —
-// it start()s the durable workflow and returns 202 {runId} immediately.
-// The previous implementation treated the 202 as "agent finished",
-// immediately re-read the flag (still true — the workflow hadn't run) and
-// reported regenerated:true/stillFlagged:true on every call; worse, the
-// re-read dropped `error`, so a transient read failure made
-// stillFlagged=false and AUTO-RESOLVED a flag whose brief may still be
-// flagged (the error-swallow-with-write class, F-04). The auto-resolve
-// path is REMOVED: this route now defers honestly — it queues the
-// workflow and returns the runId with the flag explicitly preserved.
-// Resolution stays with the operator (mark_resolved / replace_url on the
-// /resolve endpoint) after the regenerated brief is inspected; the
-// migration-035 trigger only ever flips the flag TRUE, never resolves it.
-//
-// Note: each regenerate is one explicit admin action — there's no batch
-// auto-regenerate, by spec. The /admin/integrity-flags sub-tab calls this
-// endpoint per-row.
-//
-// Auth: requireAuth + admin role check. Rate-limited.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

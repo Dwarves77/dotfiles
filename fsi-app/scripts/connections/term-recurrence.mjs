@@ -1,33 +1,5 @@
 #!/usr/bin/env node
-// term-recurrence.mjs (lane G5-TERMS, 2026-10-06, buildout plan Stage 5): the runtime that COUNTS repeated
-// mentions of a term the system does not hold, PROPOSES it, and ADOPTS it by rule. Dry by default; `--mode
-// apply` writes through the guarded path of scripts/lib/db.mjs (rule 015). The counting, the adoption rule
-// and the write plan are src/lib/connections/term-recurrence.mjs (pure); this file only reads and writes.
-//
-// WHAT IT READS (nothing is a second copy of existing logic):
-//   - intelligence_items (verified, not archived): theme_candidate (detector theme-candidate),
-//     operational_scenario_tags against the glossary derive-tags.mjs already extracts from the system prompt
-//     (detector scenario-tag), compliance_object_candidates (detector compliance-object, the capture that
-//     replaces the silent drop in parse-output.ts, migration 355), and source_id (the distinct-source count);
-//   - integrity_flags created_by `intake-entity-link`: the unresolved, ambiguous and unknown-standard
-//     mentions entity-resolve.mjs already aggregates (detector entity-link, kind standard);
-//   - vocabulary_mentions already written by apply-record-briefs.mjs (detector brief-terms, the optional
-//     `mentioned_terms` a session brief author emits), and vocabulary_terms (existing status, labels).
-//     F14: this collector READS the two tables it writes.
-//
-// ADOPTION. A term adopts when distinct_items >= CITATION_FREQUENCY_PROMOTION_THRESHOLD (imported from
-// src/lib/trust.ts Q7_CONFIG through jiti, never typed here) and distinct_sources >= 2. No human step. A
-// proposed term is visible to the admin through the table only. A retired term (admin) is never touched.
-//
-// RULE 17. This is a step in downstream-chain after tag-proposals (its mode is the chain's RUN_MODE, which
-// the chained-dry-guard resolves to dry while scrape_cadence is off), and its counts (detected per detector,
-// proposed, adopted) are read into the downstream-chain artifact by emit-downstream-chain-artifact.mjs.
-//
-// TOLERANCE BEFORE MIGRATION 355 IS APPLIED. A dry run reads the tables and the new column when present; if
-// they are absent it reports `tables_absent` / `compliance_candidates_column_absent` in the summary and
-// counts what it can. An apply refuses (exit 1) when the vocabulary tables are absent.
-//
-// Usage: node scripts/connections/term-recurrence.mjs [--mode dry|apply] [--out <dir>]
+
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "../maintenance/lib/cli.mjs";

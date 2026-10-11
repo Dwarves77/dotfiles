@@ -1,26 +1,3 @@
-// PATCH /api/admin/sources/[id]/bias-tags
-//
-// Optional override (lane S1-B, 2026-10-04; originally lane W2-A, 2026-09-29).
-// bias-tag-pipeline.mjs now stores every tag at 0.65 or above as adopted
-// (assignment_source = 'haiku_auto_high_confidence', confidence kept) at
-// promotion time, from promote/route.ts and from the machine resolver; no tag
-// waits for a click. This route lets an admin confirm (operator_confirmed) or
-// remove a tag afterwards, on an adopted row or on a legacy
-// 'haiku_proposed_low_confidence' row written before that change.
-//
-// Body: { biasTagId: string, decision: "confirm" | "reject" }
-//   confirm -> UPDATE source_bias_tags SET assignment_source =
-//              'operator_confirmed' WHERE id = biasTagId.
-//   reject  -> DELETE FROM source_bias_tags WHERE id = biasTagId.
-//
-// Only a row not yet carrying an operator decision is actionable
-// (adopted or legacy pending; 409 for operator_confirmed / operator_set). See logic.ts for the validation/decision rules (route.ts
-// exports only route handlers per the BUILDGATE 2026-09-02 convention).
-//
-// Auth: requireAdminRoute (requireAuth + isPlatformAdmin), matching every
-// other route under src/app/api/admin/sources/**; F2 accepts this gate for
-// src/app/api/admin/**.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

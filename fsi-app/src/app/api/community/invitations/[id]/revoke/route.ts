@@ -1,19 +1,3 @@
-// POST /api/community/invitations/[id]/revoke
-//
-// Revoke a pending invitation. Allowed when caller is the inviter OR
-// a group admin for that invitation's group. RLS on
-// community_group_invitations.UPDATE (admin policy) only permits
-// status = 'revoked' as the WITH CHECK target, so the SQL guard is
-// double-locked.
-//
-// We additionally allow the original inviter to revoke even if their
-// admin role was downgraded after sending the invitation — the
-// inviter-update policy is not in the migration, so this path uses
-// the service-role client after we verify the inviter identity.
-//
-// Auth: cookie session.
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

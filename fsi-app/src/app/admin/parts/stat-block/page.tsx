@@ -1,19 +1,3 @@
-/**
- * /admin/parts/stat-block: the StatBlock sign-off page (lane W10-RailCard, 2026-09-22).
- *
- * `StatBlock` (`src/components/ui/StatBlock.tsx`) already existed as a shared part before this
- * lane (parts-brief 2.13: "Profile, admin counters: label / Anton numeral / note. Never a band
- * tile"). This lane added `data-part="stat-block"` to its root so the presence report and the
- * layout guard can address it by attribute like every other part, and built this sign-off page,
- * which did not exist. Every count on this page is computed from the same frozen real records lane
- * W10-ListRow captured (`list-row-fixture.ts`); no invented figure.
- *
- * F49 (parts-not-pages): this page imports StatBlock/SectionCard and renders the fixture through
- * them; no label/numeral/note literal is retyped here.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check
- * applies; see this lane's final report).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { PageMasthead } from "@/components/shell/PageMasthead";
 import { SectionCard } from "@/components/ui/SectionCard";

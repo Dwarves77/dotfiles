@@ -1,22 +1,5 @@
 #!/usr/bin/env node
-// run-fixture-import.mjs: the local, DB-less proof that the operator-rows CSV path actually runs end to
-// end for the two kept spec-09 tables (ADR-042: operator-supplied external rows only, never customer
-// data): parse (operator-rows-contract.mjs) -> filter accepted rows -> stamp org_id -> guarded insert
-// (deps-injected, so this runs with zero DB access under `node --test` per the lane-common-contract's
-// "deps object" pattern, screen-reconcile-records.mjs precedent) -> read-back (the injected insert
-// returns the rows it "wrote", which this script echoes).
-//
-// WHY THIS EXISTS. Section 0's "Run" evidence for a component this lane cannot dispatch against the live DB
-// (no DB credentials in this worktree, per lane-common-contract): "make the dry run provable locally with
-// fixtures." This is that proof, runnable by anyone with `node --test` and no environment at all.
-//
-// TWO USES:
-//   1. `runFixtureImport()` (pure, no fs): imported by run-fixture-import.test.mjs for a fast, hermetic
-//      node --test proof.
-//   2. `node scripts/spec09/run-fixture-import.mjs [--out <dir>]`: reads the two fixtures off disk and
-//      writes a JSON artifact recording exactly what ran, for a human (or the coordinator) to read back.
-//      Never touches a real database; `--org-id` is accepted only to make the artifact's org-stamping
-//      visible.
+
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

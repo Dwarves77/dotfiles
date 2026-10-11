@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// target-match-probe.mjs — READ-ONLY. Run verifyTargetMatch over every non-verified item that holds a staged
-// snapshot, print the verdict. Validates the gate on REAL captures (prove-on-real-data before wiring) and
-// gives the current drain worklist with target-match verdicts. No writes, no spend, no fetch.
+
 import { createJiti } from "jiti";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

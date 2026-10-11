@@ -1,21 +1,3 @@
-// schema.mjs: the question-answers file contract and its pre-write validator (lane L4-B, 2026-10-05,
-// ADR-044 decision 1).
-//
-// PURE and free of any database, network or model call. A session lane authors a batch
-// `question-answers-NNN.json` offline from the export bundle (scripts/turns/export-questions-for-answers.mjs);
-// this module is the enforcement the apply step (scripts/turns/apply-question-answers.mjs) runs before any
-// write. The README beside this file is the same contract in prose; question-answers.test.mjs is the
-// executable spec.
-//
-// Same family shape as scripts/turns/theme-briefs/ and scripts/turns/record-briefs/: a committed batch file, a
-// pure validator, whole-entry refusals. An entry that fails any check is refused in full and never partially
-// applied; the reasons are returned so the residue is recorded with its reason. A refused entry never blocks
-// the valid entries beside it (no human gate: the decision is made by rule).
-//
-// REUSE. The verbatim-span check is record-facts.mjs assertVerbatim, the function the record-briefs validator
-// calls (case-insensitive substring of the held pool text), not a second copy. The figure-token patterns are
-// theme-briefs' figureTokens.
-
 import { assertVerbatim } from "../../../src/lib/intake/record-facts.mjs";
 import { figureTokens } from "../theme-briefs/schema.mjs";
 

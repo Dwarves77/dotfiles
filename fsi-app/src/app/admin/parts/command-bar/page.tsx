@@ -1,35 +1,3 @@
-/**
- * /admin/parts/command-bar: the CommandBar sign-off page (lane W10-CommandBar-parts, 2026-09-23).
- *
- * "Small. `/admin/parts/command-bar`, the sign-off picture for the part built by lane
- * W10-CommandBar (#769): the bar at 1440 and 375, the inline results state with real search
- * results frozen from a real query, the Ask-disabled state, the page-scoped placeholder variants
- * (enumerate by grep). Add to the parts index. No change to the part unless the fixture reveals a
- * defect; then fix at the part and say so." (brief section 3)
- *
- * NO DATABASE READ AT REQUEST TIME. The frozen search results (`search-results-fixture.ts`) come
- * from one read-only SELECT against the live search path (`search_intelligence_items` RPC,
- * migration 159, mirroring `src/app/api/search/logic.ts::runSearch`), project kwrsbpiseruzbfwjpvsp,
- * 2026-09-23; the query, row ids and date are in that file's own header, per the operator's fixture
- * convention. This page itself makes no SELECT.
- *
- * F49 (parts-not-pages): this page imports CommandBar (and its own fixture-only demo wrapper,
- * CommandBarPartsDemo.tsx) rather than retyping any command-bar literal style here.
- *
- * Ask-disabled state: CommandBarPartsDemo mocks the shared `/api/workspace/bootstrap` singleton to
- * `assistantEnabled: false` for the WHOLE page (see that file's header for why this is page-wide,
- * not per-instance), so every bar below demonstrates the disabled Ask affordance; a dedicated
- * section calls it out explicitly with a zoomed-in view of the button itself.
- *
- * Placeholder variants enumerated 2026-09-23 by `grep -rn "placeholder" src --include="*.tsx"` for
- * every literal string reaching a `commandBar={{ placeholder: ... }}` / `searchPlaceholder` /
- * `<DetailMasthead placeholder=...>` call site (excluding unrelated inputs, e.g. the market-signal
- * notes textarea, which is not a CommandBar caller). One entry per DISTINCT string; two call sites
- * sharing the same literal (the account and organization panels in UserProfilePage.tsx) are listed
- * once, both files named.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { CommandBar } from "@/components/ui/CommandBar";
 import { SectionCard } from "@/components/ui/SectionCard";

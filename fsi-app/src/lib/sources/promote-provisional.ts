@@ -1,26 +1,3 @@
-// promote-provisional.ts: the shared "provisional_sources row -> active sources row" builder.
-// Extracted (task 7.5, brief-chain build plan Part 7, 2026-09-12) out of
-// /api/admin/sources/promote/route.ts's approve arm so a SECOND caller
-// (scripts/maintenance/resolve-provisional-sources.mjs, the automatic class-table resolver) can
-// promote a row through the IDENTICAL shape, never a second, independently-drifting copy of the
-// `newSource` object literal or the canonical-URL dedup check. The route now calls this module
-// instead of inlining the object; behavior is unchanged (same fields, same values, same order of
-// operations), verified by src/lib/sources/promote-provisional.test.mjs.
-//
-// This module NEVER decides a tier: SC-13 (source-credibility-model skill Section 3) requires the
-// tier to be either an operator's explicit choice (the route, assignedTier from the request body) or
-// a deterministic class-table resolution (the maintenance script, classTierForHost /
-// decidePoolHostRegistration). Both callers pass an already-decided `tier` in; this module only
-// shapes the resulting row and finds an existing canonical-URL match.
-//
-// PROVISIONAL_SOURCES status vocabulary (defect fix D2, docs/plans/defect-fix-plan-2026-09-12.md,
-// 2026-09-12). `provisional_sources_status_check` (migration 004, widened by migration 317, applied
-// live by the coordinator before this code merges per standing rule 3) allows exactly
-// 'pending_review', 'confirmed', 'rejected', 'needs_more_data', 'promoted'. Before migration 317, the
-// promote route's `status: "promoted"` write had never succeeded against the live constraint (D2
-// evidence: 0 promoted rows, 0 rows with promoted_to_source_id). The two terminal literals both live
-// callers (this route, the maintenance resolver) write are exported HERE, as the one place the
-// vocabulary is spelled, so neither caller can drift from the constraint or from each other.
 export const PROVISIONAL_SOURCES_STATUS_CHECK = Object.freeze([
   "pending_review",
   "confirmed",

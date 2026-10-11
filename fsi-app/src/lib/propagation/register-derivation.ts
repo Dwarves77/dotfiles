@@ -1,25 +1,3 @@
-// register-derivation.ts — the ONE write path for a new derived_values row + its derivation_edges (docs/
-// specs/08-flywheel-design.md §2.2 Part 2, §3). Lane DP-ENGINE, system-completion train, 2026-09-02.
-//
-// PLAIN RELATIVE IMPORTS, NO `@/` ALIAS — see types.ts's header for why. `sb` (a Supabase client) is
-// ALWAYS a parameter, never imported here — this module has zero npm dependencies at module scope, so it
-// is importable directly by Node's native type-stripping AND by a plain `.test.mjs` with a hand-rolled
-// fake `sb` (no real database, no supabase-js) — see register-derivation.test.mjs.
-//
-// registerDerivedValue(sb, input) calls migration 285's `register_derived_value(...)` SQL function via
-// `sb.rpc(...)` — NOT a `derived_values` INSERT followed by separate `derivation_edges` INSERTs. WHY (the
-// task brief's own "one RPC or a transaction-safe sequence; document which," answered here): a sequence of
-// separate `sb.from(...).insert(...)` calls is not transaction-safe over PostgREST (each is its own
-// round-trip) — if `assert_acyclic()` rejects one of several edge inserts AFTER the value row already
-// committed, the result is a `derived_values` row whose `derivation_edges` no longer match its own
-// `inputs` column. One RPC call is one PL/pgSQL function invocation, hence one transaction: the SQL
-// function's own header (migration 285) carries the full reasoning; this is the JS-side half of the same
-// decision, restated so a reader of only this file still sees it.
-//
-// `derivedValueId`, not `entityId`, IS THE RETURN VALUE. A derived_values row is data ABOUT an entity (or
-// about nothing addressable, when entityId is null), never itself an entity — see migration 285's header
-// on why value_id is a plain uuid, not a minted `cl:value:...` entity id.
-
 import type { Derivation, OriginClass, Lifecycle, Admissibility, InputRef } from "./types.ts";
 
 /** A Supabase client's minimal RPC surface this module needs — kept narrow (not the full supabase-js

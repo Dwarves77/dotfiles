@@ -1,31 +1,3 @@
-// SHARED-WRITER: integrity_flags
-// POST /api/admin/sources/bulk-import
-//
-// W2.A — bulk-add tooling. Accepts a CSV upload or a JSON array of
-// candidate sources, validates each row (URL shape, jurisdiction ISO
-// shape, HEAD reachability, duplicate detection against existing
-// `sources`), and either previews the result (dryRun=true) or applies
-// it (dryRun=false).
-//
-// Apply behaviour:
-//   - When the W2.F verification pipeline (src/lib/sources/verification.ts)
-//     is present and `autoVerify=true`, each valid row is run through
-//     the pipeline and the pipeline's tier (H / M / L) decides whether
-//     the row goes into `sources` (auto-approve), `provisional_sources`
-//     (queue), or is rejected.
-//   - When the verification pipeline is NOT present, every valid+non-
-//     duplicate row is queued into `provisional_sources` for human
-//     review. This is the safe default — bulk-import never silently
-//     auto-approves without verification.
-//
-// Auth: requireAuth + isPlatformAdmin. Rate-limited: 60 req/min/user
-// (one bulk-import call counts as 1 request even when it processes
-// hundreds of rows).
-//
-// All actions, regardless of dryRun, are logged to the `bulk_imports`
-// audit table (migration 038) on apply only. Dry-run calls do not
-// touch the database.
-
 import { NextRequest, NextResponse } from "next/server";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

@@ -1,37 +1,5 @@
 #!/usr/bin/env node
-/** DRY-RUN-STRUCTURED-ACTIONS -- read-only exercise of the structured-action extractor
- *  (src/lib/agent/extract-recommended-actions.mjs) over REAL stored briefs (lane STRUCTURED-ACTIONS,
- *  2026-09-28; docs/plans/build-plan-2026-09-25.md workstream 6, merged with M4; docs/plans/
- *  data-machine-tool-gaps-2026-09-25.md "Produce" row "Structured-action extraction").
- *
- *  WHAT THIS IS. READS live `intelligence_items` rows (id, item_type, full_brief) via the read-only
- *  `readAll`/`readClient()` guard (scripts/lib/db.mjs -- `.insert/.update/.delete/.upsert` throw on
- *  this client by construction, rule 015), runs the pure extractor over every row's full_brief, and
- *  reports counts. IT WRITES NOTHING TO intelligence_items, ever, under any flag -- there is no
- *  `--apply` mode. This is deliberate, not a placeholder: no destination column for a structured
- *  action exists anywhere in the live schema (verified 2026-09-28: `select column_name from
- *  information_schema.columns where table_name='intelligence_items' and column_name ilike
- *  '%action%'` returns zero rows -- the ONLY `recommended_actions` column in the whole schema lives
- *  on the UNRELATED `integrity_flags` table, migration 048, a different shape: internal admin-
- *  remediation actions `{action, rationale}`, not a customer-facing "do now" task). See this lane's
- *  session-log entry for the STOP-AND-ASK this leaves the coordinator: where the extracted actions
- *  should land is a schema/design decision this lane does not have authority to make alone.
- *
- *  HARNESS RECORD (rule 17's harness half; R14/hard-rule posture matches lane QUARANTINE-DISPOSITION's
- *  own precedent, docs/plans/data-machine-tool-gaps-2026-09-25.md "Produce" table row 2, 2026-09-28):
- *  every run writes this family's own run artifact (scripts/harness-runs/structured-actions/) and
- *  best-effort records it to the `harness_runs` table via scripts/lib/record-harness-run.mjs -- that
- *  insert is operational metadata, never customer data, so it needs no R14 authorization; it is
- *  ALSO best-effort by that module's own design (logs and returns {ok:false} rather than throwing) so
- *  a worktree with no DB credentials (the lane-common-contract's stated posture -- "No DB credentials
- *  exist in your worktree") still completes the run and writes its own artifact JSON to disk, which is
- *  this run's durable local record regardless of whether the table write landed.
- *
- *  Usage:
- *    node scripts/turns/dry-run-structured-actions.mjs [--limit N] [--sample N]
- *  --limit caps how many intelligence_items rows are read (default: all rows with full_brief set).
- *  --sample caps how many extracted actions are printed in the per_item preview (default: 20).
- */
+
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readClient, readAll } from "../lib/db.mjs";

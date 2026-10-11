@@ -1,32 +1,4 @@
 #!/usr/bin/env node
-// emit-brief-export-artifact.mjs -- brief-export's own harness-run artifact writer (lane M4, 2026-09-20,
-// build plan section 6.1 row M4, Amendment 1 section C). Modeled on emit-downstream-chain-artifact.mjs
-// (lane M3, 2026-09-19): reuses writeRunArtifact/claimRunId/hashHarnessVersion from run-artifact.mjs,
-// never a second copy of the writer. "Emission is CODE" -- brief-export.yml calls this in its own final
-// step, `if: always()`, so a chained firing that resolved zero ids still leaves a record ("record it
-// every batch, even when zero," MINT-RUNBOOK.md section 5).
-//
-// [CONFIRMED by grep of brief-export.yml on master cc038a47] the export workflow wrote NO harness
-// artifact before this lane -- no writeRunArtifact call anywhere in its path -- and the loop manifest
-// filed its hop under family "brief-apply" "for now". Plan 6.2 requires "an artifact at every hop
-// carrying that run id and trigger: workflow_run" and names brief-export specifically.
-//
-// This is NOT a canonical entry point in run-mint-batch.mjs's sense: it runs no export itself. Its only
-// job is to read back what THIS run's own resolve/export steps already decided (the resolved --ids,
-// the selection mode, the batch skeleton path, the branch) and record the outcome as this family's own
-// CONVENTION.md-shaped artifact.
-//
-// Reads its configuration entirely from environment variables (BE_*), set by brief-export.yml's own
-// "Record this run's own harness-run artifact" step -- this script has no CLI flags because it has
-// exactly one caller and that caller already has every value as a workflow-step output.
-//
-// loop_run_id (lane M3b's resolveLoopRunIdFromUpstream, Amendment 1 section C item 3): this family's
-// own upstream is "Population turn" (family "mint") -- the ONE shared name-to-family map in
-// scripts/lib/loop-run-id.mjs, never a second copy of that map here.
-//
-// Exit 0 on a successful write. Throws (non-zero exit) on a schema-invalid artifact (writeRunArtifact's
-// own fail-closed validation) or an id-claim collision after 50 attempts (claimRunId) -- both real
-// conditions a coordinator should see, not swallow.
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

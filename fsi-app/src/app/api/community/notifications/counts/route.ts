@@ -1,31 +1,3 @@
-// GET /api/community/notifications/counts
-//
-// Lightweight aggregation endpoint for the community sidebar.
-// Returns per-group unread + mention counts so CommunitySidebar can
-// render real badges without paginating the full notifications list.
-//
-// Schema reference (migration 032):
-//   notifications(id, user_id, kind, payload, read_at, created_at)
-//   kind in (mention, reply, invite, moderation, archive)
-//   payload jsonb carries group_id when the notification originated in
-//   a group context (reply/invite/moderation/mention).
-//
-// Auth:    cookie session via requireCommunityAuth.
-// Limits:  60 req/min/user via checkRateLimit.
-// RLS:     SELECT self-only. Caller can never see another user's rows.
-//
-// Response shape:
-//   {
-//     groups: Array<{ group_id: string; unread_count: number; mention_count: number }>,
-//     total_unread: number,
-//     total_mentions: number
-//   }
-//
-// "Mention" counts include kind='mention' rows; "unread" is every
-// unread row regardless of kind. The two are independent counters so
-// the sidebar can render both pills with consistent semantics across
-// the rest of the surface.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

@@ -1,23 +1,3 @@
-// POST /api/community/posts/[id]/signoff
-//
-// Open a verifier sign-off request on a community post (mock element #19,
-// community-schema-mapping.md §3.1). Backs the epistemic conversion moment
-// (peer signal -> citable once a verifier signs it off against a primary doc).
-//
-// Any member of the post's group may open a request; the row records
-// requested_by = caller and status = 'pending'. At most ONE open request may
-// exist per post — enforced by the partial unique index
-// uniq_signoff_open_per_post (migration 153). A second concurrent request
-// returns a friendly 409.
-//
-// Authorization is enforced entirely by migration-153 RLS, NOT re-implemented
-// here: the signoff_insert policy requires requested_by = auth.uid() AND the
-// caller to be a member of the post's group. We use the caller's RLS-aware
-// cookie-bound client (no service-role escape) so the DB is the auth boundary.
-//
-// Auth: cookie session via requireCommunityAuth.
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

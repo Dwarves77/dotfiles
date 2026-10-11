@@ -1,26 +1,3 @@
-// market-rail-select.mjs — the two pure selections behind artboard 04/id="p4"'s rail cards,
-// CARBON COST PER FEU and NEXT DATA DROPS (lane lists60, 2026-09-08, page-composition train 60).
-//
-// WHY A MODULE RATHER THAN INLINE JSX. Both cards are a REDUCTION over data /market already loads —
-// the per-corridor carbonCostPerFeu() results the page computes for <CarbonCostOverlay/>, and the
-// market_series board buildSeriesBoard() already returns — and both reductions have real edge cases
-// (a corridor whose result is `ok`, a producer with no observation yet, a producer whose cadence is
-// undecided, ties on the same date). Reducing inline would put those cases inside a render function
-// where nothing can test them; here they are pure, injected-time, and proven by
-// market-rail-select.npmtest.mjs.
-//
-// NO NEW READ (F38/F39). Neither function fetches. `summariseCarbonCorridors` takes the entries
-// /market already builds for the overlay section, and `selectNextDataDrops` takes the board object
-// `fetchMarketSeriesBoard()` already returns for MarketSeriesBoard. Nothing new is queried for the
-// rail; the rail is a second view of rows already in the page's props.
-//
-// TIME IS INJECTED. `selectNextDataDrops` takes `now` (src/lib/render-now.ts's server instant, the
-// same instant every other clock-reading component on these surfaces takes) and never calls
-// `Date.now()` — a next-drop date that fell on opposite sides of a day boundary between SSR and
-// hydration is exactly the React #418 class HYDRATION-59 root-caused.
-//
-// PLAIN ESM, ZERO NPM DEPENDENCIES.
-
 import { producerFor } from "./series-registry.mjs";
 import { formatCorridorLabelCompact } from "../entities/unlocode-names.mjs";
 import { addDaysIso } from "./refresh-published-price-statistics.mjs";

@@ -1,21 +1,3 @@
-// Phase 7 admin chrome — ingest rejections triage queue.
-//
-// GET  /api/admin/triage/ingest-rejections
-//   Returns untriaged ingest_rejections rows (raw_value, rejection_reason,
-//   source URL/id, timestamp). Most-recent first; capped at 200 rows so
-//   the UI stays responsive even when the queue is backlogged. Operator
-//   acts on rows one at a time via the POST handler.
-//
-// POST /api/admin/triage/ingest-rejections
-//   Body: { id: string, action: 'discarded'|'reclassified'|'escalated', notes?: string }
-//   Marks the row triaged. The CHECK constraint
-//   ingest_rejections_triage_consistency requires all three triage columns
-//   to be set together; this handler sets triaged_at + triaged_by + the
-//   action atomically.
-//
-// Auth: requireAuth + isPlatformAdmin. Both are platform-admin-only
-// surfaces (migration 082 RLS).
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

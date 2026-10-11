@@ -1,22 +1,3 @@
-// carbon-overlay-view.mjs — the real CALLER of select-modal-factor.mjs, per WO-24 (re-scoped
-// 2026-08-30). See select-modal-factor.mjs's own header for the full ruling this composes.
-//
-// WHY THIS FILE EXISTS SEPARATELY FROM THE SELECTOR. `MarketSignalDetailSurface.tsx`'s `DriversTab`
-// needs display copy, not a bare selection result — a header string and a body string per state, plus
-// (only in the `resolved` case) a formatted figure. Doing that formatting inline in the TSX component
-// would mean the actual jurisdiction+mode selection logic and its consumer are proven, if at all, only by
-// a live render — the exact seam-proof gap F27 exists to close (see F27's own header: two halves each
-// unit-tested, the COMPOSITION between them exercised by nothing). Putting the composition in one plain
-// ESM module lets a Node test import BOTH `selectModalFactor` and this file together and assert the real
-// end-to-end shape, with zero React/DOM/npm dependency — the same shape
-// `src/__tests__/market-producer-composition.test.mjs` uses for parser -> planner.
-//
-// This module is the ONLY thing `DriversTab`'s carbon-overlay slot calls. It never re-derives selection
-// itself and never reaches into `factors` directly — `selectModalFactor` is the one place jurisdiction
-// and mode get decided, so this file and the component can't drift from that decision.
-//
-// PLAIN ESM, ZERO DEPENDENCIES, PURE.
-
 import { selectModalFactor } from "./select-modal-factor.mjs";
 import { resolveItemCorridor } from "./resolve-item-corridor.mjs";
 import { carbonCostPerFeu } from "./carbon-cost-per-feu.mjs";

@@ -1,11 +1,3 @@
-/**
- * section-index-fixtures: static section bodies for the `/admin/parts/section-index` sign-off page
- * (lane W10-ActionCard-a, 2026-09-21). Each entry pairs a `REGULATION_SECTION_INDEX` id with a
- * short placeholder body so the fixture page can anchor real DOM elements for the scroll-spy
- * IntersectionObserver, and so a reviewer can see the FULL section header beside the tab's SHORT
- * name (review item 4: "Full name is the section header, not the tab").
- */
-
 interface SectionIndexBodyFixture {
   id: string;
   fullTitle: string;

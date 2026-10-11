@@ -1,37 +1,3 @@
-// anticipate.mjs — ANTICIPATED-COVERAGE detection (flywheel U5). PURE, no DB, no LLM, $0.
-//
-// item_forward_events (migration 274/275, the forward-events harness) holds obligation-bound future
-// dates already extracted from a corpus item's own grounded content — an entry-into-force, a
-// compliance deadline, a phase-in step. Every row already belongs to a real item
-// (intelligence_item_id NOT NULL), so the item ITSELF is never "missing" from the corpus. What this
-// module measures is narrower and still real: whether the TOPIC that future obligation concerns has
-// any OTHER corpus item addressing it — i.e. whether the corpus has built out dedicated follow-up
-// coverage for a milestone that is coming due, or whether the one item that happens to mention the
-// date is the corpus's only foothold on that topic.
-//
-// WHY TOPIC OVERLAP, NOT INSTRUMENT-KEY OVERLAP. canonical_instrument_key is IDENTITY, not grouping
-// (WO-27, ADR-021, see discover.mjs's same_instrument-removal note): the live corpus's own partial
-// unique index (migration 200) forbids two verified+live items from sharing a key, so "how many OTHER
-// items share this item's instrument key" is trivially always zero and would flag every single
-// forward event as "no coverage" — a signal with no discriminating power. topic_tags is a real
-// many-to-many grouping (multiple items legitimately share a topic), so it is the coverage-presence
-// measure this module uses instead. An item with no topic_tags cannot be measured and is skipped
-// (degrade, never guess — the same posture gaps.mjs takes when jurisdictionsByMember is absent).
-//
-// PRECISION-HONEST (non-negotiable, matches item_forward_events' own grounding rules): this module
-// NEVER invents a date, an instrument, or a topic. Every field on an emitted target is EITHER copied
-// verbatim from the forward-event row it came from (event_date, date_precision, event_kind,
-// obligation_text, source_span, confidence) OR is a real, already-stored corpus fact the caller
-// supplies (the item's topic_tags / canonical_instrument_key via corpusIndex) — never re-derived,
-// summarized, or paraphrased by this module.
-//
-// FUTURE ONLY: an obligation already in the past is not something to "anticipate" — the caller
-// filters (or this module's `now` option filters) to event_date > now. A caller-supplied `now` keeps
-// this deterministic under test; the real caller (analyze-corpus.mjs) passes the wall clock.
-
-// flag-namespaces.mjs is the SoT for subject_ref construction — see its own header. Every emitted
-// target's subject_ref is its forward event's own id (event.id), a stable natural key already unique
-// per row, so this stays a single-part call (buildSubjectRef(x) === x).
 import { buildSubjectRef } from "./flag-namespaces.mjs";
 
 const lc = (s) => String(s || "").toLowerCase().trim();

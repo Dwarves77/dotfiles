@@ -1,23 +1,3 @@
-// load-host-verdicts.mjs: reads every committed `host-verdicts-NNN.json` batch in this directory and
-// returns ONE Map<host, verdict> for resolve-provisional-sources.mjs / enumerate-unclassified-hosts.mjs
-// (lane S1-B, 2026-10-04). Mirrors the ledger-verdicts pattern (scripts/turns/run-ledger-consume.mjs's
-// discoverVerdictsFiles: numbered batches, ascending, injectable fs) so there is one verdict-file idiom.
-//
-// WHY. A host the built-in class table cannot place used to park a `provisional_sources` row until a person
-// edited RULED_HOST_TIER in code. A session lane now classifies such hosts into a committed batch and the
-// resolver applies it by rule. See README.md.
-//
-// RULES (each enforced below, each tested):
-//   - later batch wins per host (batches are applied in ascending number order);
-//   - an entry's `class` must be a key of HOST_CLASS_TIER (host-authority.ts), never a free tier number: an
-//     entry that carries a `tier` field, or names an unknown class, is REJECTED;
-//   - rejection is PER ENTRY and never throws: the rest of the batch still applies and every rejection is
-//     returned with its reason, so one bad line cannot block the resolver (no human gate, rule 6);
-//   - a file that is not valid JSON or has no `entries` array is rejected whole, reported, never thrown;
-//   - `verdict_source` must be "session-lane"; `evidence` (the page title or self-description the lane read)
-//     must be a non-empty string; `generated_at` must parse as a date.
-// The filename pattern is `host-verdicts-NNN.json` only, so `host-verdicts-000.fixture.json` (the test
-// fixture) is never picked up by the real discovery.
 import { readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

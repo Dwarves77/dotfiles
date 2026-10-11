@@ -1,11 +1,3 @@
-// src/app/api/orgs/[org_id]/invitations/[id]/route.ts
-//
-// DELETE /api/orgs/[org_id]/invitations/[id] — admin revokes a pending
-// invitation. Implemented as an UPDATE to status='revoked' (not a row
-// delete), so the audit trail of who revoked when survives.
-//
-// Workstream B (Multi-Tenant Foundation) — 2026-05-15.
-
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

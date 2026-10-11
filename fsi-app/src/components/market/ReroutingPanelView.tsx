@@ -1,8 +1,3 @@
-/**
- * ReroutingPanelView — the sync, render-only half of ReroutingPanel.tsx's VIEW/FETCH split. Separate file
- * for the same reason as OemRoadmapPanelView.tsx (see that file's header).
- */
-
 import { applyFuelBurnMultiplier, compoundingChain } from "@/lib/spec09/reroute.mjs";
 import "@/components/market/spec09.css";
 import { CoverageState } from "@/components/ui/CoverageState";

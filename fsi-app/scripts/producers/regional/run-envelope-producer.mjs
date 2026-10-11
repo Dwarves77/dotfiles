@@ -1,24 +1,3 @@
-// run-envelope-producer.mjs — the shared orchestration shell for WO-17 regional_data_facts producers.
-// Both eurostat-nrg-pc-205-producer.mjs and bls-oews-producer.mjs call this with a source-specific
-// `fetchAndParse` callback; everything below (kill switch, --dry/--apply, region resolution, the guarded
-// write) is common so it has ONE home rather than being copy-pasted per producer (the two-homes class
-// CLAUDE.md and this repo's own contracts modules warn against, applied to script orchestration).
-//
-// WRITE PATH: this module NEVER calls `.from(table).insert/update` itself. It calls the repo's existing
-// rule-015 guarded path — scripts/lib/db.mjs's guardedInsert / guardedUpdate — found by reading db.mjs
-// and every other row-mutating script in this repo before writing a line of this file. That path REQUIRES
-// a { skill, reason } cite and SNAPSHOTS prior row state before every mutation (reversibility), and its
-// own readClient() proxy throws on `.insert/.update/.upsert/.delete` reached through the "read" client —
-// there is no way to bypass it from here short of constructing a raw client, which this module does not
-// do. Reads (regions, existing regional_data_facts rows) go through db.mjs's readClient()/readAll(),
-// which are unguarded (routine) by the same module's own design.
-//
-// NATURAL KEY: regional_data_facts_region_id_dimension_fact_label_key = UNIQUE (region_id, dimension,
-// fact_label) — the LIVE constraint (confirmed via pg_constraint this session, rule 0.15), not assumed.
-// The idempotent-upsert PLAN is computed by the pure planUpsert() in
-// src/lib/regional/regional-facts-envelope.mjs; this module only resolves region_code -> region_id and
-// executes the plan it is handed.
-
 import { readAll, guardedInsert, guardedUpdate } from "../../../scripts/lib/db.mjs";
 import { buildEnvelopeRow, planUpsert } from "../../../src/lib/regional/regional-facts-envelope.mjs";
 

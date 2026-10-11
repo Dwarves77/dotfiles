@@ -1,15 +1,3 @@
-// fixture-deps.mjs: the in-memory database the theme-briefs CLIs run over with --fixture <corpus.json>
-// (lane S3-C). Implements exactly the four dep shapes the export and apply steps inject, over a plain
-// { tables: { name: [rows] } } object, so both runtimes can be fired end to end (dry, and with --execute
-// into memory) with no database, no network and no credentials. The tests use it too, so what the CLIs do
-// under --fixture is what the tests prove.
-//
-// Faithful where it matters: readAll applies the same eq / in / limit filters a match callback uses and
-// orders by the requested column(s); a selected column the table's rows never carry and that the corpus
-// lists under `missing_columns` throws the way PostgREST does ("column ... does not exist"), which is how a
-// database before migration 351 behaves; guardedInsert / guardedUpdate refuse a row carrying such a column.
-// It does NOT model RLS, triggers or snapshots (the prior snapshot is returned as the string "fixture").
-
 class Query {
   constructor() { this.filters = []; this.max = null; }
   eq(col, val) { this.filters.push((r) => r[col] === val); return this; }

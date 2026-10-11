@@ -1,13 +1,3 @@
-// operator-rows-contract.mjs - the column contract for OPERATOR-SUPPLIED EXTERNAL PUBLIC-SOURCE rows
-// for the two kept spec-09 tables (auxiliary_energy_profiles, indexation_clauses). Never customer data
-// (ADR-042, operator ruling 2026-10-03): the app has no upload route and no customer intake. An operator
-// dispatches a rows file through scripts/spec09/*-producer.mjs (--csv), the ADR-023 ingest path.
-// Moved from the former spec09 upload contract, trimmed to exactly the two kept tables; the four
-// customer-only tables (surcharge_audits, tce_data_quality, eudr_plot_claims, custody_chains) were removed.
-//
-// org_id is NEVER a CSV column: the caller supplies it (deps.orgId) and it is stamped on every row.
-//
-// Pure functions; no I/O, no fs, no DB, no network (F34).
 import { splitCsvText } from "../../../src/lib/csv/split.mjs";
 
 const MAX_BYTES_PER_FILE = 262_144; // 256 KiB

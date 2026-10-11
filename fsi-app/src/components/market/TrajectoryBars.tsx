@@ -1,38 +1,3 @@
-/**
- * TrajectoryBars · B1 Price signal 12-week trajectory.
- *
- * Sprint 3 A4-3 (2026-05-27). Restored from the H1 Path B strip
- * (2026-05-25) with three structural changes:
- *
- *   1. Data-backed. Reads from item.trajectoryPoints (migration 107
- *      JSONB shape: { points: [{date, value}], base_date, base_label })
- *      instead of the prior hard-coded [35,40,42,...] array. The
- *      operator's integrity rule forbids fabricated data; H1 Path B
- *      stripped the component until schema + ingestion landed.
- *
- *   2. Belt 3 of three. The caller MUST guard on
- *      item.signalBand === 'price' AND item.trajectoryPoints?.points
- *      length before rendering this component. Belts 1 and 2:
- *        Belt 1: migration 107 CHECK constraint (DB)
- *        Belt 2: parse-output.ts validation (agent → DB)
- *      Belt 3 prevents render-side leakage of trajectory UI onto
- *      non-price bands even if the upstream belts fail.
- *
- *   3. Data-derived label. The "Base 100 = …" copy comes from
- *      item.trajectoryPoints.base_label, not a hard-coded string.
- *
- * Visual spec mirrors design_handoff_2026-05/market-intel.html:285-310:
- *   - 12 bars (or fewer if data has fewer points)
- *   - 8px wide, 3px gap, 42px tall container
- *   - Heights = (value / maxValue) * 100, peak bar at 100%
- *   - Gradient palette by height bucket:
- *       ≥ 100      → var(--color-critical)
- *       86-99      → #E8610A
- *       66-85      → #F88527
- *       51-65      → #FBA66C
- *       ≤ 50       → #FCD0BD
- */
-
 import type { Resource } from "@/types/resource";
 
 interface TrajectoryBarsProps {

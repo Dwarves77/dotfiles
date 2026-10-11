@@ -1,11 +1,3 @@
-/**
- * Workspace tags — server-side helpers shared by the two API routes under
- * src/app/api/workspace/tags/ (lane uitags, 2026-09-07, migration 313).
- * Split out of route.ts so the pure/testable pieces can be unit tested with
- * a stubbed Supabase client (same sibling-logic-module pattern
- * src/app/api/watchlist/logic.ts and src/app/api/admin/sources/bulk-import/
- * logic.ts already use — route.ts files export only route handlers).
- */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   buildApplications,

@@ -1,22 +1,4 @@
 #!/usr/bin/env node
-// run-artifact.mjs — the meta-harness run-artifact layer (Wave MH-1). Writer + reader + a tiny CLI for
-// the one-JSON-artifact-per-run convention documented in full at
-// fsi-app/scripts/harness-runs/CONVENTION.md. Built per arXiv 2603.28052 ("Meta-Harness," Lee/Finn et
-// al.): its ablation found FULL raw traces beat scores-plus-summaries (56.7% vs 38.7%) — summaries
-// actively hurt. This module's job is to make sure a harness run's full trace is ALWAYS reachable from
-// a small, structured, machine-readable pointer, never replaced by one.
-//
-// No I/O side effects on import. No network, no DB — this is a filesystem-only, $0 module, same
-// discipline as scripts/mint/screen-worklist.mjs.
-//
-// USAGE (library):
-//   import { writeRunArtifact, readRunHistory, hashHarnessVersion } from "./run-artifact.mjs";
-//   const version = hashHarnessVersion(["scripts/mint/screen-rules.mjs"], repoRoot);
-//   writeRunArtifact(dir, artifact);                    // fail-closed schema validation, then write
-//   const { runs, invalid } = readRunHistory(dir);       // sorted ascending by started_at
-//
-// USAGE (CLI):
-//   node scripts/lib/run-artifact.mjs --dir scripts/harness-runs/mint --list
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from "node:fs";
 import crypto from "node:crypto";

@@ -1,30 +1,3 @@
-/**
- * The one urgency vocabulary (UI system handoff 2026-09-06, README §0.2).
- *
- * The audit (docs/design/audit-2026-09-06/ASSESSMENT.md §4) found FIVE
- * competing urgency vocabularies rendered from the same underlying
- * CRITICAL/HIGH/MODERATE/LOW priority scale:
- *   Regulations list  — Immediate action · Action · Monitor · Awareness
- *   Dashboard         — Immediate action · High · Moderate · Low
- *   Research          — Action required · Cost alert · Monitor · Background
- *   Market intel      — Action required · Cost alert · Window closing ·
- *                        Competitive edge · Monitoring (five, not four)
- *   Operations        — Critical · High · Moderate · Low
- *   Detail page chip  — "Action 6mo"
- *
- * This module is the single source of truth. Every list/tile/chip/marker
- * in the app renders one of these four bands, with these words, this hex,
- * this tint — never a page-local relabeling. Existing surface components
- * (RegulationsLedger, MarketIntelLedger, ResearchLedger/Detail,
- * OperationsLedger, DashboardHero) still render their own vocabulary
- * arrays as of this lane; migrating each ledger onto BAND_ORDER /
- * bandFromPriority is later-lane scope (README: "17 page artboards...
- * later lanes do the other 16 pages") but MUST delegate to this module
- * rather than reintroduce a sixth vocabulary. This lane's own dashboard
- * assembly (src/components/dashboard/**, DashboardHero's replacement)
- * consumes it directly.
- */
-
 export type UrgencyBandKey = "immediate" | "action" | "monitor" | "awareness";
 
 /** The stored platform priority scale (CRITICAL/HIGH/MODERATE/LOW,

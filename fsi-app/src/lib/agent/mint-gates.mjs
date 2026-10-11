@@ -1,19 +1,3 @@
-// mint-gates.mjs — the mint-time accuracy/provenance gate evaluator (hardening A1, seams 2+4).
-// PURE (no DB, no I/O) so both the report-only pipeline wiring AND the read-only calibration script apply the
-// SAME logic (one implementation, two callers). A gate result is HOLD-not-reject / would-have-held: a hit
-// flags a FACT for review, never a fabrication verdict, never a certification input.
-//
-// Four gates (per the operator's calibration spec):
-//   - genericSource   (per FACT): the FACT resolved to NO valid specific source — null source_id, or a
-//                     source that is SUSPENDED (generic/dead junk-drawer). The nothing-generic rule at mint.
-//   - authorityFloor  (per FACT): the FACT's stored grounding tier is BELOW the item's per-type floor.
-//   - spanNumeric     (per FACT): S-NUMERIC — a significant figure in the claim absent from its span.
-//   - identityCongruence (per ITEM): S-CONFLATE — one span reused across >=3 FACTs naming >=2 instruments,
-//                     at least one absent from the span. Runs over the item's FACT set (detectConflate).
-//
-// The per-FACT gates are perFactGates(); the per-ITEM identity gate is detectConflate (re-exported from the
-// shared matcher module). authorityFloorFor gives the per-type floor (reused from source-blocks).
-
 import { detectNumeric, detectConflate } from "./defect-signatures.mjs";
 
 export { detectConflate };

@@ -1,28 +1,3 @@
-// signal-candidates.mjs — NEW connection-signal candidate detection (flywheel L4). PURE, no DB, no
-// LLM, $0.
-//
-// discover.mjs's basis set (the CURRENT discovery signals, verified by reading that file) is exactly:
-// shared_source, shared_scenario (operational_scenario_tags), shared_compliance_object
-// (compliance_object_tags, role tags excluded), shared_jurisdiction_topic (jurisdiction AND
-// topic_tags together). None of those reads raw TITLE TEXT. This module mines corpus text that
-// discovery's basis set does not use — regulation identifiers named in a title (e.g. "Regulation (EU)
-// 2023/1805", "Directive 2014/94/EU") and shared multi-word capitalized phrases in a title (a rough,
-// deterministic proxy for a named entity/programme/scheme) — and proposes CANDIDATE pairs where two
-// items share one of these signals but carry NO existing item_cross_references edge of any origin.
-//
-// NEVER AUTO-ADOPTED. Every candidate this module emits is a proposal for OPERATOR REVIEW ONLY — it is
-// reflected as an integrity_flags row (signal-candidate namespace), never written to
-// item_cross_references, and this module has no write capability at all (pure, no DB). Promoting a
-// candidate into an actual discovery signal is a discover.mjs change an operator decides on, not
-// something this detector can do to itself.
-//
-// DETERMINISM AND NOISE CONTROL: token->items indices are built once; only tokens shared by >= 2 items
-// produce candidates (a token unique to one item is not a signal). PER_TOKEN_ITEM_CAP bounds how many
-// items a single very-common token can pair up (mirrors discover.mjs's PER_TAG_CAP posture: cap noisy
-// repetition rather than let one token manufacture O(n^2) candidates) — capped to the CAP
-// lexicographically-smallest item ids for reproducibility.
-
-// flag-namespaces.mjs is the SoT for subject_ref construction — see its own header.
 import { buildSubjectRef } from "./flag-namespaces.mjs";
 
 const PER_TOKEN_ITEM_CAP = 6; // caps pairs-per-token at C(6,2)=15; matches discover.mjs's PER_TAG_CAP posture

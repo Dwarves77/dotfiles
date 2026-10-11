@@ -1,13 +1,3 @@
-/**
- * /dashboard/portfolio/[id]: one portfolio (lane S8-D, 2026-10-07; spec 00 section 5; migration 362).
- *
- * The members are read and hydrated on the server (src/lib/portfolio/read.ts) and the roll-ups are computed
- * there at read time from held data only; the client view only draws them. A portfolio id from another
- * workspace is a 404, exactly like a missing one: the read filters by the org resolved from the session.
- * Per-user, so force-dynamic. A signed-out reader is sent to sign in; a read failure shows the same
- * honest unavailable note as the index.
- */
-
 import { notFound, redirect } from "next/navigation";
 import { PortfolioDetailView } from "@/components/portfolio/PortfolioDetailView";
 import { PortfolioIndexView } from "@/components/portfolio/PortfolioIndexView";

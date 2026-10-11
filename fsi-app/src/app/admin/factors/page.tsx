@@ -1,30 +1,3 @@
-/**
- * /admin/factors — WO-18 first reader for `emission_factors` (master execution plan v2, Stage 7).
- *
- * WHY THIS PAGE EXISTS. Migration 258 shipped `emission_factors` applied and empty, and WO-18's own
- * text says the table must not go "populated-but-invisible" between the seeders landing and WO-24's
- * carbon overlay consuming it. This is that first reader: read-only, no mutation controls (rule per
- * the WO-18 lane contract — inserts/corrections belong to the seeders and the append-only trigger,
- * never a screen).
- *
- * CONVENTIONS MATCHED FROM THE EXISTING /admin SURFACE (read in full before writing this file):
- *   - src/app/admin/page.tsx: `requirePlatformAdmin()` gate before any query, `createSupabaseServerClient()`
- *     for the RLS-scoped read (emission_factors + data_sources both grant SELECT TO authenticated —
- *     migration 258 — so the platform-admin's own session reads without a service-role key).
- *   - src/components/admin/AdminDashboard.tsx's `<PageMasthead eyebrow title meta />` header block.
- *     W10-Masthead (2026-09-22): this route now composes the shared `<Masthead/>`
- *     (src/components/ui/Masthead.tsx) instead of the page-local `<PageMasthead/>`, one Masthead
- *     part on every route, per the site-wide parts brief section 2.4. `AdminDashboard.tsx` (a
- *     shared component under `src/components/admin/**`, out of this route's write set) is unchanged.
- *   - src/components/admin/ErrorGroupsView.tsx's read-only table shape: `var(--surface)` /
- *     `var(--color-border)` card, uppercase 10.5px column heads, dashed-border empty state. This page
- *     inlines the same shape rather than adding a new shared component, matching WO-18's write set
- *     (src/app/admin/factors/** only — no src/components/admin/** edit).
- *
- * NOT the eligibility view. This reads the raw `emission_factors` table, not
- * `emission_factor_candidates` — an admin diagnostic screen needs to see every row (including any
- * future-dated or non-licence-clear one), not only what a customer surface would ever serve.
- */
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { Masthead } from "@/components/ui/Masthead";

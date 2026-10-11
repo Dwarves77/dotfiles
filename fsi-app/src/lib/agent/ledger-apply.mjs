@@ -1,34 +1,3 @@
-// SHARED-WRITER: section_claim_provenance
-// ledger-apply.mjs — grounding is NON-DESTRUCTIVE (operator doctrine 2026-07-16). A new grounding is a
-// COMPARISON against the prior claim ledger, never a replacement. This module is the PURE diff: given the
-// existing ledger and the incoming (newly-grounded) claim set, it computes what to
-//   ADD                 (a genuinely-new claim — not in the prior ledger),
-//   VERSION-CHANGE       (same claim, changed attribution: span / source / tier / section / kind — the OLD
-//                         version is preserved, the current row updated),
-//   LEAVE-UNCHANGED      (identical claim — untouched),
-//   LEAVE-NOT-REPRODUCED (a prior claim the new grounding did not produce — KEPT, never erased just because a
-//                         regeneration failed to reproduce it).
-// It NEVER computes a delete. Erasure is a SEPARATE proven-inaccuracy path (erase-only-on-proven-inaccuracy):
-// a claim is removed ONLY when a grounding PROVES it wrong against the primary (span contradicts / source
-// superseded), with the proof recorded — never as a side effect of a re-ground. So the new-vs-old diff always
-// survives a ground, and no data is lost.
-//
-// Identity of a claim within an item = its NORMALIZED claim_text (whitespace-collapsed, lowercased). The same
-// assertion re-grounded to a better source is a CHANGE (version it), not a new claim; a claim absent from the
-// new grounding is NOT-REPRODUCED (keep it), not a removal.
-//
-// REPLACE-LEDGER EXCEPTION (D29, defect-fix-plan-2026-09-12, lane L19). The rule above ("a claim absent from
-// the new grounding is kept") is right for a paid re-ground, which is a PARTIAL re-extract that can simply
-// fail to reproduce something the prior extraction found. It is WRONG for a record-briefs overwrite
-// (--allow-brief-overwrite): that incoming ledger is a COMPLETE, author-checked ledger, so a prior claim it
-// does not reproduce was DELIBERATELY left out (below the floor / not verbatim) -- keeping it quarantines a
-// regenerated item for claims its own new authoring rejected. `applyLedgerDiff`'s `opts.replaceLedger` flag
-// (default false = today's behaviour, byte for byte) switches ONLY this one case: a not-reproduced prior
-// claim is archived to `claim_versions` (`supersede_reason='superseded_by_record_briefs'`, the batch id in
-// `note`) and removed from the CURRENT ledger -- still never lost (the archived row is its full prior state,
-// retrievable exactly like a 'changed' version), just no longer part of what `validate_item_provenance`
-// judges. This is the ONLY second path (besides `eraseClaimWithProof`) that removes a current claim row.
-
 export function normText(t) { return String(t == null ? "" : t).trim().replace(/\s+/g, " ").toLowerCase(); }
 
 /** Do two claim rows share the same attribution (so a match is UNCHANGED, not a change)? */

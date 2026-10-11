@@ -1,31 +1,3 @@
-// Detail-cache invalidation for the four intelligence-surface detail routes
-// (/regulations/[slug], /market/[slug], /operations/[slug], /research/[slug]).
-//
-// The per-item detail fetchers in supabase-server.ts (fetchIntelligenceItem /
-// fetchIntelligenceItemSections) are wrapped in unstable_cache with two tags:
-//   - itemTag(id)      — precise, per-item (`item:{id}`)
-//   - INTEL_ITEMS_TAG  — coarse, all detail caches (`intel-items`)
-// plus a 300s revalidate backstop. Tag invalidation gives prompt freshness on
-// top of that time backstop.
-//
-// PERF lane (2026-09-03): src/lib/detail/load-detail.ts adds a THIRD cache
-// entry per detail render — the surface's item-scoped (org-independent) query
-// bundle (related items, price board, matrix eligibility, theme brief, etc.,
-// varies per surface — see that module's header). It is tagged with
-// itemTag(id) (so the existing per-item flush below still reaches it) PLUS
-// surfaceDetailTag(surface) (so a surface-wide flush — e.g. a population run
-// that reclassifies many items at once and holds no id list — can drop every
-// item-scoped detail-cache entry for that surface without enumerating ids).
-// surfaceDetailTag is exported here, not redefined in load-detail.ts, so both
-// the item-level and surface-level tag vocabularies live in one file.
-//
-// SCOPE NOTE: revalidateTag must run in a request/route or server-action scope
-// (it needs Next's work-unit async store, which raw Vercel Workflow steps do
-// NOT populate). So this helper is invoked from a Route Handler
-// (/api/cache/revalidate-item), never directly from a "use step" body. The
-// generate-brief workflow reaches it best-effort over HTTP on its terminal
-// path; a failed call never affects the run because the 300s revalidate
-// backstop bounds staleness regardless.
 import { revalidateTag } from "next/cache";
 import type { DetailSurface } from "@/lib/item-links";
 

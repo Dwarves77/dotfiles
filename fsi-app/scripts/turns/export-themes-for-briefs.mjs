@@ -1,32 +1,4 @@
 #!/usr/bin/env node
-// export-themes-for-briefs.mjs: the READ-ONLY export half of the theme-briefs batch pattern (lane S3-C).
-//
-// Lists every connection theme that has no brief, or whose brief is stale, and writes ONE bundle file per
-// run to --out-dir (never into the repo) for a session lane to author theme briefs from. Per theme the
-// bundle carries: the theme id and member hash, surfaces, convergence, pivots, dominant signals, the gaps
-// gaps.mjs computes for it, and for every member its id, title, item type, surface, jurisdictions,
-// priority, summary, grounded claims (claim id, kind, claim text, source id) and forward events, plus the
-// intra-theme edges with their full basis. A character budget applies per theme (--char-budget); what it
-// omits (members, claims, events, edges) is counted in the theme's `truncation` block, never dropped
-// silently (the same posture as export-corpus-for-extraction.mjs's budget).
-//
-// A theme is listed when: no brief is stored under its id and none can be matched to a drifted id
-// (needs "no_brief"); a brief under its own id has a member hash that no longer matches (needs "stale"); or
-// no brief is stored under its id but a prior theme's brief overlaps it at or above theme-delta's threshold
-// (needs "superseded", with supersedes_theme_id set). The lookup is src/lib/connections/brief-staleness.mjs
-// resolveBriefForTheme, the same function the Research reader uses. A theme whose own brief is current is
-// skipped.
-//
-// FREE and READ-ONLY: no model call, no network, no write to the database (db.mjs readClient is read only).
-// It writes the bundle file and its harness-run artifact (scripts/turns/theme-briefs/artifact.mjs). Self-
-// skips with exit 2 when no database credentials are present (rule 15).
-//
-// --fixture <corpus.json> runs the whole step over an in-memory corpus (scripts/turns/theme-briefs/
-// fixture-deps.mjs) with no database and no credentials, and writes no harness-run artifact.
-//
-// Usage:
-//   node scripts/turns/export-themes-for-briefs.mjs --out-dir <dir> [--char-budget N] [--limit N] [--theme <id,id>] [--fixture <corpus.json>]
-// Exit 0 done, 1 bad args, 2 no database credentials.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";

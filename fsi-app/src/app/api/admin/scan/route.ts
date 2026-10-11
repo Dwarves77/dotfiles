@@ -1,19 +1,3 @@
-// SHARED-WRITER: staged_updates
-// W5.1 — system prompt updated to surface sub-national regulators.
-//
-// Calibration insight from W3 + W4: state-level umbrella regulators
-// (CARB, NYDEC, BAAQMD, Port Authority of NY/NJ, AQMDs, Canadian
-// provincial environment ministries, EU member-state competent
-// authorities) score canonically as T2 in the source-trust framework
-// but routinely originate the binding rules a freight forwarder must
-// comply with first. The previous prompt biased the agent toward
-// federal/supranational issuers and left a measurable hole in the
-// staged-updates pipeline. The system prompt below explicitly asks
-// for sub-national rulemaking and tags every finding with a
-// jurisdiction_iso code (US-CA, EU-DE, GB-SCT, AU-NSW, CA-ON, …).
-//
-// Request shape, auth, cooldown gate, rate limit, and response
-// schema are unchanged.
 import { NextRequest, NextResponse } from "next/server";
 
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";

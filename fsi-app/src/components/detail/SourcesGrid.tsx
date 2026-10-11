@@ -1,19 +1,3 @@
-/**
- * SourcesGrid — shared "Sources" section body for the detail surfaces
- * (UI system handoff 2026-09-06, README §0.5: sections of fact cards ->
- * rail, the sources list belongs to the last section index entry on every
- * surface).
- *
- * Lane uidetails2 (2026-09-07): extracted from RegulationDetailSurface's
- * page-local `sourceEntriesOf`/`SourcesGrid` pair so market/research/
- * operations detail (this lane's scope) don't each carry a third copy of
- * the same structured-sources list (the #172 "never a raw dump" pattern).
- * `RegulationDetailSurface.tsx` itself is out of this lane's stated scope
- * (only its DetailShell-contract change — list/pos/of — is touched) and is
- * left calling its own inline copy; logged in DEVIATION-LOG.md as a
- * follow-up so a future lane can fold it onto this shared one too.
- */
-
 import type { Resource } from "@/types/resource";
 import { extractRegulationSections, type SourceEntry } from "@/lib/agent/extract-regulation-sections";
 import { BiasChips, type BiasTagInput } from "@/components/ui/BiasChips";

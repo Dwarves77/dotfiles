@@ -1,16 +1,4 @@
-// SHARED-WRITER: integrity_flags
 // @ts-check
-// VERIFY-ITEM — the ONE snapshot-first entry point (Phase 1, operator ruling 2026-07-13). Every grounding
-// verification routes through here. Flow per item:
-//   1. SNAPSHOT LOOKUP  (snapshot-store.getSnapshot by source_id)
-//   2. FRESHNESS PROBE  (freshness-probe.probeFreshness — HEAD only, no body, no spend)
-//   3. CHEAP VERIFY     (cheap-verify.cheapVerifyClaims — span-match vs STORED text, ~$0, DEFAULT path)
-//   4. PAID ACQUIRE     (LOCKED behind GROUNDING_ACQUIRE_ENABLED; pre-logged justification I2 before any spend)
-//
-// decideVerify is a PURE decision core (node-testable, no I/O, no spend). verifyItem wraps it with reads and,
-// only when act:true (Phase 3 restitution, never the PR-2 build), the guarded side effects. The build + tests
-// move $0 (CP1). Freshness 'changed' NEVER silently passes and NEVER fetches — it records
-// stale_snapshot_content_changed and queues for the locked paid path (CP2), taking no further action.
 
 import { assertAcquireAllowed } from "./acquire-lock.mjs";
 

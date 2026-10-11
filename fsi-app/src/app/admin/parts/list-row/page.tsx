@@ -1,25 +1,3 @@
-/**
- * /admin/parts/list-row: the ListRow sign-off page (lane W10-ListRow, 2026-09-22).
- *
- * Renders the real `ListRow` part (`src/components/ui/ListRow.tsx`) plus `ListRowColumnHeader`
- * against four frozen real records (`list-row-fixture.ts`, project kwrsbpiseruzbfwjpvsp, frozen
- * 2026-09-22 via read-only SELECT; see that file's header for the exact queries). NO invented
- * title, jurisdiction or timeline text (operator ruling: "fixtures render from a frozen real
- * record ... never invented strings"). NO database read at render time; the fixture module is a
- * frozen snapshot, same convention as every other /admin/parts page.
- *
- * This is also the Impact meter fixture the brief asks for ("Impact meter fixture at N = 4, 8, 12
- * and unscored ... lives on /admin/parts/list-row", the W10-A2 remainder): the four rows are
- * ordered N=4, N=8, N=12, unscored, and a second strip below repeats the same four states on the
- * bare `ImpactMeter` component alone (the legend's own usage, `<ImpactMeter total={N}/>`, brief
- * 2.16) so the meter geometry is checkable independent of the row chrome around it.
- *
- * F49 (parts-not-pages): this page imports ListRow/ListRowColumnHeader/ImpactMeter/GradeChip and
- * renders the fixture through them; no row, chip or meter literal style is retyped here.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check
- * applies; see this lane's final report).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { PageMasthead } from "@/components/shell/PageMasthead";
 import { SectionCard } from "@/components/ui/SectionCard";

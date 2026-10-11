@@ -1,18 +1,3 @@
-// SHARED-WRITER: intelligence_items, section_claim_provenance
-/** FREE-PASS RUNNER ($0, guarded) — economy-of-information doctrine + re-attribution CONSTRAINT (2026-07-13).
- *
- *  For every non-verified live item with FACT claims: each FACT claim FAILING the authority floor (tier null or
- *  > floor) is offered a FREE re-attribution to a floor-qualifying PRIMARY-INSTRUMENT capture the item ALREADY
- *  HOLDS — its own raw_fetches snapshot or another registered floor source's snapshot — gated by
- *  freeReattributeDecision (verbatim ∧ officialness path-a ∧ error-body-clean). SC-13: an unregistered CODIFIED
- *  gov/legal snapshot host is registered at its codified tier so its snapshot becomes a floor capture (never a
- *  guessed tier). When ALL of an item's failing FACT claims are re-homed, the item is touched so the
- *  set_provenance_status trigger re-derives status → read-back the flip. Items that cannot be fully re-homed for
- *  free exit to a FACTS-ONLY manifest (document + size + unmatched spans) — NO machine price (operator sets cost).
- *
- *  NO fetch, NO model — pure stored reads + guarded metadata writes. DRY-RUN default; --apply writes + read-back.
- *  Usage: node scripts/_reground/free-pass-run.mjs [--apply] [--limit=N] [--only=key,key]
- */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync, mkdirSync } from "node:fs";

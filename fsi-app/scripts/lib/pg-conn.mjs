@@ -1,32 +1,3 @@
-/** SHARED direct-Postgres connection resolver for the data-audit lane. GOVERNING: remediation-discipline.
- *
- *  ONE resolver instead of six copies. Before this file, every pg-direct audit carried its own connection
- *  logic, and they disagreed: vocab-sync derived working pooler candidates from NEXT_PUBLIC_SUPABASE_URL +
- *  SUPABASE_DB_PASSWORD (and was green in CI), while schema-drift / rls-credential-parity /
- *  column-existence-parity / prov-guard-adversarial read supabase/.temp/{project-ref,pooler-url} — artifacts
- *  of a local `supabase link` that are correctly ABSENT from a fresh CI checkout — and pause-flag-guard-proof
- *  wanted SUPABASE_DB_URL/DATABASE_URL that the workflow never injected. Result: five audits exited 2 on
- *  every nightly run since they were wired in (lane diagnosis 2026-08-11), with a runner comment asserting
- *  they "run for real in the secrets lane". The duplicate that worked folds in here; the ones that lied die.
- *
- *  Resolution order (first connection that succeeds wins):
- *    1. SUPABASE_DB_URL, then DATABASE_URL — explicit operator-provided connection string.
- *    2. supabase/.temp/{project-ref,pooler-url} + SUPABASE_DB_PASSWORD — local dev after `supabase link`.
- *    3. Candidates derived from NEXT_PUBLIC_SUPABASE_URL + SUPABASE_DB_PASSWORD — the CI path; exactly the
- *       secrets the data-audit-lane workflow already injects. Direct db host first, then regional poolers
- *       (mirrors what vocab-sync-audit proved green in CI).
- *
- *  LOOPBACK MODE (lane PROOF-1, ruling R2, 2026-10-07): the chain-proof job runs these scripts against a
- *  disposable local database and must never reach production, whatever else is in the env. When
- *  CHAIN_PROOF_LOCAL=1, or the first explicit URL (SUPABASE_DB_URL, else DATABASE_URL) has a loopback host,
- *  the candidate list holds loopback URLs ONLY: no supabase/.temp pooler, no host derived from
- *  NEXT_PUBLIC_SUPABASE_URL + SUPABASE_DB_PASSWORD, no non-loopback explicit URL. A loopback connection
- *  carries no TLS (a local Postgres does not speak it). If the local database refuses, the result is null
- *  (callers exit 2), never a quiet fall-through to a production host.
- *
- *  Returns a CONNECTED pg.Client, or null if no candidate connects. Callers exit 2 on null (cannot-verify,
- *  never a silent pass). Read-only helper: connecting is the only side effect. `pg` is loaded inside
- *  connectPg(), not at module load, so the pure helpers here are importable without npm packages. */
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

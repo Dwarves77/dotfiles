@@ -1,18 +1,3 @@
-// relative-time-format — the JSX-free formatters behind RelativeTime (V-07, 2026-07-11).
-//
-// Extracted from RelativeTime.tsx so the hydration invariant these encode is mechanically
-// testable in the portable `node --test` discipline suite (Node type-stripping imports a .ts
-// with no JSX; it cannot import the .tsx component). RelativeTime.tsx re-exports both, so every
-// existing import path is unchanged.
-//
-// The V-07 invariant (React #418/#423 fix): the label used for the SERVER render AND the FIRST
-// client render must be deterministic and independent of `Date.now()`, so the two renders agree
-// byte-for-byte and there is no hydration mismatch. `stableDateLabel` is that label. The live
-// relative form (`relativeTimeLabel`, which DOES read `Date.now()`) is swapped in only AFTER
-// hydration, in an effect. The overflow-hydration guard's hydration leg asserts exactly this: the
-// initial-render formatter is now-independent (green), and the pre-fix now-dependent formatter is
-// not (red).
-
 const STABLE_FMT = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",

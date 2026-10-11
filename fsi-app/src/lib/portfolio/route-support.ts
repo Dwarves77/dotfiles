@@ -1,8 +1,3 @@
-// Shared request preamble and response mapping for the /api/workspace/portfolios routes (lane S8-D,
-// 2026-10-07). A route.ts may export only handlers (F34), so the pieces the three route files share live
-// here: authenticate, resolve the caller's org on the SERVER from org_memberships (never from the client),
-// and turn a service result into a response with the rate-limit headers.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";

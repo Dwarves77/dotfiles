@@ -1,10 +1,3 @@
-// Pure decision for the manual fetch-now route — the FORM-1 (a fetch that FAILED TO ANSWER is
-// INCONCLUSIVE, not "inaccessible") and FORM-3 (an error/bot-block BODY is not content) bug-class
-// fixes, EXTRACTED so they fixture-test WITHOUT a DB or HTTP (the composition that the retired
-// prod-touching sentinel harnesses used to assert against the live DB).
-//
-// last_checked is ALWAYS recorded by the caller; this returns only the EXTRA stamp + the kind +
-// the HTTP status. No Date, no I/O — deterministic and pure.
 import { classifyReachability, REACH } from "./reachability.mjs";
 import { isErrorBody } from "./entity-gate.mjs";
 

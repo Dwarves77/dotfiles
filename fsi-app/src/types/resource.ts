@@ -1,5 +1,3 @@
-// ── Core Resource Types ──
-
 export interface TimelineEntry {
   date: string;
   label: string;

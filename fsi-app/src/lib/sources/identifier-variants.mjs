@@ -1,26 +1,5 @@
 // @ts-check
-// SMART-SEARCH IDENTIFIER VARIANTS + CANDIDATE DISCOVERY (operator CRITICAL DISPATCH + SMART-SEARCH
-// AMENDMENT, 2026-07-14). The MISSING RUNG of the acquisition ladder: given an item's instrument
-// identifier, mechanically derive (1) the identifier VARIANT SET (separator mutations + publisher-scheme
-// encodings), (2) deterministic CANONICAL candidate URLs (for EU/UK/US the identifier YIELDS the primary
-// URL — no search needed), and (3) the ENDPOINT-LADDER search URLs (the source's OWN search surface first,
-// then general web). Pure, node-testable, $0 — the network fetch of these candidates is the caller's.
-//
-// Proof golden (operator-mandated): eu_clean_trucking's stored identifier `eli/reg/2024/1610/oj` (canonical
-// key 32024R1610) → discovery yields CELEX 32024R1610 + the fetchable /legal-content/EN/TXT/HTML form,
-// WITHOUT human help. That URL variant is exactly what the old title-only search never produced.
-//
-// REFERENCED-LAW-EXISTS (doctrine): an item holding an instrument identifier can NEVER be dispositioned
-// absent — the only honest terminal is "not found under N variants × M endpoints, logged". This module
-// produces the N×M set that record is measured against.
-//
-// Mirrors migration 200's CELEX format ([1-9][0-9]{4}[A-Z][0-9]{4}) but is LESS conservative on purpose:
-// it GENERATES R/L/D candidates to fetch-and-verify (a candidate is proven by fetching, never stamped),
-// where the key-deriver stays NULL. Candidate SCORING (SC-13) is a pure ranker that takes injected
-// host-class + registry lookups, so the .ts host-authority module is not imported here.
 
-// F46 (lane L35): www.federalregister.gov and www.ecfr.gov's one home is transport-escalation.mjs's
-// apiEndpointFor + its base constants; usCandidates below composes off them rather than re-templating.
 import { FEDERAL_REGISTER_API_BASE, FEDERAL_REGISTER_PORTAL_URL, ECFR_PORTAL_URL } from "./transport-escalation.mjs";
 
 /** PURE. Extract {year, number} from an identifier with any common separator (2024_1610, 2024/1610,

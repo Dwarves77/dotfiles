@@ -1,29 +1,3 @@
-// POST /api/community/signoff/[id]/decide
-//
-// Record a verifier's decision on a sign-off request (community-schema-
-// mapping.md §3.1). Body: { decision: "signed_off" | "declined",
-// primary_doc_url?, decision_note? }.
-//
-// Authorization is enforced by migration-153 RLS (signoff_decide): only a
-// profile with verifier_status = 'active' (or is_platform_admin) may UPDATE a
-// request row. We perform the decision UPDATE with the caller's RLS-aware
-// client, so the DB is the auth boundary — the caller-role read below is only
-// for a precise error message, never the gate.
-//
-// On a 'signed_off' decision the post becomes citable: we stamp
-// community_posts.signed_off_at / signed_off_by. That column is author-or-admin
-// writable under RLS (migration 030), and a verifier is generally neither, so
-// the companion stamp is written with a service-role client AFTER the
-// RLS-gated decision succeeds — the same validate-then-materialize shape the
-// promote route uses. The stamp is a downstream effect of an already-authorized
-// decision, not a second authorization path.
-//
-// The UPDATE targets status = 'pending' only, so a request cannot be decided
-// twice (a withdrawn/declined/signed_off request is inert).
-//
-// Auth: cookie session via requireCommunityAuth.
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

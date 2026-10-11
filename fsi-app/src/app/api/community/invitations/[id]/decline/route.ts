@@ -1,12 +1,3 @@
-// POST /api/community/invitations/[id]/decline
-//
-// Decline a pending community group invitation. Single-statement
-// status update gated by the invitee-update RLS policy
-// (status pending -> declined, allowed when invitee_user_id = auth.uid()).
-//
-// Auth: cookie session.
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

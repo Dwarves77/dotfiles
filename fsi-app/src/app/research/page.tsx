@@ -1,23 +1,3 @@
-/**
- * Research index (`/research`) - server component.
- *
- * UI system handoff 2026-09-06, artboard 06 "Research list". Composes
- * <ResearchLedger> (masthead + band tiles + theme cards + Window row +
- * band-grouped rows + rail, see that component's own header for the full
- * assembly). ThemeStrip and the credibility-model legend, both pre-existing
- * content the artboard has no region for, are handed to the ledger's
- * `belowRows` slot so they render at the foot of the content column instead
- * of above the masthead (lane comp-06, 2026-09-08, operator ruling R7).
- *
- * REWRITTEN this lane (UILISTS, 2026-09-06): ResearchLedger now consumes
- * `getPublicResearchItems()`'s full `Resource[]` directly (band/impact/
- * timeline/tier all present) instead of the separate `getPublicResearchPipeline()`
- * shape intersected against a category-routed id allow-list - see
- * ResearchLedger.tsx's own header for why. `getPublicResearchPipeline()` is
- * no longer read by this page (nothing else in this lane's write set
- * consumed it); getResearchSourceCoverage() is unchanged.
- */
-
 import { Suspense } from "react";
 import { ResearchLedger } from "@/components/research/ResearchLedger";
 import { renderNowIso } from "@/lib/render-now";

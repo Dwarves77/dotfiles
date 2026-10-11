@@ -1,11 +1,3 @@
-// src/app/api/invitations/[token]/decline/route.ts
-//
-// POST /api/invitations/[token]/decline
-//
-// Calls decline_invitation() RPC. Email match is enforced inside the RPC.
-//
-// Workstream B (Multi-Tenant Foundation) — 2026-05-15.
-
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

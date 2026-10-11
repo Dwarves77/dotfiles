@@ -1,27 +1,3 @@
-// openalex-client.mjs -- Lane L3 (Research source-authority client, narrowed), 2026-10-02.
-// Thin fetch wrapper over the free, no-key OpenAlex REST API (/works, /authors, /institutions).
-// Spec ref: docs/specs/03-research.md section 4, Score 2 ("source authority, computable, free data").
-//
-// WHY THIS EXISTS. Prior-art check (lane-common-contract "Prior art", binding 2026-09-17): grep for
-// openalex/OpenAlex/ror.org/ORCID across fsi-app/src and fsi-app/scripts turned up ORCID checksum
-// validation (src/lib/entities/crosswalk.mjs) and several honest "not computed here, needs OpenAlex/ROR"
-// comments (CredibilityChipAuthority.tsx, record-facts-research.mjs, record-facts.mjs, MINT-RUNBOOK.md,
-// RESEARCH-SWEEP.md) but no OpenAlex HTTP client anywhere in the repo. Nothing to reuse for the client
-// itself; this module is net new.
-//
-// WHAT IT IS NOT. Not a scorer -- see authority-score.mjs for the pure function that turns these raw API
-// shapes into the spec's distribution. This module only knows how to ask OpenAlex a question and get an
-// answer back, with retry/backoff and the polite-pool identification OpenAlex's own usage policy asks
-// for (https://docs.openalex.org/how-to-use-the-api/rate-limits-and-authentication). No API key exists
-// or is needed; $0 per lane-common-contract section 0 and this lane's own R14 section.
-//
-// DEPS INJECTION (pattern: fsi-app/scripts/mint/screen-reconcile-records.mjs's injected-deps shape, read
-// first per the brief). Every function here takes an optional `deps` object so tests run with zero
-// network: `deps.fetch` defaults to the global `fetch` (Node 24 ships one natively), `deps.sleep`
-// defaults to a real setTimeout-based sleep, `deps.email`/`deps.baseUrl`/`deps.maxRetries`/
-// `deps.retryBaseMs` override the defaults below. A test passes a `deps.fetch` stub that returns
-// recorded fixture JSON and never touches the network.
-
 const DEFAULT_BASE_URL = "https://api.openalex.org";
 // Polite-pool contact: reuses the platform's existing public contact address (already live on
 // src/app/privacy/page.tsx) rather than inventing a new credential-shaped value or the operator's own

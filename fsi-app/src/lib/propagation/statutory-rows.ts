@@ -1,33 +1,3 @@
-// statutory-rows.ts, the ONE pure home for statutory-rows-file logic (lane M7a FIX, 2026-09-21).
-//
-// WHY THIS FILE EXISTS. `POST /api/admin/statutory-rows` traced at 252.76 MB uncompressed, over Vercel's
-// 250 MB function-size limit. MEASURED CAUSE (not hypothesis): the route's logic.mjs imported parseRow/
-// writeOneRow from `scripts/propagation/write-statutory.mjs`, which imports `scripts/lib/db.mjs` for
-// `guardedInsert`/`readAll`. db.mjs's own guarded-write path computes its snapshot directory from
-// `import.meta.url` (`snapDir()` -> `resolve(dirname(...), "..", "_snapshots")`) and writes run-artifact
-// JSON there on every write (`appendFileSync`). Because that path is STATICALLY resolvable at build time
-// (it does not depend on any runtime argument), Next's output-file tracer (@vercel/nft) walked it and
-// pulled the ENTIRE `fsi-app/scripts/_snapshots/` directory, hundreds of MB of historical population-run
-// JSON artifacts, into this one route's traced function, even though the route never calls guardedInsert
-// with a real snapshot in the request path that matters. Importing ANYTHING from db.mjs drags in the
-// WHOLE FILE's static fs surface for nft's analysis, not just the one export used.
-//
-// THE FIX. This module contains every PURE function the route (and the CLI scripts) actually need: rows-
-// file validation, row parsing, and the single-row write/mint logic, none of which do file I/O of their
-// own. It imports NOTHING from `scripts/lib/db.mjs` or `scripts/lib/env-file.mjs`, no node:fs, no
-// node:path, no process.cwd(), no dynamic path building anywhere in this file. `writeOneRow` and
-// `resolveOrMintEntity` take an injected Supabase client (`sb`) and, by default, issue a PLAIN insert
-// through it (no snapshot side effect), the caller (the CLI script, which legitimately wants the
-// snapshot/cite discipline for a real `--apply` run) can still inject `scripts/lib/db.mjs`'s
-// `guardedInsert`/`readAll` as `deps.insertFn`/`deps.readAllFn`, exactly as before. The calling
-// CONVENTION (`insertFn(table, row, opts)`, `readAllFn(table, columns, opts)`) is unchanged, so every
-// existing test that already injects fakes for these deps keeps passing unmodified.
-//
-// `scripts/propagation/write-statutory.mjs` and `scripts/propagation/validate-statutory-rows-file.mjs`
-// now IMPORT from this module and add only their CLI concerns (args, file reading, env loading, client
-// creation, guarded/fs-backed defaults for a real apply run). Neither script re-implements row parsing,
-// row validation, or the write itself, this file is the one place either.
-
 import { entityId } from "../entities/entity-id.mjs";
 import { computeStatutory, FUELEU_STATUTE_CITATION, FUELEU_FORMULA_VERSION } from "../statutory/types.ts";
 import { FUELEU_UNIT_PRICE_EUR_PER_T_VLSFOE } from "../statutory/fueleu-annex-iv.mjs";

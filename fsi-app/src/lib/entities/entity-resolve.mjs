@@ -1,8 +1,3 @@
-// Deterministic entity DETECT → RESOLVE → BUCKET (phase-intake-gate, no LLM). Promoted from the proven
-// _wave-dedup3 matcher. Detection is WIDER than wiring (fails safe); "confident" is mechanical (the KIND +
-// resolution count decide the bucket, never a runtime score). Topical words are structurally never detected,
-// so they can never be wired (the "same batteries?" moat, enforced by construction). Pure + dep-injected
-// (corpus passed in) — unit-tested in the depless discipline CI.
 import { RE_REGNUM, RE_CELEX, RE_STD_SHAPED, NAMED_ENTITIES } from "./canonical-entities.mjs";
 // One-url-canonicalizer doctrine (F18): URL identity for dedup routes through the SINGLE sanctioned
 // canonicalizer (../sources/url-canonicalize.ts) — no bespoke normalizer lives here.

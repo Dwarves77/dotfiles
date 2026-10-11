@@ -1,24 +1,3 @@
-// POST /api/community/groups/[id]/join
-//
-// Self-join a public community group.
-//
-// Behaviour:
-//   - Inserts (group_id=id, user_id=current, role='member') into
-//     community_group_members.
-//   - For PRIVATE groups: RLS rejects the INSERT (only existing group
-//     admins may insert membership rows). We translate that into a
-//     403 with "Private group requires invitation".
-//   - For PUBLIC groups: Phase C does NOT yet have a public-self-join
-//     RLS policy; the insert relies on a service-role write after we
-//     verify privacy='public' here. This keeps the surface explicit
-//     (no hidden auto-join paths) and matches the C4 task spec.
-//   - Idempotent: if the user is already a member, returns ok with
-//     state='already-member' rather than 409. Pending invitations are
-//     auto-cleared on join.
-//
-// Auth: cookie session (community-auth helper).
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

@@ -1,16 +1,3 @@
-// read-assessments.mjs -- the ONE home for turning a migration-344 `research_assessments_current` row
-// into the render-ready view model Research's surfaces consume. Lane W2-R, 2026-10-01.
-//
-// PLAIN ESM, ZERO DEPENDENCIES, NO I/O -- same constraint as theme-brief.mjs and taxonomy.mjs in this
-// same directory, so this has a portable `node --test` proof and the detail/list pages can import it
-// under this project's allowJs tsconfig with no build step. The actual Supabase read happens at the call
-// site (src/app/research/page.tsx, src/app/research/[slug]/page.tsx), mirroring theme-brief.mjs's own
-// division of labor exactly: this module selects and shapes, the page fetches.
-//
-// WHAT "ABSENCE" MEANS HERE (spec-03's own rule, carried into every view this module builds): "a value
-// that exists is shown; one that cannot exist yet names the data it needs." Every field below is either
-// a real value or an explicit, worded absence -- never a blank, never a zero, never a guessed default.
-//
 /**
  * @typedef {{
  *   item_id: string,
@@ -22,7 +9,6 @@
  *   status_token: string, computed_at: string,
  * }} ResearchAssessmentRow
  */
-
 /**
  * @typedef {{
  *   itemId: string,
@@ -38,7 +24,6 @@
  * }} ResearchAssessmentView
  */
 
-/** Shown on the horizon section when the assessment itself is a mandatory refusal (spec-03 section 6). */
 export function refusalDisplayText(reason) {
   return reason || "not forecastable, and the conditional structure could not be determined";
 }

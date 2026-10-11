@@ -1,8 +1,3 @@
-// SOURCE-ROLE (phase-intake-gate piece 1). "Primary" is relative to the CLAIM-TYPE: a primary-artifact
-// item (regulation/standard/framework — claims about what an INSTRUMENT says) needs the INSTRUMENT as its
-// primary; a news/press page is secondary THERE. A market_signal is correctly primary-sourced on the news
-// that carries it. The gate enforces source↔claim-type CONGRUENCE, not "news is weak": a primary-artifact
-// TYPE on a NEWS source is retyped to market_signal (where news IS the right primary) — retyped, never dropped.
 export const NEWS_RE = /\/(news|news-?releases?|press|press-?releases?|media|newsroom|announcements?|articles?|stories|blog|insights?|updates?)(\/|$|\?|#)|(^|\/\/|\.)(news|prnewswire|businesswire|globenewswire|pr-?web|einpresswire)\./i;
 const PRIMARY_URL_RE = /(eur-lex\.europa\.eu|legislation\.gov\.uk|federalregister\.gov|ecfr\.gov|govinfo\.gov|official.?journal|legal-content|\.pdf($|\?|#)|\/documents?\/|\/eli\/|celex)/i;
 export const PRIMARY_ARTIFACT_TYPES = new Set(["regulation", "directive", "standard", "guidance", "framework"]);

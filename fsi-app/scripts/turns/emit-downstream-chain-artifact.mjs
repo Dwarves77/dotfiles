@@ -1,25 +1,4 @@
 #!/usr/bin/env node
-// emit-downstream-chain-artifact.mjs -- downstream-chain's own harness-run artifact writer (lane M3,
-// 2026-09-19, build plan section 6.1 row M3). "Emission is CODE" -- the same posture
-// emit-corpus-turn-artifact.mjs / run-mint-batch.mjs / run-extraction.mjs already hold for their own
-// families (PROPOSER-RUNBOOK.md section 5, "forgetting is not possible"):
-// .github/workflows/downstream-chain.yml calls this after its maintenance-step derivations (its own
-// `if: always() && env.RUN_SKIP != 'true'` step, matching corpus-turn.yml's own placement), dry or apply,
-// so a chained firing that skipped (no real work to derive from) or hit a nonzero-exit step still leaves
-// a record -- "record it every batch, even when zero," the same rule this family's siblings apply.
-//
-// This is NOT a canonical entry point in run-mint-batch.mjs's sense: it runs no derivation itself. Its
-// only job is to read back what THIS run's own `./.github/actions/maintenance-step` calls already
-// wrote (each one's own `$OUT_ROOT/<step>/summary.json`, scripts/maintenance/lib/cli.mjs's own contract)
-// and record the outcome as this family's own CONVENTION.md-shaped artifact.
-//
-// Reads its configuration entirely from environment variables (DC_*), set by downstream-chain.yml's own
-// "Record this chain's own harness-run artifact" step -- this script has no CLI flags because it has
-// exactly one caller and that caller already has every value as a workflow-step output.
-//
-// Exit 0 on a successful write. Throws (non-zero exit) on a schema-invalid artifact (writeRunArtifact's
-// own fail-closed validation) or an id-claim collision after 50 attempts (claimRunId) -- both real
-// conditions a coordinator should see, not swallow.
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname, join, relative, sep } from "node:path";

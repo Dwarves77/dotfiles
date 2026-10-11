@@ -1,12 +1,3 @@
-// logic.ts for POST /api/dashboard/coverage/request (lane COV-1, 2026-10-08). Route files export only handlers (F34).
-//
-// "Request coverage" on a named coverage gap writes ONE coverage_gap row to the existing platform-flag channel
-// (integrity_flags, migration 048) through src/lib/coverage/request-coverage.mjs, which is the writer. This is a
-// request for coverage, not customer data: the body is a page path and a short label, both validated.
-//
-// Authenticated and rate-limited by the shared guard. Any signed-in reader may ask; a viewer role is not
-// withheld, because the write is to a platform queue, not to a workspace table.
-
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserRoute, isRefusal, type UserRouteDeps } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

@@ -1,12 +1,3 @@
-/**
- * ThemeStripView: the presentational half of ThemeStrip (lane S3-B), split out so the UX smoke spec can mount
- * it with fixture data (the server half reads the database). One card per theme: the theme's label (the brief's
- * title, else a short label derived from the theme's own signals, pages and size, never the pivot item's
- * title) as one 44px link to the item it opens on this page, single-line, with that item's full title on `title`, the theme's size and the pages it spans,
- * a brief badge (stale said in words), and up to three other members as small links with 8px of clearance.
- * Horizontal scroll is the strip's own, declared with data-guard-strip.
- */
-
 import type { buildThemeChips } from "@/lib/research/theme-brief.mjs";
 
 type Chip = ReturnType<typeof buildThemeChips>[number];

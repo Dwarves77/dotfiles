@@ -1,36 +1,3 @@
-// scripts/turns/brief-export/queue.mjs -- the brief-export auto-queue, now database-shaped (lane R22,
-// 2026-10-02, coordinator-directed, closing the consequence the previous commit flagged against PR #824 /
-// CLAUDE.md rule 17: "no artifact branches or Actions PRs; harness_runs is the durable record").
-//
-// WHAT CHANGED. run-population-flywheel.mjs's step 12 used to write
-// scripts/turns/brief-export/pending/<mint-run-id>.json (a TRACKED file population-turn.yml's own commit
-// step pushed to an artifact branch) so a session lane could later read it. That branch push is gone
-// (this lane's own prior commit); this module is the replacement shape: the SAME export content (parts,
-// each item's claims/sections + full agent_run_searches pool text) rides a `brief-export` family
-// harness_runs row's own `inputs_ref` column (migration 331) instead of a file -- the row is landed the
-// SAME way every other harness artifact already is (scripts/lib/record-harness-run.mjs, called by
-// deliver-artifact-branch.sh, which scans scripts/harness-runs/*/*-run-*.json by construction -- no new
-// transport, no new DB writer to register in the shared-writer registry, because record-harness-run.mjs
-// already owns every write to harness_runs).
-//
-// TWO ENDS WIRED:
-//   PRODUCER (run-population-flywheel.mjs's stepBriefExport): buildQueueArtifact + readExportedParts
-//   below build and write the artifact LOCALLY (writeRunArtifact, same as every sibling family), never a
-//   git command, exactly like every other step in that file.
-//   CONSUMER (scripts/turns/read-brief-export-queue.mjs, population-report.mjs's "briefs pending" entry):
-//   isPendingQueueRow / pendingQueueRows read harness_runs rows (deps-injected, no file at all) to decide
-//   what is still waiting for a session lane.
-//
-// PURE throughout (no I/O beyond the one documented fs read in readExportedParts' thin wrapper), so a
-// fixture-driven test proves both ends without a database. "Drained" is a DERIVED read, not a mutation:
-// a queue row needs no UPDATE once landed, so no new writer touches harness_runs at all (see
-// pendingQueueRows' own header note for the exact, named-honest definition of "drained").
-//
-// NOT part of this skill's brief-content contract: this module writes a harness-run ARTIFACT (run
-// bookkeeping metadata), never an intelligence_items row or a full_brief. No format, no severity label,
-// no 26-field YAML contract applies here -- that contract governs session lanes' OWN authored output
-// once they read this queue's content, not the queue entry itself.
-
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, parse } from "node:path";
 import { buildRunArtifactEnvelope } from "../../lib/run-artifact.mjs";

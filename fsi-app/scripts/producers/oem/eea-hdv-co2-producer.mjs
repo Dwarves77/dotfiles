@@ -1,37 +1,4 @@
 #!/usr/bin/env node
-// eea-hdv-co2-producer.mjs -- the registered producer for spec 09 section 1.1, oem_tech_roadmaps (lane S8-E1,
-// 2026-10-08). Reads the EEA heavy-duty vehicle CO2 monitoring extract and writes manufacturer, technology and
-// commercial-stage EVIDENCE rows; every column the dataset cannot evidence stays NULL (eea-hdv-map.mjs says which and why).
-//
-// DATASET [CONFIRMED by fetch 2026-10-08, see fixtures/eea-hdv-sample.header.json]. EEA "CO2 emissions from
-// heavy-duty vehicles", vehicle extract HDV_CO2Emission_VehicleExtract_24042025.csv, about 4 GB, Last-Modified
-// 2025-04-28, page "Published 29 Apr 2025". Licence text on the EEA catalogue record: "License CC-BY 4.0
-// (https://creativecommons.org/licenses/by/4.0/). Copyright holder: Directorate-General for Climate Action (DG-CLIMA),
-// European Environment Agency (EEA)." The dataset is annual; the registry entry runs it when named, never in the
-// producer=all sweep, because one read streams the whole file.
-//
-// SOURCE. The publisher is the EEA (host eea.europa.eu). Its tier is NOT typed here: rateSourceByInstitutionClass
-// (scripts/lib/rate-source-by-class.mjs, the rule 18 step every producer shares) rates the host through the
-// institution class table (classTierForHost) and registers it through db.mjs registerSource (idempotent by host, so
-// the EEA row the registry already holds is reused). The producer then READS THE ROW BACK and refuses to write if it
-// is absent. The licence register key is "eea" (src/lib/contracts/source-licence.mjs, redistribution permitted).
-//
-// GATES, ALL REQUIRED TO WRITE (same contract as ecb-fx-producer.mjs): (1) the ENABLED constant below, false at
-// authorship, flipped only by a reviewed code change; (2) --apply plus OEM_PRODUCER_EEA_HDV_ENABLED=1; (3) DB
-// credentials; (4) a complete read: a byte-limited read is never applied. A dry run (the default) always parses,
-// maps and plans and writes nothing. Dry with no --input fetches only the first DRY_SAMPLE_BYTES.
-//
-// DOWNSTREAM (rule 17). Every insert and update on oem_tech_roadmaps writes an outbox row through the trigger of
-// migration 380 (keyed to manufacturer_id), which is what lets the change reach the signposts and items watching
-// that manufacturer. The run's outcome is recorded in the producers-family summary on every path.
-//
-// Usage (cwd fsi-app):
-//   node scripts/producers/oem/eea-hdv-co2-producer.mjs                       # dry, first 8 MiB of the live file
-//   node scripts/producers/oem/eea-hdv-co2-producer.mjs --input file.csv      # dry, local file
-//   node scripts/producers/oem/eea-hdv-co2-producer.mjs --apply               # write (needs all four gates)
-//   options: --entities-file f.json  [{entity_id, canonical_name}] for a dry run with no database
-//            --max-bytes N  --dataset-date YYYY-MM-DD  --classification file.json
-// Exit 0 done (a clean dry run included) | 1 refused | 2 bad input | 3 network failure.
 
 import { createReadStream, readFileSync } from "node:fs";
 import { rateSourceByInstitutionClass } from "../../lib/rate-source-by-class.mjs";

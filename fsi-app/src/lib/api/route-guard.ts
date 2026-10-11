@@ -1,27 +1,3 @@
-// src/lib/api/route-guard.ts
-//
-// ONE home for the guard sequence every authenticated API route repeats at the top of each handler:
-// authenticate, rate-limit, and for platform-admin routes resolve the service client and the
-// platform-admin gate. Lane L31 (2026-09-17) extracted it from the route files that carried the same
-// 4 to 14 lines by hand (35 admin routes, 39 community and org routes, 10 user-state routes); four of
-// the admin routes had each grown their own local `requireAdminRole` on top. The system health audit
-// (docs/audits/system-health-audit-2026-09-17.md, section 2) lists the families; F45 keeps the count
-// from growing back.
-//
-// Contract (unchanged from the inline blocks it replaces):
-//   1. Bearer auth via requireAuth (401 on a missing or invalid token; 500 when auth is unconfigured).
-//   2. The 60/min/user sliding window via checkRateLimit (429 with Retry-After).
-//   3. Admin routes only: profiles.is_platform_admin via isPlatformAdmin on a service-role client
-//      (OBS-17, the platform layer, never the workspace role), 403 with the rate-limit headers.
-//   Order is fixed: no rate-limit slot is spent on an unauthenticated call, and no service-role
-//   lookup happens for a rate-limited caller.
-//
-// Every guard returns EITHER the resolved context OR the refusal response; `isRefusal` narrows.
-// Routes that must wrap a refusal (no-store or negative-cache headers) wrap the returned response
-// exactly as they wrapped the inline one. Dependencies are injectable for the unit tests only;
-// route code never passes them.
-//
-// The fitness function F2 accepts `requireAdminRoute` as the admin gate for src/app/api/admin/**.
 import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError, type AuthContext } from "@/lib/api/auth";

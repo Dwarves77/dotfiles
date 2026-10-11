@@ -1,34 +1,3 @@
-// migration-history-diff.mjs: the recorded diff of every code-differs row (lane MIG-HIST-2, 2026-10-09).
-//
-// WHY. MIG-HIST-1 found rows whose repo file differs in code from the statements production's ledger stored (82 on
-// the 2026-10-09 export). The map said `code-differs` and the audit then failed every one of them on every run, so
-// the red could never be told apart from a NEW difference: a file edited after the fact, or a ledger row rewritten,
-// was invisible inside a permanent red. This module gives each such row a RECORD of what the difference is, in the map
-// itself, and gives the audit the one function that recomputes it.
-//
-// THE RECORD (APPLIED-MAP.json, on a ledger entry whose class is code-differs):
-//   diff: { class, file_only, stored_only, sha256 }
-//   class        'file-only'         the file has statements the ledger never stored; nothing stored is missing from the
-//                                    file (audit section 6 H1: the file gained statements after the apply, or they were
-//                                    applied by another route)
-//                'changed-in-place'  both sides have statements the other lacks (H2)
-//                'stored-only'       the ledger holds statements the file lacks (the file lost statements)
-//   file_only    count of normalised file statements absent from the stored text
-//   stored_only  count of normalised stored statements absent from the file, stray comment fragments excluded
-//   sha256       sha256 over the two normalised statement lists (the very lists scripts/migrations/migration-compare.mjs
-//                returns), so any change to either side of the difference changes the hash. The hash does NOT cover the
-//                file's header or comments: a first-line status flip by the refresh path leaves it unchanged.
-//
-// WHAT READS IT. The audit (migration-history-audit.mjs): a code-differs row with no record fails DIFF_RECORD_MISSING;
-// a record that no longer equals the live difference fails DIFF_DRIFT; a matching record is a reported finding.
-//
-// WHERE IT IS WRITTEN. The map generator (scripts/migrations/build-applied-map.mjs) builds the entry (name, file, class)
-// and does not know this field, so the annotator below runs AFTER it:
-//   node fsi-app/scripts/migrations/build-applied-map.mjs <reconciliation.json> --export-dir <dir> --write
-//   node fsi-app/scripts/verify/migration-history-diff.mjs --export-dir <dir> --write
-// A regenerated map without this second step fails the audit with DIFF_RECORD_MISSING naming that command.
-//
-// Pure core (no filesystem, no database); the CLI is behind the main guard. Read-only unless --write.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";

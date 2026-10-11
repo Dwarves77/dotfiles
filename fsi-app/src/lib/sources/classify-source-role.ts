@@ -1,17 +1,3 @@
-// src/lib/sources/classify-source-role.ts
-//
-// Deterministic source_role classifier — "what kind of entity is this source?". This is the
-// SSOT input for the label: source_role (what it IS) -> category (what we pull) -> intelligence_
-// types, derived in the migration-123 trigger. Called at onboarding (promote/decide) and in the
-// backfill so a source is never created with a NULL role + placeholder content-type.
-//
-// Signals are name + URL host only (no content fetch, no LLM) — the entity's identity is usually
-// unambiguous from those (a .gov is a government; a university is academic; a company is a vendor).
-// Returns null only when genuinely undeterminable (-> flagged, not guessed).
-//
-// Order matters: intergovernmental + standards are checked before government/academic because IMO
-// is not a national government and SBTi is not a university.
-
 export type SourceRole =
   | "primary_legal_authority"
   | "government_press"

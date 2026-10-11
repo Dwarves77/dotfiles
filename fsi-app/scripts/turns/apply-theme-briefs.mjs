@@ -1,37 +1,4 @@
 #!/usr/bin/env node
-// SHARED-WRITER: theme_briefs
-// apply-theme-briefs.mjs: the apply half of the theme-briefs batch pattern (lane S3-C, 2026-10-04) and the
-// ONE writer of theme_briefs (generate-theme-brief.mjs --write routes through writeThemeBriefRow below).
-//
-// Takes one named, committed batch file (scripts/turns/theme-briefs/batches/theme-briefs-NNN.json, contract
-// in scripts/turns/theme-briefs/README.md), validates EVERY entry against the live database with the pure
-// validator (scripts/turns/theme-briefs/schema.mjs: live membership and member hash, required sections,
-// ramifications per spanned surface, claims that are real grounded claims of live members, claim text that
-// appears in its section, no figure outside a claim or a labelled analysis paragraph, ceilings), then writes
-// the valid entries to theme_briefs. An entry that fails is refused whole, never partially applied, and its
-// reasons are recorded as residue; a refused entry never blocks the valid ones (no human gate).
-//
-// DRY BY DEFAULT: without --execute it validates, prints the plan and writes nothing (it still writes its
-// harness-run artifact). --execute writes through the guarded path (scripts/lib/db.mjs guardedInsert for a
-// new theme, guardedUpdate for an existing one, which snapshots the prior row), then reads each row back
-// and fails the run when the stored member_hash is not the one written (per-step verification).
-//
-// Columns: brief_md (the sections rendered in order under fixed headings), generated_by (the batch name),
-// plus, when migration 351 is applied, sections, claims and member_ids (the structured form and the
-// membership the brief was written for, which is what lets a drifted theme id find its prior brief). The
-// writer tolerates the columns being absent: it probes once and writes the base columns only.
-//
-// There is no admin override column on theme_briefs, so there is no override for this automatic writer to
-// respect; if one is ever added, writeThemeBriefRow is the one place to honour it.
-//
-// --fixture <corpus.json> runs the whole step over an in-memory corpus (scripts/turns/theme-briefs/
-// fixture-deps.mjs) with no database and no credentials; --execute then writes into memory only, and no
-// harness-run artifact is written. It exists so the step can be fired end to end without a database.
-//
-// FREE: no model call, no network. Usage:
-//   node scripts/turns/apply-theme-briefs.mjs --briefs <batch.json> [--execute] [--fixture <corpus.json>]
-// Exit 0 done (refused entries are reported as residue, not a failure), 1 bad args / unreadable or
-// structurally invalid file / a write that did not read back, 2 no database credentials.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { readFileSync } from "node:fs";

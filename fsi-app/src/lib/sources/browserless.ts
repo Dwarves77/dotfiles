@@ -1,16 +1,3 @@
-// Typed TS wrapper over the canonical Browserless content fetch.
-//
-// The render + parse logic now lives ONCE in canonical-fetch.mjs (plain JS) so that the
-// .mjs build/discovery runners call the SAME implementation as the TS routes — no more
-// aligned-but-divergent copies (when Browserless v2 changed waitForSelector from string
-// to object, four files needed the same fix and one was missed, leaving the manual-fetch
-// button broken in production; D1 makes the single-source-of-truth real on BOTH sides).
-//
-// This file keeps the TS-facing API stable: the BrowserlessOptions/BrowserlessResult
-// types, the browserlessRender(url, options) signature, and BrowserlessError (re-exported
-// from canonical-fetch.mjs so `e instanceof BrowserlessError` is the SAME class across
-// the TS and .mjs worlds). It adds the per-host SEC fair-access UA before delegating.
-
 import { secFairAccessUaForUrl } from "@/lib/sources/sec-fair-access";
 import { browserlessFetch, BrowserlessError } from "@/lib/sources/canonical-fetch.mjs";
 

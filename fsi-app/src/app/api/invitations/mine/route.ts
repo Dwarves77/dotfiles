@@ -1,11 +1,3 @@
-// src/app/api/invitations/mine/route.ts
-//
-// GET /api/invitations/mine — list all pending invitations addressed to
-// the caller's email. Used by the no-workspace landing page banner and
-// by the Profile invitations rail.
-//
-// Workstream B (Multi-Tenant Foundation) — 2026-05-15.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

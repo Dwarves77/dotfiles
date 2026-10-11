@@ -1,30 +1,3 @@
-// intersections.mjs: INTERSECTION DETECTION as code (lane S3-A). PURE, no DB, no LLM.
-//
-// The environmental-policy-and-innovation skill calls intersection detection the platform's headline
-// capability: two items intersect when they share at least one operational scenario tag AND at least one
-// compliance object tag, and neither is archived. That rule lived only in the SQL function
-// detect_intersections (migration 023), dropped by migration 265; nothing implemented it afterwards, and
-// discover.mjs scores an OR of weighted signals instead. This module is the AND rule, in code, over items
-// of ANY item type on ANY of the four intelligence surfaces.
-//
-// ROLE TAGS DO NOT CONNECT (ADR-021, "identity is not grouping"): ROLE_TAGS (imported from discover.mjs,
-// never copied) are near-universal identity, so they never count toward the compliance-object side, for
-// either the gate or the strength.
-//
-// STRENGTH, per the skill: +3 per shared scenario, +2 per shared non-role compliance object, +5 if either
-// item lists the other in related_items, +2 if both are priority CRITICAL or HIGH. Tiers: strong >= 12,
-// medium 8 to 11, weak < 8. Pairs are canonical (a.id < b.id, ADR-018 collapses at the reader).
-//
-// STORED SHAPE (one graph, no second table): the result rides on the pair's existing item_cross_references
-// row as one basis entry { signal: "intersection", detail: { scenarios, objects, strength, tier }, weight }
-// (write-edges.mjs writeIntersectionEdges). weight is the strength mapped onto the 0..1 edge scale by
-// strengthToScore below; cross_surface is NOT stored, the reader derives it from item_type and domain.
-//
-// COMPLEXITY. Candidate pairs come from a scenario-tag index: for each item, only items sharing one of its
-// scenario tags are visited, so the pass costs the sum over tags t of f(t)^2 (f = items carrying t), never
-// n^2. A tag carried by 20 percent of a 1,000 item corpus costs about 40,000 visits; a pass over all
-// tags of a realistic corpus is a few hundred thousand set lookups. Memory is O(n) per item (candidates are
-// scored and discarded item by item).
 import { ROLE_TAGS } from "./discover.mjs";
 import { surfaceOf } from "../surface-of.mjs";
 

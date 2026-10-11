@@ -1,34 +1,3 @@
-// pair-view.mjs — pure pair-assembly for the admin intersections reader (flywheel U3 supersession).
-// PURE, no DB, no LLM. Same discipline as cluster.mjs / theme-stats.mjs: plain ESM, zero
-// dependencies, deterministic, execution-wired proof in pair-view.test.mjs (rule 15 — the route
-// stays thin glue; the one piece of real computation lives here where `node --test` runs it).
-//
-// WHAT THIS REPLACES: the detect_intersections RPC (migration 023) re-scored item pairs in SQL from
-// operational_scenario_tags / compliance_object_tags — a SECOND scoring home, parallel to
-// discover.mjs. The flywheel build plan (U3) ratified retiring that scoring and re-pointing the
-// reader at the persisted graph: item_cross_references rows carry the one scoring home's output
-// (score + grounded basis), so the reader ASSEMBLES pairs, it never re-scores them.
-//
-// DIRECTIONALITY (ADR-018): storage keeps BOTH directions — (A,B) and (B,A) — because source-filtered
-// readers require both (write-edges.mjs directionality note). THIS reader canonicalizes to one
-// undirected pair per (min(id),max(id)), merging basis entries (deduped by signal+detail) and taking
-// the max score. Canonicalize-at-reader, both-directions-at-rest is the decided shape.
-//
-// EXPLICIT LINKS: an edge whose origin is NOT 'provenance_discovery' (manual, entity_extraction) is
-// operator/extractor-curated. Pairs carried ONLY by such edges have no engine score (score=null) and
-// are always included regardless of minScore — curation outranks a threshold. Scored pairs filter on
-// minScore as usual.
-//
-// INTERSECTION (lane S3-A): a pair whose edge carries the intersection basis entry exposes it as
-// `intersection` {scenarios, objects, strength, tier, cross_surface}; cross_surface is derived here from
-// item_type and domain (surfaceOf), null when an item has no item_type. See intersections.mjs.
-//
-// SCORE BANDS (documented heuristic, not an invented magic number — same posture as theme-stats'
-// convergence bands): discover.mjs weights are shared_source 0.4,
-// shared_scenario 0.3/tag, shared_compliance_object 0.18/tag, shared_jurisdiction_topic 0.2.
-//   strong  >= 0.9  — several substantive signals stacked
-//   medium  >= 0.5  — multiple substantive signals (e.g. source + scenario)
-//   weak    <  0.5  — a single substantive signal near the 0.3 discovery threshold
 export const BANDS = { strong: 0.9, medium: 0.5 };
 
 import { isIntersectionEntry, isCrossSurface, basisEntryKey, basisDetailText } from "./intersections.mjs";

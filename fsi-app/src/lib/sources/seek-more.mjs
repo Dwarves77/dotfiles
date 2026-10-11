@@ -1,24 +1,4 @@
-// SHARED-WRITER: integrity_flags
 // @ts-check
-// SEEK-MORE candidate generation (paired with the RD-14 transport escalation ladder). When a declared primary
-// is a genuine not-found, seek-more GENERATES an ordered list of candidate URLs from the instrument's IDENTITY;
-// the LIVE consumer is fetchPrimaryWithFallback / fetchPrimaryDeep (canonical-pipeline), which hands the array
-// to the escalation ladder and persists the per-(candidate × transport) EXHAUSTION RECORD (persistPrimaryExhaustion).
-//
-// THE DOCTRINE (remediation-discipline, Section 4 category 13 — transport failure is never terminal): a hold or
-// delete is honest ONLY after PROVEN exhaustion. Candidate generation is DETERMINISTIC-IDENTIFIER-FIRST (no
-// fetch): an instrument's own identity (CELEX/ELI, UK SI number, a Norwegian forskrift citation, a national
-// gazette reference, a known API endpoint) resolves to the OFFICIAL canonical URL BY MACHINE — never hand-fed.
-// Only when the identity yields nothing does the open-web search fallback run. Candidates are HYPOTHESES: a
-// wrong one simply fails into the exhaustion record and the next candidate is tried (the moat qualifies only
-// content that grounds), so the resolvers can be liberal without risk.
-//
-// PURE + DEP-INJECTED: generateCandidates takes an optional injected `webSearch`; exhaustionFlagRow /
-// persistExhaustionRecord build + write the interim exhaustion record — NO real fetch and NO db write happen
-// here except through the injected writer (scrape hold honored). NO-SHADOW (2026-07-14): the runSeekMore
-// orchestrator was RETIRED — the live one home is fetchPrimaryWithFallback (proven by reground-ladder.golden),
-// which consumes generateCandidates directly; a second orchestrator here was a dormant duplicate. GOVERNING:
-// remediation-discipline (category 13, RD-14; no-shadow) + source-credibility-model (qualification).
 
 import { apiEndpointFor } from "./transport-escalation.mjs";
 import { discoverCandidateUrls, celexTxtHtmlUrl, eliPathUrl, legislationUkUrl } from "./identifier-variants.mjs"; // F46: eur-lex.europa.eu + www.legislation.gov.uk's one home (lane L35)

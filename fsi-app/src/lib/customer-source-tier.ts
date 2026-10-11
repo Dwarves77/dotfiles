@@ -1,28 +1,3 @@
-/**
- * customer-source-tier: the ONE rule for the tier a customer sees for a source (lane P1,
- * 2026-10-05; CLAUDE.md rule 18, "the surface shows the rating").
- *
- * GOVERNING SKILL(S): source-credibility-model
- *
- * THE RULE, from migration 090's stated formula and the skill's Section 7:
- *   customer tier = tier_override when an admin set one, else effective_tier, else base_tier.
- *
- * WHY A HELPER. Every customer loader used to compute `effective_tier ?? base_tier` on its own and
- * none of them selected `tier_override`, so an admin override written to `sources.tier_override`
- * (the tier-override route writes only tier_override, override_reason, override_date) never reached
- * a row chip, the ActionCard or the Sources grid. Reading the override first, in one place, makes an
- * admin edit exactly what the customer sees, and stops the loaders drifting apart again.
- *
- * WHAT THIS IS NOT. The PER-CLAIM tier is a different rule and stays exactly where it is:
- * load-detail-core.ts's `fetchClaimTierMap` derives a claim's tier as `tier_override ?? base_tier`
- * and must never read effective_tier (migration 145, "moat-pure": reputation never confers
- * reg-fact eligibility). This helper is for the SOURCE-level chip only.
- *
- * Pure and isomorphic (no I/O, no clock). A value outside the tier vocabulary is treated as absent,
- * never clamped into a tier the source does not have: an unrateable source returns null and the
- * caller renders the Absence part.
- */
-
 import { TIER_LABELS } from "./tier-labels.ts";
 
 const TIERS = Object.keys(TIER_LABELS).map(Number);

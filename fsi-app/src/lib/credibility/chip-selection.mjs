@@ -1,25 +1,9 @@
-// Bias-chip display selection.
-//
-// Customer-visible Q9 cards (Dashboard WeeklyBriefing, Research PipelineRow,
-// any future surface that mounts BiasBadge in a dense list context) cannot
-// render the full per-source bias vocabulary inline. A regulator-class source
-// commonly carries 5-7 distinct (dimension, tag) pairs; multiplied across
-// 5 top-priority items on the Dashboard the visual stack becomes ~25-35
-// chips and the card overflows the viewport. (Hotfix incident 2026-05-22.)
-//
-// This module returns the bounded display slice + an overflow count so the
-// chip component can render "+N more" instead of every tag.
-//
-// ProvenancePanel intentionally does NOT call this; the panel is the
-// expand-on-click detail surface and shows the full tag set per DP-1.
-
 /**
  * @typedef {Object} BiasTagInput
  * @property {'funding'|'methodology'|'stakeholder'} dimension
  * @property {string} tag
  * @property {number|null|undefined} [confidence]
  */
-
 /**
  * Pick the top-N bias chips to display in a dense list context.
  *
@@ -32,6 +16,7 @@
  *   and any future caller that wants the full set).
  * @returns {{ displayed: BiasTagInput[], remaining: number }}
  */
+
 export function selectBiasChipsForDisplay(tags, maxChips) {
   const safe = Array.isArray(tags) ? tags : [];
   if (typeof maxChips !== 'number' || maxChips <= 0 || safe.length <= maxChips) {

@@ -1,35 +1,5 @@
 #!/usr/bin/env node
-// enumerate-unclassified-hosts.mjs -- MAINT step, defect D14 item 2 (docs/plans/defect-fix-plan-2026-09-12.md).
-//
-// READ-ONLY. Writes NOTHING to the database, ever -- there is no `--mode apply` branch, no guardedUpdate,
-// no guardedInsert. `mode` is accepted only for parity with the runCli/composite-action contract every
-// MAINT step shares; this step behaves identically regardless of its value. The coordinator runs it
-// through maintenance.yml as a dry-only step named `enumerate-unclassified-hosts` (this step never mints
-// a class-table rule itself -- SC-13 (source-credibility-model skill Section 3) forbids a model or a
-// script guessing a tier; only the coordinator, a doctrine act, rules a host's class from this list).
-//
-// WHAT IT DOES. Lists every host of the pending `provisional_sources` rows and the `sources` rows with
-// status='provisional' that rule (a) (existingTierForHost, an existing active institution) and rule (b)
-// (classTierForHost, the SC-13 class table -- including the D14 government-label and legal-publisher
-// extension just landed alongside this script) STILL do not resolve -- the residue defect D14 item 1
-// could not close deterministically. Per host: the row's own stored `name`, `discovered_via`, the
-// citing item's title where one exists (a match against `agent_run_searches.result_url`'s host, joined
-// to `intelligence_items.title` via `intelligence_item_id` -- the only live table that records which
-// item's agent run surfaced a given URL; provisional_sources/sources carry no item reference of their
-// own), and the row count. Never a guessed tier, never an auto-registration -- this step only LISTS.
-//
-// OUTPUT. Two files written directly to this run's own `--out` directory (never the repo, per standing
-// rule 5 -- machine evidence never lands in docs/ top level): `unclassified-hosts.json` (the full
-// per-host detail) and `unclassified-hosts.md` (the same data as a Markdown table, for the coordinator
-// to read directly off the run artifact). `runCli`'s own `summary.json` (counts only) is written
-// alongside them, same as every other MAINT step.
-//
-// REUSE, NEVER A SECOND COPY: `existingTierForHost` (scripts/maintenance/canonical-autoverify.mjs, rule
-// a) and `classTierForHostWithVerdicts` (src/lib/sources/host-authority.ts, rules b and b2) are the SAME functions
-// resolve-provisional-sources.mjs consumes -- this step's residue is defined as "whatever that step's
-// own rule a/b would leave unresolved", so it must run the identical two functions, never a re-derived
-// approximation. `hostOf` (scripts/lib/db.mjs) is the same host-extraction helper every maintenance
-// script in this family uses.
+
 import { readAll, hostOf } from "../lib/db.mjs";
 import { classTierForHostWithVerdicts } from "../../src/lib/sources/host-authority.ts";
 import { existingTierForHost } from "./canonical-autoverify.mjs";

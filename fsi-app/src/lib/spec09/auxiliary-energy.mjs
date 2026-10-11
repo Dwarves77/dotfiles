@@ -1,7 +1,3 @@
-// auxiliary-energy.mjs — spec 09 §1.5's stationary auxiliary load. "A 72-hour climate-controlled airport
-// hold for a museum loan can exceed the flight leg's own emissions, and no per-tonne-km model shows
-// that." No fs, no I/O.
-
 import { labelled, missing } from "./label.mjs";
 
 /** kWh consumed by a stationary auxiliary load over its typical duration. Pure arithmetic:

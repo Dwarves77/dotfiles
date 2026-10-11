@@ -1,27 +1,3 @@
-/**
- * SeriesProvenance: the methodology and provenance drawer of spec 02 section 6 item 10 and section 5
- * ("one click from any number"), extracted from MarketSeriesBoard.tsx (lane MKT-1, 2026-10-08) so every
- * Market page that shows a market_series figure mounts the SAME disclosure instead of retyping it.
- *
- * THE MARKUP IS MOVED, NOT CHANGED. `ProvenanceDrawer` is the exact <details> block the board rendered
- * inline under each populated series row, and `ProvenanceFields` is the grid inside it, split out only so
- * a second mount that already owns its own disclosure (the headline ribbon, whose cards are too narrow to
- * open a grid inside) can draw the identical fields. /market/series renders what it rendered before.
- *
- * ONE COMPONENT FOR EVERY FIGURE (operator ruling 2026-10-08, lane MKT-1): the props are a FIGURE ENVELOPE
- * (the spec 00 section 2 fields: derivation, origin class, method version, n, source, licence, plus the
- * rating and as-of date where a figure carries them), not a market_series row. `envelopeFromSeriesRow`
- * adapts a series row for the board and the ribbon; /market/[slug] builds an envelope from the emission
- * factor row or the series behind the price board it actually shows. A field the figure does not carry
- * renders nothing, so a figure with a thin envelope shows a thin drawer, never an invented field.
- *
- * REAL FIELDS ONLY. The registry's own derivation, origin class and licence text plus the row's own
- * envelope columns, never the removed "convergence scoring" claim (spec 02 section 9). A field the row
- * does not carry renders nothing (MethodRow), never a padded dash.
- *
- * Server component, no client state, no fetch.
- */
-
 import type { MarketSeriesDisplayRow } from "@/lib/supabase-server";
 
 /** The slice of a producer group (or a series-registry.mjs entry) the series adapter reads. */

@@ -1,24 +1,3 @@
-// cli.mjs — shared CLI bootstrap for every fsi-app/scripts/maintenance/*.mjs wrapper.
-//
-// WHY THIS EXISTS (Lane MAINT, 2026-09-02). .github/workflows/maintenance.yml is the first runtime for
-// the coordinator-only applies docs/plans/finish-plan-2026-09-02.md's MAINT paragraph names: seven
-// steps, each dry by default, apply only with an explicit `mode=apply` dispatch input (and several also
-// gated on a ruling token passed as `arg`). Every step needs the SAME three things — parse
-// --mode/--arg/--out, load .env.local when run by hand, refuse cleanly when DB creds are absent for a
-// step that needs them — so that plumbing lives here once rather than seven times. What each step
-// actually DOES (the deps it needs, the DB calls it makes) stays in that step's own file; this module
-// never imports db.mjs itself, so a step that needs no DB (tier-opinions) never pays
-// for a credential check it doesn't need.
-//
-// CONTRACT every wrapper's main(opts, deps) receives opts = { mode, arg, out } (out is this run's
-// artifact/out-dir, null when --out wasn't passed — only review-digests.mjs uses it today, to hand the
-// same directory to the upstream script it shells out to; every other step ignores it) and returns:
-// { step, mode, counts, applied, read_back, ...}
-// per the dispatch's own contract (finish-plan-2026-09-02.md, MAINT paragraph: "a summary.json written
-// by every wrapper ({ step, mode, counts..., applied: n, read_back: {...} })"). An optional numeric
-// `exitCode` on the returned summary sets this CLI's process exit code (default 0); every step uses
-// this instead of throwing for an EXPECTED refusal (bad/missing --arg, "not runnable this way") so the
-// summary.json — not just stderr — carries the reason.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

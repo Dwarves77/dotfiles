@@ -1,37 +1,3 @@
-// signal-confidence.mjs — confidence classification for L4 signal candidates (signal-candidates.mjs).
-// PURE, no DB, no LLM, $0.
-//
-// OPERATOR RULING 2026-09-03: the flywheel must not have a human gate (spec 08 §Loop B, "without a
-// human in the path"). signal-candidates.mjs's own header used to say every candidate this module
-// mines is "operator review only, never auto-adopted" — that posture stood while 930 open L4 flags sat
-// unreviewed and the signals never became edges. The corrected rule: DETERMINISTIC derivations
-// auto-adopt (written as real item_cross_references edges, with provenance), and only the UNDECIDABLE
-// residue stays an integrity_flags candidate. This module draws that line, from the two signal kinds'
-// OWN evidence (read signal-candidates.mjs in full before changing this file):
-//
-//   shared_regulation_identifier — REG_ID_RE is a narrow, structured legal-citation pattern (4-digit
-//     year/number, optional /EU|/EC|/EEC suffix; signal-candidates.mjs's own comment calls it
-//     "deliberately conservative"). Two items whose titles both name the SAME formatted regulation
-//     number are citing the same legal instrument — there is essentially no coincidental-collision risk
-//     in a match this specific. ONE shared identifier between a pair is decisive on its own.
-//
-//   shared_title_entity — CAP_PHRASE_RE is a rough named-entity PROXY (2+ consecutive capitalized
-//     words); the module's own stoplist exists only to blunt the worst false positives ("The New
-//     Rules"). A SINGLE shared capitalized phrase is not decisive by itself — ordinary title prose
-//     collides on generic capitalized phrases too often. Two conditions raise it to decisive:
-//       (a) the SAME pair shares >= 2 DISTINCT capitalized-phrase tokens — independent corroboration;
-//           coincidence on one shared phrase is plausible, coincidence on two independently is not.
-//       (b) the shared phrase is a member of TITLE_ENTITY_VOCABULARY below — a small closed list of
-//           real, named regulatory programmes/instruments (not an accidental capitalization pattern).
-//     No such vocabulary SoT exists anywhere else in this repo today (checked: no vocab.mjs entry, no
-//     research/taxonomy.mjs entry names title-level programme strings) — CLAUDE.md rule 2 ("never
-//     fabricate") rules out inventing entries with no real source, so TITLE_ENTITY_VOCABULARY ships
-//     EMPTY: the (b) path is a real, tested hook, not a fabricated list. It engages the moment an ADR or
-//     a real controlled vocabulary registers entries here; until then confidence rests entirely on (a).
-//
-// A signal kind this module does not recognize classifies UNDECIDED (fail closed) — a future signal
-// kind added to signal-candidates.mjs needs an explicit ruling here before it can auto-adopt.
-
 import { createdBy } from "./flag-namespaces.mjs";
 
 const CONFIDENCE = Object.freeze({ DECISIVE: "decisive", UNDECIDED: "undecided" });

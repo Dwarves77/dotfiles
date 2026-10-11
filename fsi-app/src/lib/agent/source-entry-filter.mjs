@@ -1,19 +1,3 @@
-// source-entry-filter — the F-1 forbidden-class kill (2026-07-09).
-//
-// A §15 source row must NEVER render fabricated/placeholder copy for a null or
-// header-artifact field. The PPWR detail page showed a source named "Source Name"
-// because parseSourcesList parsed a SECOND table's HEADER row as data (the
-// "## New Sources Identified" table). This pure predicate is the single home for
-// "is this a renderable source, or a placeholder/header artifact" — consumed by
-// BOTH the parser (drop it at the source) and the renderer (defence in depth).
-//
-// Rule: a source name is a PLACEHOLDER when it is empty/whitespace, is a bare
-// punctuation/no-data token (—, -, n/a, tbd), or is a column-header literal
-// (source name, title, url, tier, …). Placeholder-named entries are suppressed;
-// a real name with a null URL is NOT a placeholder (renders as honest plain text).
-
-// Exported so the overflow-hydration rendering guard reuses this exact literal set for its
-// placeholder-literal DOM scan (no hand-duplicated copy that could drift from this SoT).
 export const HEADER_LITERALS = new Set([
   // §15 sources table headers
   "source name", "source", "name", "title", "#", "no", "url", "link",

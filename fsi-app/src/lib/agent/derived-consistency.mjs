@@ -1,9 +1,3 @@
-// derived-consistency.mjs — the ARITHMETIC-CONSISTENCY guard for Gate B DERIVED mints (operator ruling
-// 2026-07-27). A DERIVED claim may be written ONLY if the derived date is arithmetically consistent with its
-// basis recurring rule — an annual June-1 rule can only ground June-1 dates or bare years; a May date is
-// rejected. This makes a wrong basis match (Tier-1 auto OR Tier-2 judged) structurally difficult: the worst
-// case is a rejected mint, never a mis-derivation in the corpus. Pure + deterministic; both tiers call it.
-
 const MONTHS = { january:1, february:2, march:3, april:4, may:5, june:6, july:7, august:8, september:9, october:10, november:11, december:12 };
 const MON_RE = "(january|february|march|april|may|june|july|august|september|october|november|december)";
 

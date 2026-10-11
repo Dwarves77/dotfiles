@@ -1,23 +1,3 @@
-// src/lib/agent/claim-ledger-block.ts
-//
-// Lane P3 (2026-10-05). The ONE definition of the Claim Provenance Ledger block's text shape and the
-// ONE function that removes it from prose. Pure. The sentinel strings come from section-markers.mjs
-// (LEDGER_NAME / LEDGER_OPEN / LEDGER_CLOSE), the one definition shared with the write-path refusal, the stored-data
-// audit and the live smoke gate (lane GATES-2).
-//
-// THE DEFECT THIS CLOSES [CONFIRMED against the live rows, read-only, 2026-10-05]. The agent emits the
-// ledger as a block between two sentinels, before the YAML frontmatter. parseAgentOutput stripped the
-// block from the stored body ONLY when the block parsed as a valid ledger; when the JSON was malformed
-// (item 9d18608f: a stray character at line 220, item 5e0af336: line 10) or a FACT record lacked its
-// span (item 58bf0406), locateClaimLedger threw, the catch fell back to "no inline claims" and the block
-// stayed in the body, which was then stored as full_brief and split into sections, so the literal ledger
-// text became customer-visible prose (the last section of the brief). The claims fall back harmlessly
-// (the grounding step re-extracts them); the TEXT must never fall back into the body.
-//
-// So the strip here is deliberately independent of validity: a ledger block is removed whether or not
-// it parses, in any section, and so is an opener that never closed (output cut off mid-ledger) and a
-// stray closing sentinel.
-
 import { LEDGER_NAME, LEDGER_OPEN, LEDGER_CLOSE } from "./section-markers.mjs";
 
 // A closed block: opener, anything (including newlines and braces), closer. Non-greedy so two blocks in

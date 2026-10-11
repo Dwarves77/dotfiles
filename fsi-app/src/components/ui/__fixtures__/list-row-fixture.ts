@@ -1,34 +1,3 @@
-/**
- * list-row-fixture.ts (lane W10-ListRow, 2026-09-22).
- *
- * Frozen from four real `intelligence_items` rows, via read-only SELECT against the live Caro's
- * Ledger Supabase project (kwrsbpiseruzbfwjpvsp), frozen 2026-09-22. No title, jurisdiction, tier or
- * timeline label below is invented (operator ruling: "fixtures render from a frozen real record ...
- * never invented strings").
- *
- * Queries run (read-only, no writes):
- *   select ii.id, ii.title, ii.item_type, ii.jurisdictions, ii.priority, ii.item_grade,
- *          s.effective_tier, s.base_tier
- *   from intelligence_items ii left join sources s on s.id = ii.source_id
- *   where ii.provenance_status = 'verified' and ii.item_type = 'regulation'
- *     and ii.archived_date is null
- *   order by ii.last_regenerated_at desc nulls last limit 6;
- *
- *   select item_id, milestone_date, label, is_completed, sort_order from item_timelines
- *   where item_id in (<the four ids below>) order by item_id, sort_order;
- *
- * The four rows below cover the parts-brief 2.16 impact-meter fixture's four states (N=4, N=8,
- * N=12, unscored). The per-dimension ImpactScores objects are NOT read from any stored score (the
- * schema stores no `impact_scores` column; every surface derives it client-side via
- * `scoreResource`, see `src/lib/list-row-fields.ts`'s own header) but are set here explicitly so the
- * meter renders at each of the brief's four named totals, the same pattern the legend row itself
- * uses (`<ImpactMeter total={8} />`, brief 2.16). Every other field (title, jurisdiction, tier,
- * timeline milestones, due date) is the frozen real value.
- *
- * `dueLabel`/`dueDays` are computed relative to the freeze date (2026-09-23) rather than `now()`,
- * so this fixture page (a server component; no client clock) never depends on render time.
- */
-
 import type { ImpactScores, TimelineEntry } from "@/types/resource";
 import { bandFromPriority, type UrgencyBand } from "@/lib/urgency/bands";
 

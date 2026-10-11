@@ -1,14 +1,3 @@
-// Sprint 4 Block 1 task 1.15 — recommendSourceTier (UNVERIFIED-PENDING-RUNTIME).
-//
-// Haiku-backed source-tier RECOMMENDATION for the Phase 1.5 source-tier audit.
-// Per the integrity rule (decision log 2026-05-29): Haiku RECOMMENDS a tier with
-// rationale + confidence and a FACT-vs-INFERENCE framing; it does NOT assert the
-// tier as fact. The operator tick is the authority. A genuinely ambiguous tier
-// returns confidence "low" so it surfaces for operator decision, not a guess.
-//
-// DO NOT RUN A TIER PASS IN BLOCK 1. This function is written + wired only; it is
-// invoked during Phase 1.5 (after HC1), per-source, operator-paced.
-
 import { createClient } from "@supabase/supabase-js";
 import { browserlessRender } from "@/lib/sources/browserless";
 // SPEND CHOKEPOINT (C6, 2026-07-11): the Haiku tier-recommendation routes through spendStream — a

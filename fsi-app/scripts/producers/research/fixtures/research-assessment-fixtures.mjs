@@ -1,13 +1,6 @@
-// research-assessment-fixtures.mjs -- fixture AssessmentInput rows for research-assessment-producer.mjs's
-// dry/no-creds CLI run (lane-common-contract "test what you build": a producer is not done until it has
-// run for real, dry or apply, and left a harness-run artifact). Shapes match src/lib/research/assess.mjs's
-// AssessmentInput typedef exactly -- these are NOT live corpus rows (no DB creds in this worktree); each
-// one exercises a DIFFERENT rule in the R1-R4 ladder plus the mandatory refusal state, so a single fixture
-// run's per_item outcomes demonstrate every branch the producer's own metrics report.
-
 export const FIXTURE_NOW = new Date("2026-10-01T00:00:00Z");
 
-/** @type {import("../../../src/lib/research/assess.mjs").AssessmentInput[]} */
+/** @type {import("../../../../src/lib/research/assess.mjs").AssessmentInput[]} */
 export const FIXTURE_CANDIDATES = [
   {
     id: "fixture-research-r1",
@@ -96,7 +89,7 @@ export const FIXTURE_OPENALEX_WORK_RESPONSE = {
   authorships: [{ institutions: [{ display_name: "Harvard University", type: "education", ror: "https://ror.org/03vek6s52" }] }],
 };
 
-/** @type {import("../../../src/lib/research/assess.mjs").AssessmentInput} */
+/** @type {import("../../../../src/lib/research/assess.mjs").AssessmentInput} */
 export const FIXTURE_OPENALEX_CANDIDATE = {
   id: "fixture-research-openalex-doi",
   itemType: "research_finding",

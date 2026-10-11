@@ -1,43 +1,4 @@
 #!/usr/bin/env node
-// SHARED-WRITER: census_worklist
-// reopen-validation-holds.mjs — lane URL-GUIL, 2026-09-03. The symmetric reversal of
-// apply-mint-batch.mjs's validation-failed hold-back (see resolveValidationFailedHolds there for the
-// write side): re-admits a census_worklist row a mint-batch-report once held
-// (dryrun_disposition='hold', hold_reason starting `validation_failed:`) back into the would_mint export
-// pool, SCOPED to a hold_reason substring the caller names explicitly.
-//
-// NO EXISTING RE-TRY RULE — checked before writing this file: no `harness_version`/`kit_version`-keyed
-// retry logic exists anywhere in scripts/mint, scripts/turns, or src/lib/intake, and export-census-rows.mjs's
-// own EXPORT-HOLD held-key index (buildHeldKeyIndex/partitionExcludeHeldByKey) is a pure, in-memory,
-// export-time computation over a LIVE intelligence_items read — it persists nothing to census_worklist at
-// all (confirmed: that file makes no census_worklist write of any kind), so there was nothing for a
-// validation-failed hold to inherit a re-try rule FROM. This script is therefore the FIRST reopen
-// mechanism this table has ever had, built the minimal, honest way: it does NOT re-validate a row itself
-// (that would duplicate export-census-rows.mjs's live capture and run-mint-batch.mjs's real C1-C7 gate — a
-// live-fetch pipeline this guarded-write script has no business re-implementing, and re-implementing it
-// here would risk a SECOND, drifting copy of the exact kind of duplication this repo's own standing rules
-// warn against). It only returns a row to the would_mint pool; the population-turn's real capture+validate
-// pass, next time it runs, decides the row's fate for real — exactly as it would for any other
-// would_mint row, no shortcut taken. A coordinator invokes this DELIBERATELY, scoped by
-// --reason-contains, immediately after landing a fix that plausibly resolves the named failure class
-// (e.g. `--reason-contains ungrounded_url` after migration 300 lands) — never as a blanket, unscoped, or
-// scheduled re-admission; there is no cron entry point here on purpose.
-//
-// WHAT THIS TOUCHES. Only rows where dryrun_disposition='hold' AND hold_reason starts with
-// 'validation_failed:' AND hold_reason contains --reason-contains (case-insensitive substring — see
-// isReopenTarget). Sets dryrun_disposition='would_mint', hold_reason=null (the table's own DB CHECK,
-// migration 221, requires the two move together: (dryrun_disposition='hold') = (hold_reason IS NOT
-// NULL)), and APPENDS a reopen marker to `notes` — the held evidence JSON apply-mint-batch.mjs's hold
-// write already recorded there is never overwritten, only added to, so a row's full history (why it was
-// held, when it was reopened) survives.
-//
-// DRY-RUN by default (the posture every guarded script in this repo takes); --apply writes through
-// db.mjs's guarded path (cite + prior-value snapshot + read-back). Idempotent: a second run with the same
-// --reason-contains finds 0 matching rows once the first has cleared them (dryrun_disposition is no
-// longer 'hold').
-//
-// USAGE:
-//   node scripts/mint/reopen-validation-holds.mjs --reason-contains ungrounded_url [--apply]
 
 import { readAll, guardedUpdate } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";

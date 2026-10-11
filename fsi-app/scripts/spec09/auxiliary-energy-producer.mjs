@@ -1,13 +1,5 @@
 #!/usr/bin/env node
-// auxiliary-energy-producer.mjs — spec 09 §1.5, auxiliary_energy_profiles (migration 297, org-scoped by a
-// follow-up migration this lane — see docs/inventories/shared-dataset-ownership.md).
-//
-// OPERATOR-SUPPLIED EXTERNAL ROWS ONLY (ADR-042, 2026-10-03): the app has no customer upload route. This CLI
-// parses a rows file an operator dispatches (public-source data), through the one shared column contract
-// scripts/spec09/lib/operator-rows-contract.mjs. Never customer data.
-//
-// DRY BY DEFAULT. With no CSV given, behaves as before: a no-op naming why. With deps.csvText +
-// deps.orgId, parses and (on --apply) inserts through the guarded path.
+
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "../maintenance/lib/cli.mjs";

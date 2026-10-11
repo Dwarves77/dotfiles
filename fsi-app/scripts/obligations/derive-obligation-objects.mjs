@@ -1,33 +1,3 @@
-// derive-obligation-objects.mjs, the WRITER of `obligation_objects` (migration 376, spec 01 section 3.2)
-// (lane HALF-1, 2026-10-11). Called from derive-obligations.mjs `main`, so every runtime that runs the
-// derive-obligations step (the maintenance wrapper in the downstream chain, run-population-flywheel step 8) reaches it.
-//
-// WHAT IT DOES. Takes CANDIDATE provisions (one per obligation: the pinpoint, the verbatim provision text, the
-// duty-holder classes, the applicability trigger, optional dates and scope), proves each against the held capture, and
-// plans one `obligation_objects` row per accepted candidate. It never reads prose and decides nothing about what a
-// provision SAYS: candidates are produced by a grounded drain batch (population is a later stage, operator ruling
-// 2026-10-04), and a candidate file is the only input. No candidates, no reads, no writes.
-//
-// WHAT IT NEVER DOES.
-//  - Invent a field: a date, cost slot, frequency or scope the candidate does not carry stays NULL.
-//  - Write a status other than `not_assessed`: yes / no is a position taken by a person (spec 01 section 3.2), never by
-//    this writer; a candidate carrying yes or no is refused.
-//  - Overwrite or update a row: it is INSERT-only. A changed provision at an existing pinpoint is a NEW version row whose
-//    `supersedes` names the current one (spec 01 section 3.2 "version the obligation object, not the document"), so an
-//    admin-set value on an existing row can never be overwritten by this writer.
-//  - Write a span that is not verbatim: the same rule as the database guard (`obligation_objects_guard`, migration 376:
-//    lower(btrim(span)) is a substring of lower(capture), the capture belongs to the instrument item, ADR-016) is checked
-//    here first, so a dry run predicts the refusals instead of the database discovering them.
-//  - Compute the instrument entity: the guard trigger fills `instrument_entity_id` from the item (migration 283) and the
-//    outbox trigger (migration 352's two-argument form) emits the propagation event keyed on it, so every row this
-//    writer inserts reaches the flywheel with no code here (rule 17).
-//
-// BINDING POSITION. A candidate's own `binding_position` (obligation grain) wins; a candidate without one is classified by
-// the instrument-level classifier in derive-obligations.mjs (identity, then record-facts, then title, then monitoring_only
-// from the candidate's duty holders); a candidate that neither yields is refused as unclassified, never guessed.
-//
-// IDS. `cl:obligation:<16 hex>` from entityId("obligation", "<item id>|<pinpoint>|v<version>"): deterministic, so a re-run over
-// the same batch plans nothing (idempotent at the script layer; the primary key backs it).
 import { entityId } from "../../src/lib/entities/entity-id.mjs";
 import { currentObligationObjects } from "../../src/lib/workspace/relevance.mjs";
 import { BINDING_POSITION, DUTY_HOLDER_CLASSES } from "../../src/lib/contracts/vocabularies.mjs";

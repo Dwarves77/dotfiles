@@ -1,25 +1,3 @@
-// SHARED-WRITER: intelligence_items, item_cross_references, integrity_flags, section_claim_provenance, agent_run_searches, intelligence_item_sections, item_gate_a_state
-// src/lib/agent/canonical-pipeline.ts
-//
-// THE single canonical generation pipeline as plain, directly-executable lib functions the workflow
-// steps call (no blind bodies). There is ONE generator and it is a DEEP DIVE — the thin single-source
-// generate (the retired scripts/content-generate.mjs) does not exist anymore. generateBrief:
-//   1. fetches the primary source,
-//   2. uses web_search to DISCOVER corroborating/expanding sources (official, academic, named
-//      participants, trade press) — the system's whole reason for being: a thin source triggers
-//      deeper research, it is never accepted as-is,
-//   3. fetches that multi-source pool, and
-//   4. synthesises a rich brief ACROSS the pool under the Forward-Intelligence + No-Vacuum rules,
-//      documenting the discovered sources (which then feed source-growth).
-// This is the auto-discovery generalisation of the (now retired) jolt-exemplar-regen prototype,
-// which hand-listed the corroborators; web_search discovery replaces that hand-list so it works for
-// any item at scale. ground re-verifies FACT spans against the same pool; grow registers + credits
-// the discovered sources.
-// Uses the Supabase SERVICE client throughout (env-based -> works in the Vercel workflow runtime).
-// The grounding "transaction" is emulated with a manual cleanup-on-invalid (delete the just-inserted
-// claims/searches) since the REST client has no multi-statement transaction — atomic enough: an item
-// is only ever flipped by validate_item_provenance. Browserless is the only content-fetch path.
-
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { fetchPrimaryWithFallback, detectRoadblock } from "@/lib/sources/primary-fallback.mjs";

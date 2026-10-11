@@ -1,12 +1,3 @@
-/**
- * Map (`/map`) — server component.
- *
- * UI system handoff 2026-09-06 (docs/design/handoff-2026-09-06, README
- * screen 10 / artboard "Map"; lane uimapcomm): Masthead + command bar
- * (the frame convention, README §0.3), body from <MapPageView/> — see
- * that component's header for what it's assembled from.
- */
-
 import { describeFallbackTrigger } from "@/lib/supabase-server";
 import { getListingsMapData } from "@/lib/data";
 import { getCoverageGaps } from "@/lib/coverage-gaps";

@@ -1,13 +1,4 @@
 // @ts-check
-// metered-gate.mjs — STANDING FINANCIAL LAW enforcement (operator ruling 2026-07-25, post account-spend incident).
-// The wall in the shared model-call path: metered Anthropic API spend is FORBIDDEN BY DEFAULT. Only ONE call class
-// is ever eligible for the metered route — batch-classification — and only with a recorded operator token, an
-// allowlisted model, and a hard dollar cap. Every other class (grounding, extraction, repair, mint, synthesis,
-// re-ground, ask) runs FREE on the subscription executor and MUST refuse the metered route with a named error.
-// Prose rules failed (the incident: grounding ran metered when it runs free) — this is the mechanical enforcement.
-//
-// Usage at the single sanctioned metered call site:  assertMeteredCallAllowed({ callClass, model, env })
-// It throws MeteredCallForbiddenError unless every condition holds. There is no bypass argument.
 
 export class MeteredCallForbiddenError extends Error {
   /** @param {string} reason */
