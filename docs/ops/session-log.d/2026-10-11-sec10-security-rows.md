@@ -37,11 +37,17 @@ Red run: the tests alone (commit a90143633) over master's source. Green: after t
 
 ## Backlog rows
 
-The backlog landed on master (AUD-LAND-2, aa92d9daa) while this lane ran and arrived with rule 18's merge. In `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md` every one of these ids appears twice (the "65 rows marked SECURITY or DATA-INTEGRITY" table, lines 58-97, and the full Backlog table, lines 179-218); both copies were flipped so they cannot disagree.
+The backlog landed on master (AUD-LAND-2, aa92d9daa) while this lane ran and arrived with rule 18's merge. This lane wrote the STATUS cells, then rule 17's fitness run failed `[F51] no-shared-append` check 4: a lane branch may not change anything under `docs/audits/` (F51-no-shared-append.mjs:433, "A lane never edits a file under docs/audits/"). The brief's write set names that file and the lane contract forbids it; this run did not resolve the conflict by choosing a side beyond the safe one: the backlog file was restored to master's version (`git checkout origin/master -- <file>`, diff against master for docs/audits is empty) so the single CI run is expected green, and the flips are listed here for the executor under rule 22's fallback. Each id appears twice in the file (the "65 rows marked SECURITY or DATA-INTEGRITY" table, lines 58-97, and the full Backlog table, lines 179-218): flip both copies.
 
-- B-0001, B-0002, B-0003, B-0004, B-0005, B-0006, B-0040: STATUS cell `CLOSED: PR 1122` in both tables (14 cells).
-- B-0007: NOT flipped (registry condition, see B-0007 evidence). Proposed cell if the coordinator accepts the glob wiring: `REFUTED: closed by migration 371 and PR 1003 (viewer-read-only-routes.npmtest.mjs, 27 tests pass, wired by the npmtest glob and coverage-report proofWired true; no registry.mjs row)`.
-- B-2273 added as the last row of the Backlog table (line 2451): KIND PRODUCT-DEFECT, CLASS CAPABILITY, AREA lib-agent, TOKEN CONFIRMED, SOURCE sec10, OBJECT fsi-app/src/lib/agent/canonical-pipeline.ts, STATUS empty, finding text as the brief gave it. The summary counts in the file header (2272 rows) were not touched (outside the STATUS-cell and new-row write scope).
+- BACKLOG B-0001 -> CLOSED: PR 1122
+- BACKLOG B-0002 -> CLOSED: PR 1122
+- BACKLOG B-0003 -> CLOSED: PR 1122
+- BACKLOG B-0004 -> CLOSED: PR 1122
+- BACKLOG B-0005 -> CLOSED: PR 1122
+- BACKLOG B-0006 -> CLOSED: PR 1122
+- BACKLOG B-0040 -> CLOSED: PR 1122
+- BACKLOG B-0007 -> not flipped (registry condition, see B-0007 evidence). Proposed cell if the coordinator accepts the glob wiring: `REFUTED: closed by migration 371 and PR 1003 (viewer-read-only-routes.npmtest.mjs, 27 tests pass, wired by the npmtest glob and coverage-report proofWired true; no registry.mjs row)`.
+- NEW ROW B-2273 to append after B-2272 (line 2450): `| B-2273 | sec10 | fsi-app/src/lib/agent/canonical-pipeline.ts | refresh=true does not re-section or re-ground a verified item: sectionStep :1576 and groundStep :1683 return early on provenance_status verified; agent/run's refresh therefore re-fetches and rewrites full_brief only | PRODUCT-DEFECT | CAPABILITY | lib-agent | CONFIRMED | |` (KIND PRODUCT-DEFECT, CLASS CAPABILITY, AREA lib-agent, TOKEN CONFIRMED, SOURCE sec10, STATUS empty). The header summary count (2272) changes with it.
 
 ## Read and reused
 
@@ -65,7 +71,7 @@ Coverage table (each file read whole with the Read tool, one call each):
 | fsi-app/src/lib/api/route-guard.npmtest.mjs (as on master) | 94 | 1 |
 | fsi-app/src/app/api/workspace/viewer-read-only-routes.npmtest.mjs | 130 | 1 |
 | fsi-app/src/lib/supabase-service.ts | 43 | 1 |
-| docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md | 2450 | 0 whole (targeted by row id, see NOT done) |
+| docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md | 2450 (694,018 bytes) | 0 whole: not read (too large for one context) and not edited in the end (F51), see Backlog rows |
 
 A second run of this lane committed `1724fc1b4` ("WIP sec10: session log finalized [skip ci]") in this same worktree after this run's final commit `20df358f0`, changing only this log (verified: `git diff 20df358f0 HEAD --name-only` lists only this file, so every source and test file at HEAD is the tree this run tested). That commit left a `[skip ci]` subject at the branch head, which would leave the required checks unreported, so this run made one more commit with a normal subject (its caller-count correction below is kept, and verified: 15 production route files, the two test files that carry the text excluded). The second run's statement that it re-derived the red results by restoring master's six source files is its own and was not repeated by this run; the red evidence in the table above is this run's tests-only commit `a90143633`.
 
@@ -88,8 +94,7 @@ Also loaded whole through the Skill tool by the governing-skill hook before writ
 ## NOT done
 
 - B-0007 STATUS cell not flipped because `viewer-read-only-routes` is not named in registry.mjs and the brief says to stop in that case; evidence is above. [WORK: owed]
-- The backlog file (2450 lines, 694,018 bytes before this lane) was NOT read whole (rule 20): a whole read is about 700 KB, which does not fit one context beside the code; it was edited by row id with sed (14 STATUS cells, 1 appended row) and the result was checked by grep and by `git diff --stat` (15 insertions, 14 deletions). [NOT-WORK: scope statement, the brief limits the write to those cells and one row]
-- The header summary of the backlog still says 2272 rows and was not updated for B-2273. [WORK: owed]
+- The backlog STATUS cells and the new row B-2273 are not written in the file because F51 check 4 forbids a lane change under docs/audits/ and the brief's write set conflicts with it; the executor applies the lines above. A rule or brief change is the coordinator's. [WORK: owed]
 - The B-2273 defect itself (sectionStep and groundStep ignore `refresh`) is recorded, not fixed: canonical-pipeline.ts is outside the write set and its change is SKILL.md-gated. [WORK: owed]
 - The bearer-bound client's RPC and re-fetch were proven on fakes only; no live call (no database access in this lane). [NOT-WORK: build-mode scope statement, rule 5 of the lane contract]
 
