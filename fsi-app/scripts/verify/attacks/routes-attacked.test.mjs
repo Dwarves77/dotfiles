@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  parseRegister, routeUrlPath, planProbes, personasFor, runProbes, evaluate, expectedOpenProblems, isWriteAttackRow,
+  parseRegister, parsePageRegister, pageUrlPath, planPageProbes, routeUrlPath, planProbes, personasFor, runProbes, evaluate, expectedOpenProblems, isWriteAttackRow,
   cliMain, REGISTER_PATH, EXPECTED_OPEN_PATH, PLACEHOLDER_ID, MAX_BROKEN,
 } from "./routes-attacked.mjs";
 import { setupRoutePersonas, teardownRoutePersonas, creationStatements, ROUTE_PERSONAS } from "../fixtures/route-personas.mjs";
@@ -51,6 +51,39 @@ test("the real register parses to 153 route methods with the four classes the re
   for (const r of rows) by[r.cls] = (by[r.cls] ?? 0) + 1;
   assert.deepEqual(by, { admin: 47, worker: 8, session: 89, none: 9 });
   assert.ok(rows.filter(isWriteAttackRow).length >= 20, "the write-attack set is the AT2-4 and AT2-10 rows");
+});
+
+test("the real register parses to 50 pages; pageUrlPath maps a page file to its URL and the root page to /", () => {
+  const pages = parsePageRegister(readFileSync(REGISTER_PATH, "utf8"));
+  assert.equal(pages.length, 50);
+  assert.ok(pages.some((r) => r.anon === "proxy-gated") && pages.some((r) => r.anon === "public"));
+  assert.equal(pageUrlPath("page.tsx"), "/");
+  assert.equal(pageUrlPath("admin/items/[id]/page.tsx"), "/admin/items/" + PLACEHOLDER_ID);
+  assert.equal(pageUrlPath("login/page.tsx"), "/login");
+  const probes = planPageProbes(pages);
+  assert.equal(probes.length, 50);
+  assert.ok(probes.every((q) => q.persona === "P1" && q.method === "GET"));
+});
+
+test("PAGE: an anonymous request served a proxy-gated page turns the run red; redirects hold; a proxy that stopped redirecting is not shown to hold", async () => {
+  const pages = parsePageRegister(readFileSync(REGISTER_PATH, "utf8"));
+  const gated = pages.filter((r) => r.anon === "proxy-gated");
+  const byUrl = new Map(planPageProbes(pages).map((q) => [q.urlPath, q.row]));
+  const run = async (statusFor) => {
+    const probes = planPageProbes(pages);
+    const { fetchImpl } = fakeApp((m, path) => statusFor(byUrl.get(path)));
+    const results = await runProbes({ probes, tokens: {}, baseUrl: "http://127.0.0.1:3100", fetchImpl, sleep: async () => {}, paceMs: 0 });
+    const verdict = evaluate({ results, probes });
+    return { ...verdict, violations: verdict.violations.filter((v) => v.startsWith("PAGE:")) };
+  };
+  const good = await run((row) => (row.anon === "proxy-gated" ? 307 : 200));
+  assert.deepEqual(good.violations, []);
+  const leak = await run((row) => (row.id === gated[0].id ? 200 : row.anon === "proxy-gated" ? 307 : 200));
+  assert.ok(leak.violations.some((v) => v.startsWith("PAGE:") && v.includes(gated[0].id)), leak.violations.join("; "));
+  const noGate = await run(() => 200);
+  assert.ok(noGate.violations.some((v) => v.startsWith("PAGE:")), "a proxy that serves everything fails");
+  const silent = await run((row) => (row.anon === "proxy-gated" ? 404 : 200));
+  assert.ok(silent.violations.some((v) => v.includes("fewer than ten")), silent.violations.join("; "));
 });
 
 test("routeUrlPath: dynamic segments get a placeholder id, groups vanish, catch-alls become x", () => {
@@ -242,7 +275,9 @@ test("cliMain refuses outside the local stack and when the app is not on a loopb
 
   const real = parseRegister(readFileSync(REGISTER_PATH, "utf8"));
   const classOf = new Map(real.map((r) => [`${r.method} ${routeUrlPath(r.path)}`, r.cls]));
+  const pageClassOf = new Map(planPageProbes(parsePageRegister(readFileSync(REGISTER_PATH, "utf8"))).map((q) => [q.urlPath, q.row.anon]));
   const realApp = (path, method, auth) => {
+    if (pageClassOf.has(path) && method === "GET" && !classOf.has(method + " " + path)) return pageClassOf.get(path) === "proxy-gated" ? 307 : 200;
     const cls = classOf.get(`${method} ${path}`);
     const who = personaOf(auth);
     if (cls === "none") return 200;

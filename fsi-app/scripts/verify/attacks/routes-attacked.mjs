@@ -23,6 +23,9 @@
 //                and a register row, checked for staleness). An empty body is a request that names no target; a 2xx to it
 //                from a caller with no role is a write that no role check stood in front of.
 //
+//   PAGE         an anonymous GET of a page the register marks proxy-gated (section 7, 50 pages) is redirected (3xx), never served, and at
+//                least ten of them answered with a redirect. Only the anonymous request is judged: the pages are cookie-session surfaces.
+//
 // What is NOT asserted: 5xx statuses are counted and listed but never fail the run (a route that fails closed because a
 // secret is unset answers 500 or 503 on the stack), and the unguarded class ("none") has no expectation. The report
 // carries route paths, methods, personas and status codes only; never a body, a token or a header.
@@ -101,6 +104,34 @@ export function personasFor(row, personaIds) {
   return personaIds.filter((p) => (p === "PA" ? row.method === "GET" && row.cls === "admin" : true));
 }
 
+/** Parse the register's section 7 page table. PURE. Rows: { id, path, method: "GET", cls: "page", pageClass, anon, svcWrite, status }. */
+export function parsePageRegister(text) {
+  const start = String(text ?? "").indexOf("## 7. Page table");
+  if (start < 0) return [];
+  const rest = String(text).slice(start + 5);
+  const end = rest.search(/\n## \d/);
+  const section = end < 0 ? rest : rest.slice(0, end);
+  const rows = [];
+  for (const line of section.split(/\r?\n/)) {
+    if (!/^\|\s*P\d+\s*\|/.test(line)) continue;
+    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+    if (cells.length < 11) continue;
+    rows.push({ id: cells[0], path: cells[1], method: "GET", cls: "page", pageClass: cells[4], anon: cells[9], svcWrite: "none", status: cells[10] });
+  }
+  return rows;
+}
+
+/** The URL path of a page file path as the register writes it (admin/items/[id]/page.tsx, or page.tsx for the root). PURE. */
+export function pageUrlPath(filePath) {
+  const dir = String(filePath).replace(/\\/g, "/").replace(/(^|\/)page\.tsx$/, "");
+  return routeUrlPath(dir ? dir + "/route.ts" : "x/route.ts").replace(/^\/x$/, "/");
+}
+
+/** One anonymous GET per page. The pages are cookie-session surfaces, so only the anonymous request is judged here. PURE. */
+export function planPageProbes(pageRows) {
+  return pageRows.map((row) => ({ persona: "P1", row, method: "GET", urlPath: pageUrlPath(row.path) }));
+}
+
 /** Build the full probe list. PURE. */
 export function planProbes(rows, personaIds) {
   const probes = [];
@@ -157,6 +188,7 @@ export async function runProbes({ probes, tokens, baseUrl, fetchImpl = fetch, sl
         persona, id: probe.row.id, path: probe.row.path, method: probe.method, cls: probe.row.cls,
         status: out.status ?? null, ...(out.error ? { error: out.error } : {}), limited,
         write: isWriteAttackRow(probe.row),
+        ...(probe.row.cls === "page" ? { pageAnon: probe.row.anon } : {}),
       });
       if (persona !== "P1" && paceMs > 0) await sleep(paceMs);
     }
@@ -214,6 +246,13 @@ export function evaluate({ results, probes, expectedOpen = [] }) {
       violations.push(`WRITES: ${tag} (an empty-body mutating request from a caller with no role was accepted)`);
     }
   }
+  // PAGE: an anonymous GET of a proxy-gated page is redirected (3xx), never served. At least ten answered 3xx, so a proxy that
+  // stopped redirecting (every page 200) or an app that answered nothing cannot pass as "no page served".
+  const pageAnon = results.filter((r) => r.cls === "page" && r.persona === "P1" && r.pageAnon === "proxy-gated" && r.status !== null);
+  if (pageAnon.length > 0) {
+    for (const r of pageAnon) if (is2xx(r.status)) violations.push(`PAGE: ${r.id} GET ${r.path} as P1 -> ${r.status} (a proxy-gated page was served to an anonymous request)`);
+    if (pageAnon.filter((r) => r.status >= 300 && r.status < 400).length < 10) violations.push("PAGE: fewer than ten proxy-gated pages answered an anonymous request with a redirect, so the proxy gate is not shown to hold");
+  }
   const counts = {};
   for (const r of results) {
     const k = `${r.persona} ${statusClass(r.status)}`;
@@ -243,9 +282,11 @@ export async function cliMain({
     return 2;
   }
   let rows;
+  let registerText;
   let expectedOpen;
   try {
-    rows = parseRegister(readText(arg("--register") ?? REGISTER_PATH));
+    registerText = readText(arg("--register") ?? REGISTER_PATH);
+    rows = parseRegister(registerText);
     expectedOpen = JSON.parse(readText(EXPECTED_OPEN_PATH));
   } catch (e) { log(`routes-attacked: cannot read the register or the expected-open list (${e.message}). Exit 2.`); return 2; }
   if (rows.length < 100) { log(`routes-attacked: the register parsed to ${rows.length} route rows (a register has 150 or more). Exit 2.`); return 2; }
@@ -257,8 +298,9 @@ export async function cliMain({
   try {
     personas = await setup({ client, fetchImpl, env });
     const tokens = { PA: personas.tokens.admin, P2: personas.tokens.viewer_a, P3: personas.tokens.member_b, P4: personas.tokens.member_a };
-    const probes = planProbes(rows, ["P1", "P2", "P3", "P4", "PA"]);
-    log(`routes-attacked: ${rows.length} route methods in the register, ${probes.length} probes against ${baseUrl}`);
+    const pageRows = parsePageRegister(registerText);
+    const probes = [...planProbes(rows, ["P1", "P2", "P3", "P4", "PA"]), ...planPageProbes(pageRows)];
+    log(`routes-attacked: ${rows.length} route methods and ${pageRows.length} pages in the register, ${probes.length} probes against ${baseUrl}`);
     const results = await run({ probes, tokens, baseUrl, fetchImpl });
     const verdict = evaluate({ results, probes, expectedOpen });
     log(`routes-attacked: ${results.length} probes done; broken ${verdict.broken}, rate-limited ${verdict.limited}, 5xx ${verdict.serverErrors}`);
