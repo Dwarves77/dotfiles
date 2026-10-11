@@ -63,7 +63,7 @@ test("never touches production: contents: read, no secret, no forbidden credenti
 });
 
 test("the scope decision is the classifier's, not the job's: no in-job touched step, no hand-typed git diff path list, and every step runs unconditionally apart from the cleanup steps", () => {
-  assert.doesNotMatch(CODE, /steps\.scope/, "the in-job scope decision is retired");
+  assert.doesNotMatch(CODE, /steps\.scope|id: scope|Did this pull request touch/, "the in-job scope decision is retired");
   assert.doesNotMatch(CODE, /git diff --name-only/);
   assert.match(WF_CODE, /node "\$CLASSIFIER" --pr-merge --github-output/, "the inputs job runs the classifier over the merge commit");
   const checkout = step(/Checkout repository/);
