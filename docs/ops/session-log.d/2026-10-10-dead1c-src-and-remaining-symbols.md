@@ -12,7 +12,7 @@ touched `src`.
   detectConflate, extractNumbers) removed; `scanItem` and `detectNumeric` stay exported (the golden imports them).
 - `supabase/migrations/383_drop_claim_provenance_verified_by.sql` (NOT APPLIED header; the executor applies it): drops `section_claim_provenance.verified_by`.
   `supabase/seed/apply-114.mjs` stops writing the column (its CASE 7 now sets `verified_at` only).
-- `src/lib/supabase-server.ts` self-duplication (DFIX-1 F45 row) deduped: one aggregates mapper (`mapAggregatesRaw`), one body for each of the
+- `src/lib/supabase-server.ts` self-duplication (DFIX-1 F45 row) deduped: one aggregates mapper (`mapAggregatesRaw`), one body for each of the [WORK: DEAD-1d]
   fetchResourcesOnly/fetchListingsOnly pair and the public pair (`loadResourcesWithOverridesPayload`, `loadPublicResourcesPayload`), one body for both
   /map fetchers (`loadMapDataPayload`), shared payload interfaces. Behaviour and every exported signature are unchanged.
 
@@ -49,7 +49,7 @@ sibling-test convention. Reused DEAD-1b's method unchanged; no new tooling.
 
 ## Harness families owing a run
 
-Governing files of five families changed (export removals only); each family's live governing hash moves and it owes a run. Per CONVENTION.md (GATE-3) no marker is added. Each is [WORK: EXEC-4] (the executor dispatches them after merge).
+Governing files of five families changed (export removals only); each family's live governing hash moves and it owes a run. Per CONVENTION.md (GATE-3) no marker is added. Each is [CLOSED: runs 38058404642, 38058406627; inaccessible-triage NOT-WORK rule 16 (source-monitoring stays disabled); statutory NOT-WORK opt-in step with no reviewed rows in build mode; structured-actions: dry-run artifact structured-actions-run-003.json committed in the coord tokens PR] (the executor dispatches them after merge).
 
 - inaccessible-triage (primary-fallback.mjs, seek-more.mjs, officialness.mjs)
 - question-answers (infer-from-question.ts)
@@ -65,6 +65,6 @@ Governing files of five families changed (export removals only); each family's l
 
 ## Open items
 
-- Migration 383 must be applied by the executor after CI is green. [WORK: owed]
+- Migration 383 must be applied by the executor after CI is green. [CLOSED: PR 1090]
 - `createPgPool` (`scripts/lib/batch-primitives.mjs`) stays: `.claude/skills/remediation-discipline/references/primitive-extraction-and-codification.md` line 11 and
   `worked-examples.md` line 11 cite it. [NOT-WORK: kept by skill citation, removal is a skill edit plus a skill-ack]
