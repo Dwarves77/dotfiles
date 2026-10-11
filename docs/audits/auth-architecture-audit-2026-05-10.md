@@ -103,7 +103,7 @@ The service-role JWT is itself a signed JWT with the `service_role` claim. `requ
 
 ### c. Direct POST to `/auth/v1/token?grant_type=password`
 
-Supabase Auth exposes the GoTrue REST endpoint at `${NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`. A Node script can POST `{ email, password }` with the anon key in `apikey` and `Authorization` headers and the response body returns `access_token`, `refresh_token`, `expires_in`, and `user`. The access token is a real user JWT, signed by the project, accepted by `supabase.auth.getUser(token)`, accepted by `requireAuth`, and downstream org-resolution sees the real operator. Feasibility, high. Side effect, none beyond a normal sign-in event. Requires only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, the operator email, and the operator password. The first three are already in `.env.local`. The operator email is `jasonlosh@gmail.com` per the global preferences. The password is the only missing input and the operator already knows it because they are the one signing in to the live app.
+Supabase Auth exposes the GoTrue REST endpoint at `${NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`. A Node script can POST `{ email, password }` with the anon key in `apikey` and `Authorization` headers and the response body returns `access_token`, `refresh_token`, `expires_in`, and `user`. The access token is a real user JWT, signed by the project, accepted by `supabase.auth.getUser(token)`, accepted by `requireAuth`, and downstream org-resolution sees the real operator. Feasibility, high. Side effect, none beyond a normal sign-in event. Requires only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, the operator email, and the operator password. The first three are already in `.env.local`. The operator email address is read from the environment. The password is the only missing input and the operator already knows it because they are the one signing in to the live app.
 
 ### d. Magic-link OTP relay
 
@@ -117,14 +117,14 @@ A service-role script can call `supabase.auth.admin.generateLink({ type: 'magicl
 
 ## Recommended smoke-run procedure
 
-1. Confirm the orchestrator can read `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from `fsi-app/.env.local`. Both are present per the audit. The operator's email is `jasonlosh@gmail.com`. The operator must supply their current Supabase password through a prompt or an `OPERATOR_PASSWORD` env var that the orchestrator reads at runtime and does not log.
+1. Confirm the orchestrator can read `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from `fsi-app/.env.local`. Both are present per the audit. The operator's email address is supplied through the environment. The operator must supply their current Supabase password through a prompt or an `OPERATOR_PASSWORD` env var that the orchestrator reads at runtime and does not log.
 
 2. Mint the bearer with one POST. From a Node or shell context:
    ```
    curl -s -X POST "$NEXT_PUBLIC_SUPABASE_URL/auth/v1/token?grant_type=password" \
      -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
      -H "Content-Type: application/json" \
-     -d '{"email":"jasonlosh@gmail.com","password":"'"$OPERATOR_PASSWORD"'"}'
+     -d '{"email":"OPERATOR_EMAIL","password":"'"$OPERATOR_PASSWORD"'"}'
    ```
    The JSON response contains `access_token`. Capture it into `BEARER` without echoing the whole token to logs. Tokens expire after `expires_in` seconds, default 3600.
 

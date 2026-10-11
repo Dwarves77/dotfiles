@@ -6,11 +6,11 @@
   "finished_at": "2026-09-29T04:50:26.747Z",
   "config": {
     "mode": "dry",
-    "fixtures": "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\regional\\fixtures\\state-cost-facts-fixtures.mjs",
+    "fixtures": "C:\\Users\\USER\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\regional\\fixtures\\state-cost-facts-fixtures.mjs",
     "github_run_id": null
   },
   "inputs_ref": [
-    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\regional\\fixtures\\state-cost-facts-fixtures.mjs"
+    "C:\\Users\\USER\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\regional\\fixtures\\state-cost-facts-fixtures.mjs"
   ],
   "per_item": [
     {
@@ -90,7 +90,7 @@
     }
   ],
   "full_trace_refs": [
-    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\regional\\fixtures\\state-cost-facts-fixtures.mjs"
+    "C:\\Users\\USER\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\regional\\fixtures\\state-cost-facts-fixtures.mjs"
   ],
   "proposer_notes": "state-cost-facts-producer's first run artifact (lane STATE-COST-PRODUCER, 2026-09-25). R14 holds live rows, every run this lane exercised was --fixtures/dry mode; ENABLED stays false until a separate reviewed change lifts it, matching bls-oews-producer.mjs's own ENABLED history.",
   "trigger": "manual"

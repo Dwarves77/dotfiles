@@ -6,11 +6,11 @@
   "finished_at": "2026-09-29T04:56:35.755Z",
   "config": {
     "mode": "dry",
-    "fixtures": "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\market\\fixtures\\carrier-ets-surcharge-fixtures.mjs",
+    "fixtures": "C:\\Users\\USER\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\market\\fixtures\\carrier-ets-surcharge-fixtures.mjs",
     "github_run_id": null
   },
   "inputs_ref": [
-    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\market\\fixtures\\carrier-ets-surcharge-fixtures.mjs"
+    "C:\\Users\\USER\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\market\\fixtures\\carrier-ets-surcharge-fixtures.mjs"
   ],
   "per_item": [
     {
@@ -89,7 +89,7 @@
   },
   "defects_found": [],
   "full_trace_refs": [
-    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\market\\fixtures\\carrier-ets-surcharge-fixtures.mjs"
+    "C:\\Users\\USER\\dotfiles\\.claude\\worktrees\\ets-proxy\\fsi-app\\scripts\\producers\\market\\fixtures\\carrier-ets-surcharge-fixtures.mjs"
   ],
   "proposer_notes": "carrier-ets-surcharge-producer's first run artifact (lane ETS-PROXY, 2026-09-28). R14 holds live rows; this run is fixtures/dry, downstream DAG authorship exercised against injected offline deps (never a live DB). ENABLED stays false until a separate reviewed change lifts it, matching state-cost-facts-producer.mjs's own ENABLED history.",
   "trigger": "manual"

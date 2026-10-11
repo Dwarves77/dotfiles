@@ -144,8 +144,8 @@ The lane did not read or write that file (it holds credentials).
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const GATE = "C:/Users/jason/dotfiles/fsi-app/.discipline/governance/pretooluse-skill-gate.mjs";
-const SCOPE = "C:/Users/jason/dotfiles/fsi-app/.discipline/governance/pretooluse-scope.mjs";
+const GATE = "C:/Users/USER/dotfiles/fsi-app/.discipline/governance/pretooluse-skill-gate.mjs";
+const SCOPE = "C:/Users/USER/dotfiles/fsi-app/.discipline/governance/pretooluse-scope.mjs";
 
 async function runGate(input) {
   let out = "";

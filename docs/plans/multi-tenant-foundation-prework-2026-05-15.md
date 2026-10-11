@@ -1,7 +1,7 @@
 # Multi-Tenant Foundation — Pre-Work Findings
 
 Date: 2026-05-15
-Repo: `C:/Users/jason/dotfiles` (the dotfiles repo IS the fsi-app monorepo)
+Repo: `C:/Users/USER/dotfiles` (the dotfiles repo IS the fsi-app monorepo)
 Live DB: `kwrsbpiseruzbfwjpvsp` (Supabase)
 Last applied migration: 074 (`ecovadis_vendor_reclass`)
 
@@ -11,7 +11,7 @@ This document captures everything checked before any code changes for the Multi-
 
 ## A. `profiles` table shape — confirmed
 
-`public.profiles` exists with **27 columns**. Population: 1 row (Jason). Sample row shows the canonical-person semantics already match what the brief assumes: a long-lived person identity that holds auth-related affiliation, LinkedIn verification, contribution score, membership tier.
+`public.profiles` exists with **27 columns**. Population: 1 row (the operator). Sample row shows the canonical-person semantics already match what the brief assumes: a long-lived person identity that holds auth-related affiliation, LinkedIn verification, contribution score, membership tier.
 
 | Column | Type | Notes |
 | --- | --- | --- |

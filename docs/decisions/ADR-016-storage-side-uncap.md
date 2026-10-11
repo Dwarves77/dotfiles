@@ -10,7 +10,7 @@ related: F17 size-cap doctrine (docs/design/cap-inventory-2026-07-06.md), ADR-01
 
 # ADR-016 — Storage-side uncap
 
-## Decision (operator ruling, Jason, 2026-07-21)
+## Decision (operator ruling, the operator, 2026-07-21)
 
 > "We are NOT supposed to cap, because then the system runs analysis on incomplete data."
 

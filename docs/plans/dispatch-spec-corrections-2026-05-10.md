@@ -7,7 +7,7 @@ Three errors in dispatch specs surfaced across the source-classification metadat
 Multiple dispatches reference `.env` for credentials. Live repo uses `.env.local` (matches Next.js convention). Scripts that call `process.loadEnvFile(".env")` silently load nothing and then fail at `createClient(...)` with "Missing NEXT_PUBLIC_SUPABASE_URL" or similar.
 
 **Correction:** specs and scripts must use `.env.local`. Verified locations:
-- `C:/Users/jason/dotfiles/fsi-app/.env.local` — service role key, anon key, URL, DB password
+- `C:/Users/USER/dotfiles/fsi-app/.env.local` — service role key, anon key, URL, DB password
 - Pooler URL and project ref are read from `supabase/.temp/pooler-url` and `supabase/.temp/project-ref` for direct pg connections.
 
 ## 2. supabase-js cannot wrap multiple PostgREST calls in a transaction

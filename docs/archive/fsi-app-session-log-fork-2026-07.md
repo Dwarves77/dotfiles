@@ -172,7 +172,7 @@ STATUS: drain count 4 (unchanged), corpus 202 verified / 33 quarantined, census 
 
 ## 2026-07-17 — Session B bank 4 (branch corpus-integrity/cc-grounding-executor-b, own worktree)
 
-WORKTREE SEPARATION LIVE: Session B now runs in C:/Users/jason/dotfiles/.worktrees/wt-session-b on branch corpus-integrity/cc-grounding-executor-b (own worktree, node_modules junctioned to shared, .env.local copied). No more shared-tree push race. Bank 3 (870623cc, o13) confirmed on remote (carried forward under Session A's 558dcdf6).
+WORKTREE SEPARATION LIVE: Session B now runs in C:/Users/USER/dotfiles/.worktrees/wt-session-b on branch corpus-integrity/cc-grounding-executor-b (own worktree, node_modules junctioned to shared, .env.local copied). No more shared-tree push race. Bank 3 (870623cc, o13) confirmed on remote (carried forward under Session A's 558dcdf6).
 
 NEW TOOLING (scripts/_reground): lease.mjs (standalone acquire/heartbeat/release CLI — id-stamp requires the lease already held, so caller acquires here) and reassign-to-a.mjs (annotate drain_worklist + release lease when an item is genuine judgment, no claim touched). SEQUENCING FIX: the mig-211 lease RPC treats same-holder re-acquire as HELD (acquired=false), so drain-clear (which self-leases) FAILS if the caller still holds the lease — correct order is acquire -> id-stamp --apply -> RELEASE -> drain-clear --apply (self-leases).
 
@@ -207,8 +207,8 @@ REASSIGNED-TO-A (genuine judgment, no id-stampable single instrument):
 ## 2026-07-16 — COMPACT-PREP HANDOFF (parallel drain, full state)
 
 WORKTREE SEPARATION (operator ruling): every parallel session gets its OWN worktree, shared object store, NEVER a shared working directory.
-- SESSION A (this): dir C:/Users/jason/dotfiles  (fsi-app subdir), branch corpus-integrity/cc-grounding-executor.
-- SESSION B: dir C:/Users/jason/dotfiles/.worktrees/wt-session-b (fsi-app subdir), branch corpus-integrity/cc-grounding-executor-b. B RELAUNCHES INTO THIS PATH.
+- SESSION A (this): dir C:/Users/USER/dotfiles  (fsi-app subdir), branch corpus-integrity/cc-grounding-executor.
+- SESSION B: dir C:/Users/USER/dotfiles/.worktrees/wt-session-b (fsi-app subdir), branch corpus-integrity/cc-grounding-executor-b. B RELAUNCHES INTO THIS PATH.
 - Both mutate the SAME Supabase DB (leases arbitrate); code lands on separate branches, both push, converge to master.
 
 CURRENT STATE:

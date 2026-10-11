@@ -2,7 +2,7 @@
 
 Replacement agent finishing the four checked items on top of the already-accepted StateNote
 sign-off page + Masthead one-home fix (commit `07eb614f`). Worktree:
-`C:/Users/jason/dotfiles/.worktrees/wt-landdocs-0911`, branch `lane/w10-statenote`, rebased on
+`C:/Users/USER/dotfiles/.worktrees/wt-landdocs-0911`, branch `lane/w10-statenote`, rebased on
 master `c4b017be`, tree clean at start.
 
 Skills loaded: `fsi-app:environmental-policy-and-innovation` (COMMON BLOCK first call), `frontend-design`

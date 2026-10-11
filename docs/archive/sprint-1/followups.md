@@ -314,7 +314,7 @@ The single `/admin` route at `fsi-app/src/app/admin/page.tsx` gates on inline `o
 
 This OBS was closed by commit 6d18773 (Build 6 admin-gating sweep). Closure was premature.
 
-The 2026-05-19 code-level positive-test audit (dispatched after seeding jasonlosh@hotmail.com with `is_platform_admin=true`) found 13 admin API routes that authenticate via `requireAuth()` but do NOT call `isPlatformAdmin()`; any authenticated user could hit them regardless of platform-admin status.
+The 2026-05-19 code-level positive-test audit (dispatched after seeding the operator's hotmail address with `is_platform_admin=true`) found 13 admin API routes that authenticate via `requireAuth()` but do NOT call `isPlatformAdmin()`; any authenticated user could hit them regardless of platform-admin status.
 
 Track B-code re-enumeration (commit 4c7b546) applied enumerate-first discipline (Glob `src/app/api/admin/**/*.ts`, grep each for `requireAuth` and `isPlatformAdmin`) and found:
 
@@ -876,7 +876,7 @@ The corrective source is `docs/sprint-1/schema-reconciliation-discovery-2026-05-
 
 The Build 6 admin-gating sweep (commit 6d18773) closed OBS-17 prematurely. Sweep enumerated only routes the dispatcher recalled, not the full `/api/admin/**` route surface. 13 routes were missed.
 
-A 2026-05-19 code-level positive-test audit (run after seeding `jasonlosh@hotmail.com` with `is_platform_admin=true`) found the 13 missed routes BUT also exhibited its own methodology errors: missed 4 additional ungated routes under `src/app/api/admin/sources/[id]/*` and miscalled 2 worker-secret routes (`recompute-trust`, `spot-check/recurring`) as `requireAuth`-only based on directory location rather than file content.
+A 2026-05-19 code-level positive-test audit (run after seeding `the operator's hotmail address` with `is_platform_admin=true`) found the 13 missed routes BUT also exhibited its own methodology errors: missed 4 additional ungated routes under `src/app/api/admin/sources/[id]/*` and miscalled 2 worker-secret routes (`recompute-trust`, `spot-check/recurring`) as `requireAuth`-only based on directory location rather than file content.
 
 ### Routes fixed (commit 4c7b546)
 
@@ -997,7 +997,7 @@ This investigation has no urgency. Option B retune handles the queue size issue.
 
 ### Finding
 
-When the cleanup script's `git worktree remove --force` fails (e.g., Windows path edge cases), the operator fallback to manual `rm -rf` follows internal node_modules junctions and destroys the JUNCTION TARGET's contents. Specifically: during the worktree cleanup, q5-tier-override's worktree remove failed; main session `rm -rf C:/Users/jason/dotfiles-wt-q5-tier-override` followed the worktree's node_modules junction back to `C:/Users/jason/dotfiles/fsi-app/node_modules` and destroyed the main repo's node_modules. Required `npm install` to restore (~2 min).
+When the cleanup script's `git worktree remove --force` fails (e.g., Windows path edge cases), the operator fallback to manual `rm -rf` follows internal node_modules junctions and destroys the JUNCTION TARGET's contents. Specifically: during the worktree cleanup, q5-tier-override's worktree remove failed; main session `rm -rf C:/Users/USER/dotfiles-wt-q5-tier-override` followed the worktree's node_modules junction back to `C:/Users/USER/dotfiles/fsi-app/node_modules` and destroyed the main repo's node_modules. Required `npm install` to restore (~2 min).
 
 ### Class-fix shape
 
@@ -1185,7 +1185,7 @@ Signals fired: 1 (recurrence — every worktree cleanup needs all 3 steps; today
 
 ### Finding
 
-The Sprint Foundation engine shipped with the literal string `'C:/Users/jason/dotfiles'` hardcoded in 4 source files. All 4 were authored by Claude in this session (3 directly in Wave 0; 1 via a sub-agent prompt I authored in Wave 1). The class-fix landed in Wave 4 (`c097b09`) but missed `runner.test.mjs:11`. Operator surfaced the missed instance + asked an investigation dispatch about historical scope.
+The Sprint Foundation engine shipped with the literal string `'C:/Users/USER/dotfiles'` hardcoded in 4 source files. All 4 were authored by Claude in this session (3 directly in Wave 0; 1 via a sub-agent prompt I authored in Wave 1). The class-fix landed in Wave 4 (`c097b09`) but missed `runner.test.mjs:11`. Operator surfaced the missed instance + asked an investigation dispatch about historical scope.
 
 Three concerns surfaced from the investigation:
 
@@ -1199,9 +1199,9 @@ A fourth finding surfaced during the investigation but is orthogonal:
 
 ### Resolution (bundled in this commit)
 
-1. **Residual class-fix**: `runner.test.mjs:11` rewritten to use `import.meta.dirname` instead of the hardcoded `'C:/Users/jason/dotfiles/...'` literal. Stale comment at `rules/009-plan-skill-hybrid.mjs:13` referencing the same hardcoded path removed.
+1. **Residual class-fix**: `runner.test.mjs:11` rewritten to use `import.meta.dirname` instead of the hardcoded `'C:/Users/USER/dotfiles/...'` literal. Stale comment at `rules/009-plan-skill-hybrid.mjs:13` referencing the same hardcoded path removed.
 2. **Engine hardening**: `lib/context.mjs` `getRepoRoot()` now honors a `DISCIPLINE_REPO_ROOT` environment variable override first, then attempts `git rev-parse --show-toplevel`, then throws a clear error message instructing the operator on the two fixes. No more silent `process.cwd()` fallback.
-3. **Mechanical content-check layer**: New 12th binding rule `Hardcoded user-home path` ships as `fsi-app/.discipline/rules/012-hardcoded-user-path.mjs`. Reads the actual bytes of every staged code file via the new `ctx.getFileContent()` helper and fails the commit on any of: `C:/Users/`, `C:\Users\`, `/c/Users/`, `/home/jason/`, `/Users/jason/`. Asymmetric on purpose: Windows variants match any user (broad enough to catch OS layout); Unix variants match this operator's username specifically (narrow enough to avoid `/home/runner/` false positives on GitHub Actions). Skip paths: `node_modules/`, `.git/`, `fsi-app/scripts/tmp/`. Test coverage: 20 unit tests (regex behavior + trigger + check per pattern variant + multi-file aggregation + skip-path behavior + metadata).
+3. **Mechanical content-check layer**: New 12th binding rule `Hardcoded user-home path` ships as `fsi-app/.discipline/rules/012-hardcoded-user-path.mjs`. Reads the actual bytes of every staged code file via the new `ctx.getFileContent()` helper and fails the commit on any of: `C:/Users/`, `C:\Users\`, `/c/Users/`, `/home/USER/`, `/Users/USER/`. Asymmetric on purpose: Windows variants match any user (broad enough to catch OS layout); Unix variants match this operator's username specifically (narrow enough to avoid `/home/runner/` false positives on GitHub Actions). Skip paths: `node_modules/`, `.git/`, `fsi-app/scripts/tmp/`. Test coverage: 20 unit tests (regex behavior + trigger + check per pattern variant + multi-file aggregation + skip-path behavior + metadata).
 4. **Inventory correction**: `docs/inventories/skills.md` Section 3 rewritten with the actual deployment state. Full re-evaluation of which of the 26 Vercel plugin skills are now load-bearing vs dormant is deferred to a follow-up dispatch (see follow-ups below).
 
 ### Per remediation-discipline recognition
@@ -1232,7 +1232,7 @@ The 12th rule lives in the same engine as the 11 attestation rules (Option A). O
 
 Q2 (commit 4a3da8d / migration 090) renamed `sources.tier` to `sources.base_tier` and added `sources.effective_tier`, breaking application code at the PostgREST layer (Supabase clients are untyped, so typecheck did not catch). The Phase 1.5 dispatch enumerated ~50 consumer sites across ~32 files and applied per-consumer base_tier vs effective_tier resolutions per the default rule (customer-facing → effective_tier, admin/audit → base_tier, scoring-internals → base_tier).
 
-Agent a320022 (dispatched in a prior session) completed 18 of 32 list files plus 2 sensible scope expansions (integrity-flags route; preflight DB schema check script) but never committed. The work was discovered uncommitted in the worktree at `C:/Users/jason/dotfiles-wt-phase1.5-consumers` during OBS-59 follow-up investigation (2026-05-20). Operator authorized snapshot + investigation + bounded completion under Path A.
+Agent a320022 (dispatched in a prior session) completed 18 of 32 list files plus 2 sensible scope expansions (integrity-flags route; preflight DB schema check script) but never committed. The work was discovered uncommitted in the worktree at `C:/Users/USER/dotfiles-wt-phase1.5-consumers` during OBS-59 follow-up investigation (2026-05-20). Operator authorized snapshot + investigation + bounded completion under Path A.
 
 ### Resolution
 
@@ -1251,7 +1251,7 @@ Agent a320022 (dispatched in a prior session) completed 18 of 32 list files plus
 
 ### Anti-patterns observed (none in agent work; one in preflight script)
 
-The preflight DB schema check script `fsi-app/scripts/tmp/phase1.5-preflight.mjs` contains hardcoded `C:/Users/jason/dotfiles/...` paths. Rule 012 correctly exempts `scripts/tmp/` per its SKIP_PATH_FRAGMENTS list. See OBS-61 for the convention-vs-enforcement observation this exemption represents.
+The preflight DB schema check script `fsi-app/scripts/tmp/phase1.5-preflight.mjs` contains hardcoded `C:/Users/USER/dotfiles/...` paths. Rule 012 correctly exempts `scripts/tmp/` per its SKIP_PATH_FRAGMENTS list. See OBS-61 for the convention-vs-enforcement observation this exemption represents.
 
 ---
 
@@ -1265,7 +1265,7 @@ The preflight DB schema check script `fsi-app/scripts/tmp/phase1.5-preflight.mjs
 
 Rule 012 (Hardcoded user-home path, landed in OBS-59 bundle commit 510b637) skips files under `fsi-app/scripts/tmp/` per its SKIP_PATH_FRAGMENTS list. The exemption is intentional: `scripts/tmp/` is operator/agent scratch space with a long history of files containing hardcoded paths (audit/investigation/preflight scripts).
 
-OBS-60's Phase 1.5 completion surfaced an instance: the agent's preflight script `fsi-app/scripts/tmp/phase1.5-preflight.mjs` contains two hardcoded `C:/Users/jason/dotfiles/...` paths. Rule 012 correctly does not flag this file due to its location.
+OBS-60's Phase 1.5 completion surfaced an instance: the agent's preflight script `fsi-app/scripts/tmp/phase1.5-preflight.mjs` contains two hardcoded `C:/Users/USER/dotfiles/...` paths. Rule 012 correctly does not flag this file due to its location.
 
 The observation: this is a **convention-based exemption** rather than enforcement. If a scratch script ever moves out of `scripts/tmp/` (e.g., promoted to a permanent location), the hardcoded paths would be a problem the moment of the move. The convention works today; future moves need to remember to update the script before relocation.
 

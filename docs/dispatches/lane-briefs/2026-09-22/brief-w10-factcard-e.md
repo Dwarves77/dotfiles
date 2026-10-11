@@ -1,6 +1,6 @@
 # Lane W10-FactCard-e: the operator's sign-off corrections (coordinator, 2026-09-22)
 
-Model: Sonnet. Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-w10-factcard` (node_modules and Playwright present). Branch: `lane/w10-factcard-e`, cut from `origin/master` (at or past `bfde1be8`). Read `docs/dispatches/lane-common-contract.md`, `docs/design/ux-laws.md`, `docs/design/design-principles.md`, parts-brief section 2.1, and panel 21c (`docs/design/handoff-2026-09-07/screens/21-detail-parts.png`, Read tool). STOP on anything not covered.
+Model: Sonnet. Worktree: `C:/Users/USER/dotfiles/.worktrees/wt-w10-factcard` (node_modules and Playwright present). Branch: `lane/w10-factcard-e`, cut from `origin/master` (at or past `bfde1be8`). Read `docs/dispatches/lane-common-contract.md`, `docs/design/ux-laws.md`, `docs/design/design-principles.md`, parts-brief section 2.1, and panel 21c (`docs/design/handoff-2026-09-07/screens/21-detail-parts.png`, Read tool). STOP on anything not covered.
 
 ## The operator's sign-off (2026-09-22), quoted in full; typography only in ASCII
 
@@ -50,4 +50,4 @@ Every npm suite with CI's shared script, `tsc`, the FULL fitness runner (all fun
 
 ## Report
 
-ONE final report, six lines maximum, sent once: commit sha; the two item ids frozen; the guard's two results quoted; npm totals, fitness violations, gate exit code; any STOP. Write `pr-w10-factcard-e.md` into `C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad): first line `## Lane W10-FactCard-e: the operator's sign-off corrections (provenance column, frozen real fixtures, sub-label)`, `## Summary`, `## Evidence`, `## UX compliance`, last line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+ONE final report, six lines maximum, sent once: commit sha; the two item ids frozen; the guard's two results quoted; npm totals, fitness violations, gate exit code; any STOP. Write `pr-w10-factcard-e.md` into `C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad): first line `## Lane W10-FactCard-e: the operator's sign-off corrections (provenance column, frozen real fixtures, sub-label)`, `## Summary`, `## Evidence`, `## UX compliance`, last line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.

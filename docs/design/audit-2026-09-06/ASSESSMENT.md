@@ -333,7 +333,7 @@ screen at a time."* One screen at a time is the drift, adopted as policy.
 **15.2 A prior design package exists and its deviation log is empty.** `[SOURCE]`
 `docs/design/redesign/` holds eleven approved `.dc.html` page mocks, a build handoff brief,
 and `DESIGN-DEVIATIONS.md`, whose stated purpose is that *"any departure from the mock goes
-in DESIGN-DEVIATIONS.md as a proposal for Jason, never a unilateral decision."* The file
+in DESIGN-DEVIATIONS.md as a proposal for the operator, never a unilateral decision."* The file
 contains its header and table row and **no entries**. Eleven templates were built and no
 deviation was ever recorded. The operator has since discarded this package.
 `theme.css` also names a still earlier one, `design_handoff_2026-04/DESIGN_SYSTEM.md`.

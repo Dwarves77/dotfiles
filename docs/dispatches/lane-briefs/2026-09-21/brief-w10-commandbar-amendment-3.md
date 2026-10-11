@@ -1,6 +1,6 @@
 # Lane W10-CommandBar, Amendment 3 (coordinator, 2026-09-21): CI Fitness failed on three npm tests. Read after the brief and Amendments 1 and 2; this file wins.
 
-State: PR #769, `lane/w10-commandbar`, pushed sha `b7bcf93b` (the rebase of `6b4a6c45`), worktree `C:/Users/jason/dotfiles/.worktrees/wt-l34-detail-admin-primitives`. GitHub run 35636629376, job "Fitness functions", step "App unit tests requiring npm deps (*.npmtest.mjs)" FAILED on exactly three tests [CONFIRMED from the log]:
+State: PR #769, `lane/w10-commandbar`, pushed sha `b7bcf93b` (the rebase of `6b4a6c45`), worktree `C:/Users/USER/dotfiles/.worktrees/wt-l34-detail-admin-primitives`. GitHub run 35636629376, job "Fitness functions", step "App unit tests requiring npm deps (*.npmtest.mjs)" FAILED on exactly three tests [CONFIRMED from the log]:
 
 - `fsi-app/src/components/ui/ImpactMeter.npmtest.mjs:253`: "ListRow.tsx's column header no longer renders the retired qualifier (brief 2.16, acceptance: grep returns nothing)"
 - `fsi-app/src/components/ui/ListRow.npmtest.mjs:167`: "B49: ListRowColumnHeader is 30px tall" (regex `className="cl-list-row-header"[\s\S]{0,120}height` no longer matches)

@@ -2,7 +2,7 @@
 
 Brief: `docs/dispatches/lane-briefs/2026-09-22/brief-w10-sectionheader.md`, amendment 1 (wins where
 they conflict): `docs/dispatches/lane-briefs/2026-09-22/brief-w10-sectionheader-amendment-1.md`.
-Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-landdocs-0911`, branch `lane/w10-sectionheader`.
+Worktree: `C:/Users/USER/dotfiles/.worktrees/wt-landdocs-0911`, branch `lane/w10-sectionheader`.
 
 Skills: `fsi-app:environmental-policy-and-innovation` does not exist under that name in this
 session's skill list; loaded `anthropic-skills:environmental-policy-and-innovation` instead (its

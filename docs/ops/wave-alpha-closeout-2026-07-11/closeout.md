@@ -113,7 +113,7 @@ zero mints · batch-1 worktree untouched · all deletes via eligibility gate + l
 6. **readAll orderBy** — junction tables (composite keys, no id) needed an order key; backward-compatible param added.
 
 ## Open units register (expected residue, per dispatch "deliberately NOT in scope")
-- **batch-1 refetch set**: the ~44 quarantined COVERED items (recovery = refetch, gated behind the deliberate hold) + the PORTAL-SOURCE re-points. Ride Jason's hold-lift.
+- **batch-1 refetch set**: the ~44 quarantined COVERED items (recovery = refetch, gated behind the deliberate hold) + the PORTAL-SOURCE re-points. Ride the operator's hold-lift.
 - **Deferral hygiene**: 47 expired-open + 5 deleted-subject flags (A3 audit found; report-only — a later disposition dispatch resolves).
 - **Track-E riders**: read-side error-swallow list (A1); ~20 readClient-write scripts to migrate to guarded helpers (A3 g3); generation-config.ts skill-map (operator call).
 - **Operator activation deps**: set PROBE_SECRET=WORKER_SECRET + deploy (R0.2 probes); confirm APP_URL; the backup-posture screenshot.

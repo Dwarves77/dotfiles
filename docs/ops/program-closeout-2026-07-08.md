@@ -26,21 +26,21 @@ operator still owns (the escalated flags).
 
 ## Deliverable 1 — the one browser-verification checklist
 
-`browser-verification-pending.md` — the single accumulating list for Jason's one end-of-program
+`browser-verification-pending.md` — the single accumulating list for the operator's one end-of-program
 browser session (Option B). Non-blocking; every feature merged on backend proof. Five items:
 dismissed-drawer restore (#260), surface-routing (#261), the 28-item reclassify cleanup, NotesField
 happy-path, and the T01–T11 visual pass.
 
 ## Deliverable 2 — the standing switches (footnote, not tasks)
 
-> **Cadence/loop** — ready to flip on Jason's word, post-build; technical precondition satisfied.
+> **Cadence/loop** — ready to flip on the operator's word, post-build; technical precondition satisfied.
 > **Batch-1** — go-line ready; quote on request. **Budget** — number set on request ($50/mo
 > recommended). None of the three is build work, a blocker, or an "awaiting" item; nothing in the
 > build is gated on them. Represented once here + in `flip-readiness-2026-07-08.md`.
 
 ## Deliverable 3 — the operator's decision table (18 escalated flags, `in_review`)
 
-These are the genuine ambiguities the dispatch said route to Jason. Each is triaged with a
+These are the genuine ambiguities the dispatch said route to the operator. Each is triaged with a
 recommendation recorded in `/admin` (`integrity_flags.resolution_note`). None is CRITICAL; all
 LOW/MODERATE.
 

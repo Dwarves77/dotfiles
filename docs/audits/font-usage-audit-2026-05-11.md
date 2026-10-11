@@ -13,7 +13,7 @@ Headline numbers:
 
 ## Loaded weights (per src/app/layout.tsx)
 
-From `C:/Users/jason/dotfiles/fsi-app/src/app/layout.tsx`:
+From `C:/Users/USER/dotfiles/fsi-app/src/app/layout.tsx`:
 
 ```
 const anton = Anton({
@@ -37,7 +37,7 @@ There is NO `tailwind.config.*` file. The project uses Tailwind v4 via the `@tai
 
 ## Used weights breakdown
 
-Counts below are restricted to `C:/Users/jason/dotfiles/fsi-app/src/`. Counts marked "(export HTML)" are weights baked into HTML strings emitted by `lib/export/htmlReport.ts` and `lib/export/shareBuilder.ts` for downloadable reports; those bytes ship to the recipient's email/browser inside the export payload, NOT applied to the FSI app fonts, so they are NOT a reason to keep an in-app font weight. They are listed for completeness.
+Counts below are restricted to `C:/Users/USER/dotfiles/fsi-app/src/`. Counts marked "(export HTML)" are weights baked into HTML strings emitted by `lib/export/htmlReport.ts` and `lib/export/shareBuilder.ts` for downloadable reports; those bytes ship to the recipient's email/browser inside the export payload, NOT applied to the FSI app fonts, so they are NOT a reason to keep an in-app font weight. They are listed for completeness.
 
 ### Weight 100, 200
 

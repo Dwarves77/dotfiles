@@ -90,7 +90,7 @@ These check `role === 'owner' || role === 'admin'` and treat that as the admin s
 
 For most operator accounts, the two signals will collinearly grant or deny admin access because:
 
-- Most platform staff (Jason) are also `org_memberships.role = 'owner'` on the Dietl/Rockit org AND `profiles.is_platform_admin = true`. Both gates pass.
+- Most platform staff (the operator) are also `org_memberships.role = 'owner'` on the Dietl/Rockit org AND `profiles.is_platform_admin = true`. Both gates pass.
 - Most non-staff customers will be `role = 'member'` or `'viewer'` AND `is_platform_admin = false`. Both gates deny.
 
 ### Where the signals diverge (the load-bearing case)

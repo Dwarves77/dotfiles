@@ -240,7 +240,7 @@ ESG Today does not cover any of these. They are core to our verticals.
 | Julie's Bicycle | juliesbicycle.com | UK arts and music sustainability research and tooling |
 | Vision for Sustainable Events (Vision:2025) | visionforsustainableevents.com | UK outdoor events supplier directory |
 | Climate Beacon | climatebeacon.com | Live entertainment sustainability data |
-| MIT ClimateMachine Live Music Assessment | (publication via MIT Media Lab / partners) | Direct partnership: Jason contributed primary Rockit data |
+| MIT ClimateMachine Live Music Assessment | (publication via MIT Media Lab / partners) | Direct partnership: the operator contributed primary Rockit data |
 
 ### E2. Fine art and museum logistics sustainability
 

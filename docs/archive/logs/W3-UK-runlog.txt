@@ -4,7 +4,7 @@ Region:            UK
 Depth:             normal
 Jurisdictions:     5
 Cost cap:          (none)
-Output:            C:\Users\jason\dotfiles\docs\W3-tier1-UK-results.json
+Output:            C:\Users\USER\dotfiles\docs\W3-tier1-UK-results.json
 Started:           2026-05-04T20:29:49.768Z
 ══════════════════════════════════════════════════════════════
 
@@ -122,5 +122,5 @@ Duplicates:   26
 Haiku calls:  30
 Wall time:    255.2s
 Total cost:   $0.5300 (Sonnet $0.5000 + Haiku $0.0300)
-Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-UK-results.json
+Wrote:        C:\Users\USER\dotfiles\docs\W3-tier1-UK-results.json
 ══════════════════════════════════════════════════════════════

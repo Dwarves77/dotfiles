@@ -6,7 +6,7 @@ real checkout), not from working-tree guesswork. The Linux-VM view of the checko
 shows phantom CRLF modifications and is NOT usable for state questions; the
 Windows-side `git status` is ground truth.
 
-## Audited state of `C:\Users\jason\dotfiles`
+## Audited state of `C:\Users\USER\dotfiles`
 
 1. **Parked on `corpus-integrity/intake-census`: 1 ahead / 75 behind master.** The
    single unique commit is `35ddfe6` (census-exclude RPC, migration file
@@ -34,7 +34,7 @@ Windows-side `git status` is ground truth.
 ## The fix (local Claude Code executes; no push, so the stale pre-push hook never runs)
 
 ```
-cd C:\Users\jason\dotfiles
+cd C:\Users\USER\dotfiles
 git checkout -- fsi-app/scripts/tmp
 git status --porcelain          # expect ONLY the 4 untracked lines; report them verbatim
 git checkout master

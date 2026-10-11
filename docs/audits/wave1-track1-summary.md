@@ -4,7 +4,7 @@
 
 Generated 2026-05-10T02:16:27.081Z
 
-Source JSONL: `C:\Users\jason\dotfiles\docs\wave1-api-discovery-2026-05-09.jsonl`
+Source JSONL: `C:\Users\USER\dotfiles\docs\wave1-api-discovery-2026-05-09.jsonl`
 
 ## Aggregate counts
 

@@ -1,6 +1,6 @@
 # Scraping-hold audit (2026-06-28) — is the auto-fetch HOLD honored?
 
-READ-ONLY. Verifies the operator HOLD (nothing should auto-scrape/auto-fetch external data until Jason
+READ-ONLY. Verifies the operator HOLD (nothing should auto-scrape/auto-fetch external data until the operator
 lifts it). Distinct from the dead-code/routing audits: a fetcher can pass those clean and still violate
 the hold. **Verdict: the hold is NOT fully honored — `check-sources` is live-scraping hourly right now.**
 

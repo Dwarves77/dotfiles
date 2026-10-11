@@ -1,6 +1,6 @@
 # Lane PARITY-PARTS session log (2026-09-24)
 
-Worktree: `C:/Users/jason/dotfiles/.claude/worktrees/agent-a5509a6c592b1ef4d`, branch
+Worktree: `C:/Users/USER/dotfiles/.claude/worktrees/agent-a5509a6c592b1ef4d`, branch
 `lane/parity-parts`, cut from `origin/master`. Scope: make the live shared detail parts (masthead,
 action card, section index, item groups, state notes, rail) match the approved artboards
 (`docs/design/handoff-2026-09-07/README.md` + `screens/`) on eight operator checks, layout and design

@@ -184,7 +184,7 @@ export const SOURCE_LICENCES = Object.freeze({
     licence: "EMSA site notice: reproduction authorised provided the source is acknowledged",
     attribution: "Source: EMSA THETIS-MRV. Reproduced with acknowledgement of source.",
     url: "https://www.emsa.europa.eu/disclaimer.html", verifiedOn: "2026-08-30",
-    note: "DISCHARGED 2026-08-30 from conditional to permitted. Operator ruling (Jason): the EMSA "
+    note: "DISCHARGED 2026-08-30 from conditional to permitted. Operator ruling: the EMSA "
         + "material is free to all, citing https://www.emsa.europa.eu/thetis-mrv.html. Verified the "
         + "same day against the primary notice at the url above, which states verbatim: "
         + "\"Reproduction is authorised, provided the source is acknowledged, save where otherwise "

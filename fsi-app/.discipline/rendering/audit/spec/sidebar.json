@@ -118,7 +118,7 @@
     {
       "name": "a third footer row of any kind",
       "selector": "aside.hidden > div:last-child > *:nth-child(3)",
-      "reason": "Exactly two rows, Account and Admin. Production once shipped a third ('jasonlosh ▾' utility row) and that forbid survives the 2026-09-08 reversal unchanged."
+      "reason": "Exactly two rows, Account and Admin. Production once shipped a third ('the operator ▾' utility row) and that forbid survives the 2026-09-08 reversal unchanged."
     },
     {
       "name": "the old UserMenu trigger button (aria-label 'Open user menu', pre-coordinator-default component, deleted)",

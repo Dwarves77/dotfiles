@@ -134,7 +134,7 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           narrower than its longest word. This note lives outside the <style> text on purpose:
           the guard reads a style tag's text as page text. */}
       <style>{`
-        /* D2 fix (operator report 2026-09-07): "the top text under Jason's Brief" — the scope
+        /* D2 fix (operator report 2026-09-07): "the top text under the operator's Brief" — the scope
            line ("N items across N surfaces...") and the verticals line — wrapped with a one-word
            orphan (e.g. "...Automotive & Motorsport, Humanitarian & NGO" / "Cargo" alone on the
            next line). Greedy line-breaking packs every line but the last as full as possible,

@@ -1,7 +1,10 @@
 /** Tests for scripts/proof/apply-schema-dump.mjs (lane PROOF-1, rewritten by PROOF-6), with a fake psql. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { psqlArgs, assertOracleUrl, collectErrors, missingRole, buildReport, applySchemaDump } from "./apply-schema-dump.mjs";
+import { psqlArgs, assertOracleUrl, collectErrors, missingRole, buildReport, applySchemaDump as applyRaw, DEFAULT_ACL_QUERY, parseDefaultAclRows, clearDefaultAclStatements, parseDumpDefaultAcl, compareDefaultAcl } from "./apply-schema-dump.mjs";
+
+// The dump text is injected (no file on disk); a test that cares passes its own readText.
+const applySchemaDump = (o) => applyRaw({ readText: () => "", ...o });
 
 const ORACLE = "postgresql://supabase_admin:postgres@127.0.0.1:54399/postgres";
 const STACK = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
@@ -37,6 +40,7 @@ function fakeSpawn({ stderr = "", status = 0, tables = "2", error = null } = {})
   const calls = [];
   const spawn = (_bin, args) => {
     calls.push(args);
+    if (args.includes(DEFAULT_ACL_QUERY)) return { status: 0, stdout: "", stderr: "" };
     if (args.includes("-c")) return { status: 0, stdout: `${tables}\n`, stderr: "" };
     return { status, stdout: "", stderr, error };
   };
@@ -48,9 +52,11 @@ test("applySchemaDump applies the dump file with ON_ERROR_STOP=1 and reads back 
   const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
   assert.equal(r.ok, true);
   assert.equal(r.public_tables, 2);
-  assert.ok(f.calls[0].includes("ON_ERROR_STOP=1"));
-  assert.ok(!f.calls[0].includes("ON_ERROR_STOP=0"));
-  assert.equal(f.calls[0][f.calls[0].indexOf("-f") + 1], "/d.sql", "the dump itself, not a stripped copy");
+  const apply = f.calls.filter((c) => c.includes("-f"));
+  assert.equal(apply.length, 1);
+  assert.ok(apply[0].includes("ON_ERROR_STOP=1"));
+  assert.ok(!apply[0].includes("ON_ERROR_STOP=0"));
+  assert.equal(apply[0][apply[0].indexOf("-f") + 1], "/d.sql", "the dump itself, not a stripped copy");
 });
 
 test("ATTACK: a missing role in the dump fails the report and names the role; it is never stripped or tolerated", () => {
@@ -115,6 +121,7 @@ function rolesSpawn({ rolesStderr = "", rolesStatus = 0, dumpStderr = "", dumpSt
   const calls = [];
   const spawn = (_bin, args) => {
     calls.push(args);
+    if (args.includes(DEFAULT_ACL_QUERY)) return { status: 0, stdout: "", stderr: "" };
     if (args.includes("-c")) return { status: 0, stdout: `${tables}\n`, stderr: "" };
     if (args.includes("/r.sql")) return { status: rolesStatus, stdout: "", stderr: rolesStderr };
     return { status: dumpStatus, stdout: "", stderr: dumpStderr };
@@ -128,9 +135,10 @@ test("PROOF-7: with a roles file, psql applies it FIRST (ON_ERROR_STOP=1), then 
   assert.equal(r.ok, true);
   assert.equal(r.roles_applied, true);
   assert.equal(r.roles_errors, 0);
+  const files = f.calls.filter((c) => c.includes("-f"));
   assert.equal(f.calls[0][f.calls[0].indexOf("-f") + 1], "/r.sql", "the roles file is the first psql run");
-  assert.equal(f.calls[1][f.calls[1].indexOf("-f") + 1], "/d.sql");
-  for (const c of [f.calls[0], f.calls[1]]) assert.ok(c.includes("ON_ERROR_STOP=1") && !c.includes("ON_ERROR_STOP=0"));
+  assert.equal(files[1][files[1].indexOf("-f") + 1], "/d.sql");
+  for (const c of files) assert.ok(c.includes("ON_ERROR_STOP=1") && !c.includes("ON_ERROR_STOP=0"));
 });
 
 test("PROOF-7 ATTACK: an error applying the roles file is red, is reported as a roles error, and the dump is NOT applied", () => {
@@ -171,4 +179,123 @@ test("PROOF-7 ATTACK: the roles apply is held to the same URL assertions (a less
   assert.throws(() => applySchemaDump({ dbUrl: "postgresql://authenticated:x@127.0.0.1:54399/postgres", stackUrl: STACK, dumpPath: "/d.sql", rolesPath: "/r.sql", spawn }), /supabase_admin role/);
   assert.throws(() => applySchemaDump({ dbUrl: "postgresql://supabase_admin:x@127.0.0.1:54322/postgres", stackUrl: STACK, dumpPath: "/d.sql", rolesPath: "/r.sql", spawn }), /stack's own database/);
   assert.equal(ran, false);
+});
+
+// ── lane DRIFT-1b (2026-10-10): the oracle image's default privileges are cleared before the dump ────────────────
+// Fire 9: 342 grants differed because the image's ALTER DEFAULT PRIVILEGES granted anon, authenticated and
+// service_role on every object the dump created; pg_dump emits no REVOKE for a role absent from an ACL.
+const IMAGE_ROWS = [
+  "postgres|public|r|anon", "postgres|public|r|authenticated", "postgres|public|r|service_role",
+  "postgres|public|S|anon", "postgres|public|f|authenticated",
+  "supabase_admin|public|r|anon", "supabase_admin|public|r|service_role", "supabase_admin||f|PUBLIC",
+].join("\n");
+
+test("DRIFT-1b: parseDefaultAclRows reads the catalog rows and refuses an unreadable one", () => {
+  const rows = parseDefaultAclRows(IMAGE_ROWS + "\n");
+  assert.equal(rows.length, 8);
+  assert.deepEqual(rows[7], { owner: "supabase_admin", schema: "", objtype: "f", grantee: "PUBLIC" });
+  assert.throws(() => parseDefaultAclRows("postgres|public|x|anon"), /unreadable/);
+  assert.throws(() => parseDefaultAclRows("2"), /unreadable/);
+});
+
+test("DRIFT-1b: one REVOKE per catalog row, schema-scoped or global, PUBLIC unquoted, names quoted", () => {
+  const st = clearDefaultAclStatements(parseDefaultAclRows(IMAGE_ROWS));
+  assert.equal(st.length, 8);
+  assert.equal(st[0], 'ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON TABLES FROM "anon";');
+  assert.equal(st[3], 'ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM "anon";');
+  assert.equal(st[7], 'ALTER DEFAULT PRIVILEGES FOR ROLE "supabase_admin" REVOKE ALL ON FUNCTIONS FROM PUBLIC;');
+  assert.deepEqual(clearDefaultAclStatements([]), []);
+  assert.equal(clearDefaultAclStatements([{ owner: 'a"b', schema: "", objtype: "r", grantee: "x" }])[0], 'ALTER DEFAULT PRIVILEGES FOR ROLE "a""b" REVOKE ALL ON TABLES FROM "x";');
+});
+
+function aclSpawn({ imageRows = IMAGE_ROWS, afterRows = "", clearStderr = "", clearStatus = 0, readStatus = 0 } = {}) {
+  const calls = [];
+  let reads = 0;
+  const spawn = (_bin, args) => {
+    calls.push(args);
+    if (args.includes(DEFAULT_ACL_QUERY)) { reads += 1; return reads === 1 ? { status: readStatus, stdout: `${imageRows}\n`, stderr: "" } : { status: 0, stdout: `${afterRows}\n`, stderr: "" }; }
+    if (args.some((a) => String(a).startsWith("ALTER DEFAULT PRIVILEGES"))) return { status: clearStatus, stdout: "", stderr: clearStderr };
+    if (args.includes("-c")) return { status: 0, stdout: "5\n", stderr: "" };
+    return { status: 0, stdout: "", stderr: "" };
+  };
+  return { calls, spawn };
+}
+
+const isClear = (c) => c.some((a) => String(a).startsWith("ALTER DEFAULT PRIVILEGES"));
+
+test("DRIFT-1b: the REVOKEs run BEFORE the dump, in one ON_ERROR_STOP call, and the report names count, owners and grantees", () => {
+  const f = aclSpawn();
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
+  const iClear = f.calls.findIndex(isClear);
+  const iDump = f.calls.findIndex((c) => c.includes("-f"));
+  assert.ok(iClear > 0 && iDump > iClear, "read, then clear, then dump");
+  assert.ok(f.calls[iClear].includes("ON_ERROR_STOP=1"));
+  assert.equal(f.calls[iClear].find((a) => String(a).startsWith("ALTER")).split("\n").length, 8);
+  assert.equal(r.ok, true);
+  assert.equal(r.default_acl.cleared.statements, 8);
+  assert.deepEqual(r.default_acl.cleared.owners, ["postgres", "supabase_admin"]);
+  assert.deepEqual(r.default_acl.cleared.grantees, ["PUBLIC", "anon", "authenticated", "service_role"]);
+});
+
+test("DRIFT-1b: an image with no default privileges generates nothing and runs no clear statement", () => {
+  const f = aclSpawn({ imageRows: "" });
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
+  assert.equal(r.ok, true);
+  assert.equal(r.default_acl.cleared.statements, 0);
+  assert.equal(f.calls.filter(isClear).length, 0);
+});
+
+test("DRIFT-1b ATTACK: a failed clear is red, is a default-privileges error, and the dump is NOT applied", () => {
+  const f = aclSpawn({ clearStderr: 'psql:<stdin>:1: ERROR:  role "anon" does not exist\n', clearStatus: 3 });
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
+  assert.equal(r.ok, false);
+  assert.equal(r.errors[0].phase, "default-privileges");
+  assert.equal(f.calls.filter((c) => c.includes("-f")).length, 0);
+});
+
+test("DRIFT-1b ATTACK: an unreadable pg_default_acl is red and the dump is NOT applied", () => {
+  const f = aclSpawn({ readStatus: 2 });
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
+  assert.equal(r.ok, false);
+  assert.match(r.errors[0].message, /could not read pg_default_acl/);
+  assert.equal(f.calls.filter((c) => c.includes("-f")).length, 0);
+});
+
+const DUMP = [
+  "CREATE TABLE public.a (id int);",
+  "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres;",
+  "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO service_role;",
+  "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated;",
+  "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon;",
+  "ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin GRANT ALL ON ROUTINES TO PUBLIC WITH GRANT OPTION;",
+  'ALTER DEFAULT PRIVILEGES GRANT SELECT ON TABLES TO "Odd Role";',
+].join("\n");
+
+test("DRIFT-1b: parseDumpDefaultAcl reads what the dump declares: owner, schema, type, each grantee; owner self-grants and REVOKEs are not entries", () => {
+  const d = parseDumpDefaultAcl(DUMP);
+  assert.deepEqual(d.map((x) => `${x.owner}|${x.schema}|${x.objtype}|${x.grantee}`), [
+    "postgres|public|r|service_role", "postgres|public|f|anon", "postgres|public|f|authenticated",
+    "supabase_admin||f|PUBLIC", "supabase_admin||r|Odd Role",
+  ]);
+  assert.deepEqual(parseDumpDefaultAcl("CREATE TABLE x ();"), []);
+});
+
+test("DRIFT-1b: the oracle's entries after the dump must equal the dump's declarations (compareDefaultAcl)", () => {
+  const d = parseDumpDefaultAcl(DUMP);
+  assert.deepEqual(compareDefaultAcl(d, d), { extra: [], missing: [] });
+  const c = compareDefaultAcl([...d, { owner: "postgres", schema: "public", objtype: "r", grantee: "anon" }], d.slice(0, 4));
+  assert.deepEqual(c.extra, ["postgres|public|r|anon", "supabase_admin||r|Odd Role"].sort());
+  assert.equal(compareDefaultAcl([], d).missing.length, 5);
+});
+
+test("DRIFT-1b ATTACK: an image default the dump never declares survives the apply => red and the entry is named; an exact match is green", () => {
+  const dumpText = "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO service_role;\n";
+  const green = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", readText: () => dumpText, spawn: aclSpawn({ afterRows: "postgres|public|r|service_role" }).spawn });
+  assert.equal(green.ok, true);
+  assert.equal(green.default_acl.declared, 1);
+  assert.equal(green.default_acl.after, 1);
+  const red = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", readText: () => dumpText, spawn: aclSpawn({ afterRows: "postgres|public|r|service_role\npostgres|public|r|anon" }).spawn });
+  assert.equal(red.ok, false);
+  assert.deepEqual(red.default_acl.extra, ["postgres|public|r|anon"]);
+  assert.match(red.errors.at(-1).message, /never declared: postgres\|public\|r\|anon/);
 });

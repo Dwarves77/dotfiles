@@ -1,11 +1,11 @@
 > **Superseded as a tracker on 2026-09-04** by `docs/plans/complete-system-build-plan-2026-09-04.md` (definition of done §0; the board is the only tracker). Kept as history.
 
-# Unblocking the five "needs Jason" items — execution plan (2026-08-30)
+# Unblocking the five "needs the operator" items — execution plan (2026-08-30)
 
 **Operator instruction, verbatim:** *"these items should not be waiting on me, build a plan now to
 complete them with sonnet agents."*
 
-**Finding that governs this whole document:** none of the five is blocked on a decision only Jason can
+**Finding that governs this whole document:** none of the five is blocked on a decision only the operator can
 make. Each is blocked on a **claim that was true when it was written and is no longer true**, or on a
 **verification the coordinator can now perform**. Four of the five blockers dissolve on measurement.
 One (THETIS-MRV licence) is genuinely his and is *not* in this plan — it is named at the end.
@@ -49,7 +49,7 @@ card with the registry roster already fetched on that page.
 scope from nothing*, and inventing scope silently violates rule 2. That condition is gone. I am not
 guessing what WO-14 meant; I am closing a WO whose reconstructed scope demonstrably shipped, and filing
 the single measurable defect that remains. The defect is not a judgement call: a live page states a
-falsehood. If Jason later recalls WO-14 meant something else, that lands as a **new** WO against a
+falsehood. If the operator later recalls WO-14 meant something else, that lands as a **new** WO against a
 correct page, not as a correction to shipped work. Fully reversible.
 
 ---
@@ -259,7 +259,7 @@ runs alongside them in the browser. Migration 270 gates L2 only. L4 trails L1.
 
 ---
 
-## What genuinely still needs Jason — one item, stated once
+## What genuinely still needs the operator — one item, stated once
 
 **The THETIS-MRV licence question.** `source-licence.mjs:171-180` carries
 `emsa_thetis_mrv → redistribution: "conditional"`, and `LICENCE_STATUS.conditional.embeddable = false`.

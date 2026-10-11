@@ -1,9 +1,9 @@
 # Legacy 11 source-classification backfill
 
 Date: 2026-05-11
-Operator: jasonlosh@gmail.com (autonomous, pre-approved)
+Operator: the operator's gmail address (autonomous, pre-approved)
 Project: Supabase `kwrsbpiseruzbfwjpvsp` (`public.sources`)
-Framework reference: `C:/Users/jason/dotfiles/docs/source-classification-framework-2026-05-10.md`
+Framework reference: `C:/Users/USER/dotfiles/docs/source-classification-framework-2026-05-10.md`
 
 ## Scope
 
@@ -70,8 +70,8 @@ WHERE id = $3
 
 ## Artifacts
 
-- Investigation script: `C:/Users/jason/dotfiles/fsi-app/scripts/tmp/legacy-11-investigate.mjs`
-- Execution script: `C:/Users/jason/dotfiles/fsi-app/scripts/tmp/legacy-11-execute.mjs`
+- Investigation script: `C:/Users/USER/dotfiles/fsi-app/scripts/tmp/legacy-11-investigate.mjs`
+- Execution script: `C:/Users/USER/dotfiles/fsi-app/scripts/tmp/legacy-11-execute.mjs`
 
 ## Verification
 

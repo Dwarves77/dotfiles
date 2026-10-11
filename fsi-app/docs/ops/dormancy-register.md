@@ -28,7 +28,7 @@ conduction census + wake-proofs + the audit-method coverage-gap note land in Ste
 
 ## R-2 — pending_first_fetch (the retired queue's data) — RETAINED-FOR-FLIP
 
-**Verdict: DORMANT, retained-for-flip.** Owner: Jason. Reader pending: the cadence-flip wiring unit (R-3).
+**Verdict: DORMANT, retained-for-flip.** Owner: the operator. Reader pending: the cadence-flip wiring unit (R-3).
 
 - **36 rows preserved** (not dropped), carrying `source_id` linkage → **re-homed to Unit 1's candidate
   population** (Unit 1 builds `runIntakeCycle` candidates from them: congruence → entity-gate → dedup [fixed
@@ -42,7 +42,7 @@ conduction census + wake-proofs + the audit-method coverage-gap note land in Ste
 
 ## R-3 — cadence-flip wiring unit — STANDING FUTURE WORK (named + owned)
 
-Path A's designed replacement, not implied. When Jason flips the scrape cadence on:
+Path A's designed replacement, not implied. When the operator flips the scrape cadence on:
 
 - `check-sources` chains into `runIntakeCycle` as a **deliberately-added THIRD named F16 caller** (alongside
   `manual-intake-run` + `unit3-remediation`) — its own red-then-green + a **wake-proof required before the
@@ -53,7 +53,7 @@ Path A's designed replacement, not implied. When Jason flips the scrape cadence 
   `change_detected: false` on every `monitoring_queue` row, so the `reconcile` consumer never has anything to
   act on — the cadence flip is meaningless if change detection reports nothing changed by construction. This
   gets FIXED when this unit builds; the wake condition includes real change detection.
-- Owner: Jason (flip is his control). review-by: cadence-flip unit build.
+- Owner: the operator (flip is his control). review-by: cadence-flip unit build.
 
 ## R-4 — monitoring_queue reconcile path — DORMANT (input hardcoded false)
 

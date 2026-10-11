@@ -146,7 +146,7 @@ Caro's Ledge is intended to be:
 
 ## 2 — Design folder feature inventory
 
-Source folder: `C:\Users\jason\Downloads\Caro_s Ledge Design System\design_handoff_2026-04\preview\`. 34 HTML files. The `index.html` page documents the canonical taxonomy: Foundations → Patterns → Surfaces → Components. Files marked "old" or "v2" are superseded.
+Source folder: `C:\Users\USER\Downloads\Caro_s Ledge Design System\design_handoff_2026-04\preview\`. 34 HTML files. The `index.html` page documents the canonical taxonomy: Foundations → Patterns → Surfaces → Components. Files marked "old" or "v2" are superseded.
 
 ### 2.1 Foundation / token / pattern previews (reference only — not surfaces)
 

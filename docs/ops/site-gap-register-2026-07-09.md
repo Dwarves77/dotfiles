@@ -1,12 +1,12 @@
 # Site-Gap Register — 2026-07-09 (CANONICAL BASELINE)
 
 **Baseline ruling (2026-07-09):** the "original findings list" (dispatch-1a source document) is ruled
-**non-existent as an artifact**. This register — the Chrome wiring-audit + Jason's experiential rows —
+**non-existent as an artifact**. This register — the Chrome wiring-audit + the operator's experiential rows —
 **IS the baseline henceforth.** It supersedes `traceability-matrix-2026-07-07.md` as the baseline (that
 doc's 41-finding enumeration remains valid *source data* for the phase-0-5 left-side mapping below).
 
 **Status: SKELETON.** The Chrome agent's detail rows (D/F/Q evidence, U-row descriptions) were cut in
-transmission and arrive from Jason shortly. This commit is the honest scaffold; rows fold in by ID as
+transmission and arrive from the operator shortly. This commit is the honest scaffold; rows fold in by ID as
 they land. Nothing below is invented — placeholder rows are marked `⏳ AWAITING DETAIL`.
 
 Triage vocabulary (applied per row on arrival): **FIX-FORWARD-NOW** · **DORMANT-BY-DESIGN** (answered
@@ -18,7 +18,7 @@ with the owner-mechanism/gate) · **DESIGN-DEVIATION** (routes to DESIGN-DEVIATI
 
 | ID | Unit | Owner-mechanism (which built unit / switch resolves it) | Status |
 |----|------|--------------------------------------------------------|--------|
-| U-01 | ⏳ AWAITING DETAIL (source rows never arrived — cut in transmission; cannot be reconstructed without Jason's Chrome-audit notes) | — | BLOCKED on source data |
+| U-01 | ⏳ AWAITING DETAIL (source rows never arrived — cut in transmission; cannot be reconstructed without the operator's Chrome-audit notes) | — | BLOCKED on source data |
 | U-02 | ⏳ AWAITING DETAIL | — | pending row |
 | U-03 | ⏳ AWAITING DETAIL | — | pending row |
 | U-04 | ⏳ AWAITING DETAIL | — | pending row |
