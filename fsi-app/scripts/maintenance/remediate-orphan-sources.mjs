@@ -49,7 +49,7 @@ export function parseCounts(stdout) {
   if (total) out.orphans_found = Number(total[1]);
   const applied = text.match(/registered\/activated=(\d+)\s+failed=(\d+)/);
   if (applied) { out.registered = Number(applied[1]); out.failed = Number(applied[2]); }
-  const dry = text.match(/DRY-RUN — (\d+) would be registered/);
+  const dry = text.match(/DRY-RUN\W+(\d+) would be registered/); // the target prints "DRY-RUN: N ..."; the older dash form still parses
   if (dry) out.would_register = Number(dry[1]);
   return out;
 }

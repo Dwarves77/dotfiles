@@ -190,6 +190,12 @@ export const SUPPORT_FILES = [
   /^fsi-app\/scripts\/verify\/(?:ui-orphan|harness-family-walk)-allowlist\.json$/,
   /^fsi-app\/scripts\/verify\/(?:[^/]+\/)*[^/]+\.test\.mjs$/,
   /^fsi-app\/scripts\/verify\/(?:population-report|verification-audit-report|migration-number-collision)\.mjs$/,
+  // The ORPHAN-SOURCE RESOLVER (restored by lane DATA-1, 2026-10-11). REG-1 deleted it as a duplicate of the maintenance wrapper;
+  // that was false: scripts/maintenance/remediate-orphan-sources.mjs only spawns it, so the maintenance step exited 1. It is the
+  // resolver for the A-orphan-source audit (SC-2-source-registration): dry by default, --apply registers each orphan host through
+  // registerSource. Evidence that it is wired: scripts/maintenance/remediate-orphan-sources.test.mjs, 'the wrapper spawn target
+  // exists on disk and prints the summary lines parseCounts reads'.
+  /^fsi-app\/scripts\/verify\/remediate-orphan-sources\.mjs$/,
 ];
 
 // Audits that still carry a `// data-audit:` marker but WRITE through the guarded path, so the read-only smoke step
@@ -255,7 +261,6 @@ Object.assign(RETIRED, {
   'script:vocab-sync-audit': { kind: 'script', retiredOn: D, survivor: 'A-check-vocabulary-drift', reason: 'Deleted data audit with no failure evidence or attack test (overlap group schema and vocabulary). EP-10 retired with it.' },
   'script:wave-acceptance-audit': { kind: 'script', retiredOn: D, survivor: 'A-defect-signature-scan', reason: 'Deleted audit that never fired in a lane run (overlap group ground-truth scan); the defect-signature scan keeps its golden.' },
   'script:surface-visibility-audit': { kind: 'script', retiredOn: D, survivor: null, reason: 'Deleted data audit that writes through the guarded path, which a read-only smoke step cannot run; it never fired in a lane run.' },
-  'script:remediate-orphan-sources': { kind: 'script', retiredOn: D, survivor: null, reason: 'Duplicate of scripts/maintenance/remediate-orphan-sources.mjs, which maintenance.yml runs; a remediation tool, not a check.' },
   'script:export-loop-fired-evidence': { kind: 'script', retiredOn: D, survivor: 'A-loop-fired-evidence', reason: 'Manual export, run by nothing; the audit that validates the committed evidence file stays.' },
   'script:funded-pass-lock-golden': { kind: 'script', retiredOn: D, survivor: null, reason: 'Live-database golden that writes lock rows and self-skips in CI; deleted under the writes rule. RD-38 and RD-81 retired with it.' },
   'script:mutation-lease.golden': { kind: 'script', retiredOn: D, survivor: null, reason: 'Live-database golden that writes lease rows and self-skips in CI; deleted under the writes rule.' },
