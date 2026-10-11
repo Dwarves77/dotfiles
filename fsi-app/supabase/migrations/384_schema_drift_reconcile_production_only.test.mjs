@@ -109,6 +109,9 @@ test("the three policies equal what 259 and 381 set on production: predicates fr
     assert.equal(canon(c), canon(a), `${name} predicate equals migration 259's`);
     assert.ok(unwrap(c).length > 0);
   }
+  assert.match(SQL, /sector_contexts_read_authenticated ON public\.sector_contexts FOR SELECT TO public\s+USING \(\(\(SELECT auth\.role\(\)\) = 'authenticated'\) OR \(\(SELECT auth\.role\(\)\) = 'service_role'\)\)/);
+  assert.match(SQL, /AND tablename = 'sector_contexts' AND policyname = 'sector_contexts_read_authenticated'/, "guarded");
+  assert.match(RAW, /AUD-AT-1 line 195/);
   assert.match(SQL, /summaries_read_authenticated ON public\.intelligence_summaries FOR SELECT TO public/);
   assert.match(SQL, /summaries_write_service ON public\.intelligence_summaries FOR INSERT TO authenticated, service_role/);
   assert.match(SQL, /summaries_update_service ON public\.intelligence_summaries FOR UPDATE TO authenticated, service_role/);

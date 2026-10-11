@@ -1,4 +1,4 @@
--- subject: Migration 384 (lane DRIFT-1, 2026-10-10): reconciliation, a no-op on production. Makes a replay from the migration files produce the production-only objects the schema oracle reported (chain proof fire 9, run 38058989236, 562 differing objects): row level security on 11 tables, 5 constraints and 3 policies on the mig-009 capture tables, and the revoked PUBLIC execute on gate_a_health().
+-- subject: Migration 384 (lane DRIFT-1, 2026-10-10): reconciliation, a no-op on production. Makes a replay from the migration files produce the production-only objects the schema oracle reported (chain proof fire 9, run 38058989236, 562 differing objects): row level security on 11 tables, 5 constraints and 4 policies on the mig-009 capture tables, and the revoked PUBLIC execute on gate_a_health().
 -- 384 -- schema oracle reconciliation: production-only objects (lane DRIFT-1, 2026-10-10).
 --
 -- NOT APPLIED. Authored by lane DRIFT-1 with no database access; the coordinator's executor applies it (two-track policy, CLAUDE.md
@@ -25,15 +25,20 @@
 --      in fsi-app/docs/inventories/db-check-constraints.json (live derived); intelligence_summaries_item_id_sector_key, UNIQUE (item_id,
 --      sector), from the constraint name and migration 009's comment "Likely UNIQUE(item_id, sector)" ([HYPOTHESIS] on the columns; the
 --      name is production's). Its unique index is the one index only production had.
---   3. Three policies on intelligence_summaries in their final form: summaries_read_authenticated (SELECT, USING rewritten by migration 259),
+--   3. Four policies. Three on intelligence_summaries in their final form: summaries_read_authenticated (SELECT, USING rewritten by migration 259),
 --      summaries_write_service (INSERT, WITH CHECK by 259, narrowed TO authenticated, service_role by 381 part 2) and summaries_update_service
 --      (UPDATE, USING by 259, narrowed by 381 part 2). The predicates are the ones 259 and 381 set by ALTER POLICY on production.
+--      The fourth is sector_contexts_read_authenticated (SELECT, roles public), created because a later migration's precondition reads it (coordinator,
+--      2026-10-10, SEC-9). Its BEHAVIOUR is [CONFIRMED: AUD-AT-1 line 195, production]: anon reads 0 rows through a policy that applies to it, authenticated
+--      reads all 15 rows. Its predicate TEXT is in no file; it is written as the intelligence_summaries read policy's (authenticated or service_role),
+--      which gives exactly that behaviour [HYPOTHESIS on the text: the service_role arm cannot be observed, the role bypasses RLS]. Fire 10's structural
+--      record shows the token difference if the text differs.
 --   4. REVOKE EXECUTE ON FUNCTION public.gate_a_health() FROM PUBLIC, the one function grant only the replay had (dashboard-created function,
 --      docs/inventories/out-of-band-objects.md). [HYPOTHESIS] on the cause; the oracle shows production without the PUBLIC entry.
 --
 -- WHAT THIS DOES NOT DO (owed, [WORK: owed], needs the production text that no file holds; the executor reads it from pg_policies,
--- pg_attribute and pg_get_constraintdef in one query and the next lane writes it): the four other out-of-band policies (changes_read_authenticated,
--- changes_write_service, sector_contexts_read_authenticated, sector_contexts_write_service: their predicates are in no file, migration 381
+-- pg_attribute and pg_get_constraintdef in one query and the next lane writes it): the three other out-of-band policies (changes_read_authenticated,
+-- changes_write_service, sector_contexts_write_service: their predicates are in no file, migration 381
 -- says so), the intelligence_summaries_urgency_score_check constraint (its bounds are in no file), and the 7 columns whose type or default
 -- differs (gate_a_health_cache.computed_at and singleton, intelligence_summaries.urgency_score, sector_contexts.cargo_types,
 -- compliance_roles, transport_modes, urgency_weights). Nothing here guesses them.
@@ -96,6 +101,10 @@ BEGIN
     CREATE POLICY summaries_write_service ON public.intelligence_summaries FOR INSERT TO authenticated, service_role
       WITH CHECK (((SELECT auth.role()) = 'service_role'));
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'sector_contexts' AND policyname = 'sector_contexts_read_authenticated') THEN
+    CREATE POLICY sector_contexts_read_authenticated ON public.sector_contexts FOR SELECT TO public
+      USING (((SELECT auth.role()) = 'authenticated') OR ((SELECT auth.role()) = 'service_role'));
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'intelligence_summaries' AND policyname = 'summaries_update_service') THEN
     CREATE POLICY summaries_update_service ON public.intelligence_summaries FOR UPDATE TO authenticated, service_role
       USING (((SELECT auth.role()) = 'service_role'));
@@ -133,6 +142,9 @@ BEGIN
   SELECT string_agg(p, ', ') INTO v_missing FROM unnest(ARRAY['summaries_read_authenticated', 'summaries_write_service', 'summaries_update_service']) AS p
    WHERE NOT EXISTS (SELECT 1 FROM pg_policies x WHERE x.schemaname = 'public' AND x.tablename = 'intelligence_summaries' AND x.policyname = p);
   IF v_missing IS NOT NULL THEN RAISE EXCEPTION 'ABORT: policy(ies) missing: %', v_missing; END IF;
+  IF (SELECT count(*) FROM pg_policies x WHERE x.schemaname = 'public' AND x.tablename = 'sector_contexts' AND x.policyname = 'sector_contexts_read_authenticated') = 0 THEN
+    RAISE EXCEPTION 'ABORT: policy sector_contexts_read_authenticated missing';
+  END IF;
 
   IF EXISTS (
     SELECT 1 FROM pg_proc p CROSS JOIN LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
@@ -140,7 +152,7 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'ABORT: public.gate_a_health() still grants EXECUTE to PUBLIC';
   END IF;
-  RAISE NOTICE 'migration 384 OK: 11 tables with row level security, 5 constraints, 3 policies, gate_a_health() without PUBLIC execute';
+  RAISE NOTICE 'migration 384 OK: 11 tables with row level security, 5 constraints, 4 policies, gate_a_health() without PUBLIC execute';
 END $check$;
 
 COMMIT;
