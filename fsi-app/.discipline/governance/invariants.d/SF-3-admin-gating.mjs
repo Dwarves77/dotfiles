@@ -8,5 +8,4 @@ export const invariant = {
     section: 'Post-slim engine state (F2)',
     text: 'Every admin API route calls isPlatformAdmin (admin role gate).',
     anchor: 'F2 (admin-routes-isPlatformAdmin)',
-    enforcedBy: ['fitness:F2'],
   };

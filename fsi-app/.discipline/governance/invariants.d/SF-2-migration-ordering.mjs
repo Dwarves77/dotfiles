@@ -8,5 +8,4 @@ export const invariant = {
     section: 'Post-slim engine state (F6)',
     text: 'Migration filenames follow the numeric pattern with no duplicate numbers.',
     anchor: 'F6 (migrations numeric ordering)',
-    enforcedBy: ['fitness:F6'],
   };

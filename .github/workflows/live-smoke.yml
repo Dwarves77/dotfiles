@@ -137,6 +137,18 @@ jobs:
           LIVE_SMOKE_REPEAT: ${{ github.event.inputs.repeat || '1' }}
         run: node .discipline/rendering/live/live-smoke.mjs
 
+      # The registry's read-only live-data audits (lane REG-1, 2026-10-11; fsi-app/.discipline/registry.mjs rows of kind
+      # audit, RUNS-IN post-merge smoke). The data-audit-lane workflow is retired; this step is its read-only successor.
+      # --read-only skips the audits that write and never reflects into integrity_flags. Without database credentials
+      # it prints a loud SKIPPED line and exits 0 (a skip, not a pass); with them, a failing hard audit fails the step.
+      - name: Run the read-only live-data audits (registry rows, post-merge smoke)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: node scripts/verify/run-data-audit-lane.mjs --read-only
+
       # Record this family's harness-run artifact on EVERY firing, including one that failed before it produced a
       # report (the artifact then says report_missing, never a clean run), then land it into harness_runs so the
       # closure gate has dispatch evidence. The landing step self-skips without database credentials.

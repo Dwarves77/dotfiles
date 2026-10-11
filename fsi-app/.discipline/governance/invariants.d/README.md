@@ -10,15 +10,19 @@ every `*.mjs` file, validating each one, and sorting the result by id with a nat
 
 - **One entry, one file.** Each file exports exactly one named export, `invariant`, holding the object
   literal exactly as it looked as an array element before the split (same keys: `id`, `skill`,
-  `section`, `text`, `anchor`, and either `enforcedBy` or `exempt`, plus an optional `residual`).
+  `section`, `text`, `anchor`, and `exempt` when no check can hold it, plus an optional `residual`). There is
+  no `enforcedBy` key since lane REG-1 (2026-10-11): enforcement lives in `../../registry.mjs`, where a
+  registry row names the invariant in `carries`, and the loader derives `enforcedBy` from the rows that
+  carry it. A file that still writes `enforcedBy` is refused.
 - **The filename is the id.** `<ID>.mjs`. `invariants.mjs`'s loader refuses a file whose `invariant.id`
   does not equal its own filename stem, and refuses two files that claim the same id.
 - **The coordinator assigns the id.** A lane that registers a new invariant does not invent its own
   numbering scheme; it takes the id the coordinator's brief names, so two lanes adding an invariant in
   the same range add two files (an honest add/add conflict only on a genuine collision), never two
   edits to one shared array.
-- **Nothing else to edit.** Adding an invariant never touches `invariants.mjs`, `invariant-coverage.mjs`,
-  or any other file in this directory besides the one new `<ID>.mjs`.
+- **Two places to edit.** Adding an invariant adds the one new `<ID>.mjs` here and names its id in the
+  `carries` list of the registry row that enforces it (or marks it `exempt`). Nothing new lands without
+  retiring something (whole-build plan, phase A freeze).
 
 ## Why (Cause A, plan 6.8)
 

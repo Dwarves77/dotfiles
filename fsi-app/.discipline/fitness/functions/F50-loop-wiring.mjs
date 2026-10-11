@@ -83,7 +83,7 @@ export function familyFiredStatus(repoRoot, family, resolves = null) {
 /**
  * Validate the committed firing evidence (lane GATES-1, 2026-10-04) against the manifest. PURE.
  * Chained runs land in the `harness_runs` table, not as committed artifacts, so
- * `.discipline/governance/loop-fired-evidence.json` (written by scripts/verify/export-loop-fired-evidence.mjs,
+ * `.discipline/governance/loop-fired-evidence.json` (once written by the manual exporter REG-1 deleted on 2026-10-11,
  * proven against the live table by loop-fired-evidence-audit.mjs) is the second way a hop is shown to have
  * fired. An entry naming an unknown hop, a family that is not that hop's family, or a trigger that is not a
  * fired trigger is a violation here; whether the entry matches a real row is the audit's job.

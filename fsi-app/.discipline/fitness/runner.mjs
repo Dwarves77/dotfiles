@@ -10,16 +10,23 @@
 //   --quiet                 suppress PASS output; only show failures
 //   --firings-out=<path>    where to write fitness-firings.json (default fsi-app/.discipline/out/)
 //
+// REG-1 (2026-10-11): this is the ONE runner of the enforcement registry (fsi-app/.discipline/registry.mjs). A full run
+// also audits every registry row (evidence present and resolving, every fitness function, rule and consistency check has a
+// row) and ends by printing the registry's one-screen summary; a --function run prints only the summary.
+//
 // Exit codes:
 //   0 = all functions pass (no violations)
 //   1 = at least one violation found
 //   2 = engine error
 
 import { fitnessFunctions } from './manifest.mjs';
+import { REGISTRY_ROWS, auditRegistry, registrySummary } from '../registry.mjs';
+import { rules } from '../manifest.mjs';
+import { consistencyChecks } from '../consistency/manifest.mjs';
 import { readFile, _clearCache } from './lib/file-content.mjs';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
 import { getRepoRoot } from '../lib/context.mjs';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 // Lane GATE-3 (2026-10-08): the firing artifact. Every violation the run found, one record each, so the
@@ -122,6 +129,23 @@ async function main() {
     }
   }
 
+  // The registry audit (full runs only): a row with no evidence, an unresolved enforcer or an unregistered mechanism fails.
+  if (!args.function) {
+    const root = getRepoRoot();
+    const env = {
+      fitnessIds: new Set(fitnessFunctions.map((f) => f.id)),
+      ruleIds: new Set(rules.map((r) => r.id)),
+      consistencyIds: new Set(consistencyChecks.map((c) => c.id)),
+      fileExists: (p) => existsSync(resolve(root, p)),
+      readFile: (p) => { try { return readFileSync(resolve(root, p), 'utf8'); } catch { return null; } },
+    };
+    const registryFn = { id: 'REGISTRY', source: 'fsi-app/.discipline/registry.mjs (CLAUDE.md rule 15: a row needs a retained failure run or an attack test)' };
+    for (const problem of auditRegistry(REGISTRY_ROWS, env).problems) {
+      failureSummary.push({ fn: registryFn, file: 'fsi-app/.discipline/registry.mjs', line: 1, message: problem });
+      totalViolations++;
+    }
+  }
+
   // The artifact is written on every run, an empty array included: "nothing fired" is a fact too. A write
   // failure is reported but never changes the verdict (the artifact is evidence, not the gate).
   try {
@@ -144,6 +168,9 @@ async function main() {
     const summary = `Fitness summary: ${functions.length} function(s) checked, ${totalViolations} violation(s)`;
     console.log(`\n${summary}.`);
   }
+
+  // The registry's one-screen summary ends every invocation, quiet or not (REG-1).
+  console.log(`\n${registrySummary()}`);
 
   return totalViolations > 0 ? 1 : 0;
 }

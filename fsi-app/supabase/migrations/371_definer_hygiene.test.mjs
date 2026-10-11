@@ -334,10 +334,10 @@ test("self-check: every class is attacked as the refused role and exercised as t
   assert.doesNotMatch(afterBody, /INSERT INTO (public\.)?(organizations|org_memberships|profiles)|INSERT INTO auth\.users/i);
 });
 
-test("the F47 allowlist entry for gate_a_health_refresh is gone, because this migration now references the function", () => {
-  const f47 = read(".discipline", "fitness", "functions", "F47-db-object-reference.mjs");
-  assert.doesNotMatch(f47, /gate_a_health_refresh/);
-  assert.match(f47, /functions:\s*\{\s*\},/);
+test("the db-object allowlist entry for gate_a_health_refresh is gone, because this migration now references the function", () => {
+  // F47 was absorbed by F14 (REG-1, 2026-10-11); the db-object facet lives in the F14 module now.
+  const f14 = read(".discipline", "fitness", "functions", "F14-producer-consumer-orphan.mjs");
+  assert.doesNotMatch(f14, /gate_a_health_refresh/);
   assert.match(SQL, /'gate_a_health_refresh'/);
 });
 
@@ -368,11 +368,15 @@ test("the attack manifest carries the four SEC-4 attacks, each in the existing s
   assert.match(JSON.stringify(byId.get("sec4-accept-invitation-keeps-role").steps), /"equals":\{"role":"admin"\}/);
 });
 
-test("the invariant registry carries RD-93 for F70 and its two proofs, and the migrations inventory lists 371", () => {
-  const rd = readFileSync(join(FSI, ".discipline", "governance", "invariants.d", "RD-93-definer-hygiene.mjs"), "utf8");
-  assert.match(rd, /'fitness:F70'/);
-  assert.match(rd, /F70-definer-hygiene\.test\.mjs/);
-  assert.match(rd, /371_definer_hygiene\.test\.mjs/);
+test("the enforcement registry carries RD-93 for F70 and its proofs, and the migrations inventory lists 371", async () => {
+  // Enforcement has one home since REG-1 (2026-10-11): the registry row F70 carries RD-93, and the invariant's enforcedBy is derived from it.
+  const { REGISTRY_ROWS } = await import("../../.discipline/registry.mjs");
+  const { INVARIANTS } = await import("../../.discipline/governance/invariants.mjs");
+  const row = REGISTRY_ROWS.find((r) => r.id === "F70");
+  assert.ok(row && row.carries.includes("RD-93-definer-hygiene"));
+  const rd = INVARIANTS.find((i) => i.id === "RD-93-definer-hygiene");
+  assert.ok(rd.enforcedBy.includes("fitness:F70"));
+  assert.ok(rd.enforcedBy.some((t) => /F70-definer-hygiene\.test\.mjs$/.test(t)));
   const inv = readFileSync(join(REPO, "docs", "inventories", "migrations.md"), "utf8");
   assert.match(inv, /\| 371 \| 371_definer_hygiene\.sql \|/);
 });

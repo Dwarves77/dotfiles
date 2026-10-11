@@ -1,5 +1,13 @@
 # Fitness Functions (Application-Layer Enforcement)
 
+> **REG-1 (2026-10-11): this runner is the ONE runner of the enforcement registry.** The registry,
+> `fsi-app/.discipline/registry.mjs`, holds one row per governed property across fitness functions, invariants, audits
+> and goldens: id, what it governs, kind, the one enforcer, where it runs, and its evidence (a retained failure run or an
+> attack test; a row with neither fails `registry.test.mjs` and this runner). A full run audits every row and ends, like
+> a `--function` run, with the registry's one-screen summary. A fitness function that absorbed another keeps its tests
+> and its `fitness-allow` markers (F10 absorbed F11 and F12, F14 absorbed F47, F39 absorbed F38, F49 absorbed F42, F52
+> absorbed F61 and F68, F66 absorbed F65, F67 absorbed F44); the retired ids and their survivors are in `RETIRED`.
+
 > **STALE-CONTENT NOTICE (2026-07-11, audit CODE-2 F-9).** The F1–F8 list below lags the live set.
 > Source of truth = `fsi-app/.discipline/fitness/functions/*.mjs` + `governance/invariants.mjs`. Read
 > the directory to know which fitness functions actually run.

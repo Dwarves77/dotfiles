@@ -23,10 +23,6 @@ export const invariant = {
     'or inside a block scalar.',
   anchor:
     "### Section 4 — category 37: A perf number in CI carries a ratchet, a target, and dated evidence (a number with no citation is a guess wearing a measurement's clothes)",  // glyph:verbatim (must match the skill heading's own em dash byte-for-byte, same convention invariants.d/README.md documents for every carried-over anchor/section field)
-  enforcedBy: [
-    'fitness:F68',
-    'selftest:fsi-app/.discipline/fitness/functions/F68-actions-artifact-budget.test.mjs',
-  ],
   residual:
     'F68 is a line-based, indentation-based text scan of every .github/workflows/*.yml file (the same ' +
     'posture F52/F54 already use; no YAML parser is a direct dependency of this repository), not a real ' +

@@ -42,9 +42,9 @@ test('runner: npm-free subset executes without engine errors and leaks nothing t
   }
 });
 
-test('runner: F9 to F12 with no installed dependencies SKIP (no violation, exit 0)', () => {
+test('runner: F9 and F10 with no installed dependencies SKIP (no violation, exit 0)', () => {
   // The no-npm sandbox reproduces CI's "no npm ci" job: jiti and typescript do not resolve from fsi-app/.
-  for (const id of ['F9', 'F10', 'F11', 'F12']) {
+  for (const id of ['F9', 'F10']) {
     const r = runRunner([`--function=${id}`], ['--import', SANDBOX]);
     assert.equal(r.status, 0, `${id} must not violate when dependencies are absent: ${r.out}${r.err}`);
     assert.ok(r.out.includes(`[${id}] SKIP:`), `${id} must report a SKIP line: ${r.out}`);
@@ -134,4 +134,12 @@ test('firings: a real runner invocation writes the artifact (an empty array when
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// REG-1 (2026-10-11): the runner is the registry's one runner and ends every invocation with its summary.
+test('runner: a --function run ends with the registry one-screen summary, rows by kind and by runs-in', () => {
+  const r = runRunner(['--function=F2', '--quiet']);
+  assert.match(r.out, /Enforcement registry: \d+ rows \(fitness \d+, invariant \d+, audit \d+, golden \d+\)/);
+  assert.match(r.out, /runs in: static \d+, schema \d+, app \d+, post-merge smoke \d+, hook \d+/);
+  assert.match(r.out, /retired ids on record: \d+/);
 });

@@ -21,10 +21,6 @@ export const invariant = {
     'declarations without injecting any.',
   anchor:
     '### Section 4 - category 51: no title renders narrower than its longest word, and no title is measured on a fallback face',
-  enforcedBy: [
-    'selftest:fsi-app/.discipline/rendering/ux-assert.test.mjs',
-    'selftest:fsi-app/.discipline/rendering/rd-82-title-words.npmtest.mjs',
-  ],
   residual:
     'rd-82-title-words.npmtest.mjs needs a real chromium and self-skips, diagnosably, where ' +
     'playwright is not in node_modules (the RD-80 posture); ux-assert.test.mjs proves the detector ' +

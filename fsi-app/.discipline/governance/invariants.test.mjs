@@ -97,13 +97,22 @@ test('NEGATIVE: invariant.id not matching its filename stem is refused', async (
   });
 });
 
-test('NEGATIVE: enforcedBy present but not an array is refused', async () => {
+test('NEGATIVE: an enforcedBy written in an invariant file is refused (enforcement lives in the registry, REG-1)', async () => {
   await withTempDir(async (dir) => {
-    writeFileSync(join(dir, 'Z-1.mjs'), `export const invariant = { id: 'Z-1', skill: 's', section: 'a', text: 't', anchor: 'a', enforcedBy: 'not-an-array' };\n`);
+    writeFileSync(join(dir, 'Z-1.mjs'), `export const invariant = { id: 'Z-1', skill: 's', section: 'a', text: 't', anchor: 'a', enforcedBy: ['fitness:F2'] };\n`);
     await assert.rejects(
       () => loadInvariantsFromDir(dirUrl(dir)),
-      /enforcedBy must be an array/,
+      /derived from the registry rows/,
     );
+  });
+});
+
+test('POSITIVE: enforcedBy is derived from the registry rows that carry the invariant', async () => {
+  await withTempDir(async (dir) => {
+    writeFileSync(join(dir, 'Z-2.mjs'), `export const invariant = { id: 'Z-2', skill: 's', section: 'a', text: 't', anchor: 'a' };\n`);
+    const rows = [{ id: 'Fx', kind: 'fitness', enforcer: 'fitness:F2', carries: ['Z-2'], evidence: { attackTest: { file: 'fsi-app/a.test.mjs', name: 'n' } } }];
+    const loaded = await loadInvariantsFromDir(dirUrl(dir), rows);
+    assert.deepEqual(loaded[0].enforcedBy, ['fitness:F2', 'selftest:fsi-app/a.test.mjs']);
   });
 });
 

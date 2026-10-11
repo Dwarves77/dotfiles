@@ -30,10 +30,6 @@ export const invariant = {
     'main() (or an orchestrator such as runEnvelopeProducer) unconditionally at module scope; guard ' +
     'the call with `isMainModule(import.meta.url)` from `scripts/lib/is-main.mjs` so importing the ' +
     'file for its exported pure functions never triggers a live run.',
-  enforcedBy: [
-    'fitness:F67',
-    'selftest:fsi-app/.discipline/fitness/functions/F67-unguarded-main-invocation.test.mjs',
-  ],
   residual:
     'F67 is a text-based heuristic, the same posture F44/F60/F61 already state for themselves: it ' +
     'recognizes a line starting with `main(`, `await main(`, or `main().catch(` as unguarded unless the ' +

@@ -11,5 +11,4 @@ export const invariant = {
     section: 'Section 4: Citation Network Semantics',
     text: 'Syndicated republications collapse to ONE corroboration; the honest independent-citer count ≤ naive; trust_score_citation moves 0→>0 only on real corroboration.',
     anchor: 'Citation Network Semantics',
-    enforcedBy: ['fitness:F10', 'selftest:fsi-app/src/lib/sources/source-growth.selftest.mjs'],
   };

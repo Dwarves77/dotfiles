@@ -11,6 +11,5 @@ export const invariant = {
     section: 'Section 2 / Section 4 (sweep + classify)',
     text: 'Classify before delete/archive; no archive over an undiagnosed bucket; archives are reversible (prior-value snapshot) and skill-cited.',
     anchor: 'class-over-instance',
-    enforcedBy: ['rule:015', 'rule:019'],
     residual: 'rule 015 forces archive/delete through the guarded path (snapshot + cite); rule 019 forces source-archives through reclassifyToSource. "Undiagnosed bucket" judgment (was the diagnosis right?) is not mechanized.',
   };

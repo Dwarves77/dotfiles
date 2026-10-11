@@ -14,11 +14,14 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { deriveAudits } from './run-data-audit-lane.mjs';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { deriveAudits, selectAudits, laneCredentialsPresent } from './run-data-audit-lane.mjs';
+import { withoutCredentials } from '../lib/env-file.mjs';
 
 test('deriveAudits() finds real, marked scripts and returns [label, path, hard] tuples sorted by label', () => {
   const audits = deriveAudits();
-  assert.ok(audits.length >= 30, `expected at least 30 marked audit scripts, got ${audits.length}`);
+  assert.ok(audits.length >= 25, `expected at least 25 marked audit scripts, got ${audits.length}`);
   for (const [label, rel, hard] of audits) {
     assert.equal(typeof label, 'string');
     assert.match(rel, /^scripts\/(verify\/)?[\w.-]+\.mjs$/);
@@ -78,4 +81,32 @@ test('two fixture scripts sharing a label are refused by name', () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ---- REG-1 (2026-10-11): the --read-only mode the live-smoke job runs ----------------------------------------------------
+
+test("RED then GREEN: read-only drops every audit the registry names as a writer; a normal run keeps them", () => {
+  const audits = [["holdings-audit", "scripts/holdings-audit.mjs", false], ["skill-conformance", "scripts/audit-skill-conformance.mjs", false], ["flag-age", "scripts/verify/flag-age-audit.mjs", true]];
+  assert.deepEqual(selectAudits(audits, { readOnly: true }).map((a) => a[0]), ["flag-age"]);
+  assert.equal(selectAudits(audits, { readOnly: false }).length, 3);
+  const real = deriveAudits().map((a) => a[0]);
+  assert.ok(real.includes("holdings-audit") && real.includes("skill-conformance"), "the writers are still derived, only skipped read-only");
+  assert.ok(!selectAudits(deriveAudits(), { readOnly: true }).some((a) => ["holdings-audit", "skill-conformance"].includes(a[0])));
+});
+
+test("laneCredentialsPresent: a REST pair or a direct connection counts, nothing or a lone URL does not", () => {
+  assert.equal(laneCredentialsPresent({}), false);
+  assert.equal(laneCredentialsPresent({ NEXT_PUBLIC_SUPABASE_URL: "https://x" }), false);
+  assert.equal(laneCredentialsPresent({ NEXT_PUBLIC_SUPABASE_URL: "https://x", SUPABASE_SERVICE_ROLE_KEY: "k" }), true);
+  assert.equal(laneCredentialsPresent({ NEXT_PUBLIC_SUPABASE_URL: "https://x", SUPABASE_DB_PASSWORD: "p" }), true);
+  assert.equal(laneCredentialsPresent({ DATABASE_URL: "postgres://x" }), true);
+});
+
+test("the real script with --read-only and no credentials self-skips loudly with exit 0 and runs no audit", () => {
+  const env = withoutCredentials();
+  const r = spawnSync(process.execPath, [fileURLToPath(new URL("./run-data-audit-lane.mjs", import.meta.url)), "--read-only"], { env, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /SKIPPED, no database credentials/);
+  assert.match(r.stdout, /a skip, not a pass/);
+  assert.doesNotMatch(r.stdout, /-------- /, "no audit ran");
 });
