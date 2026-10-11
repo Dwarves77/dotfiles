@@ -117,7 +117,7 @@ A service-role script can call `supabase.auth.admin.generateLink({ type: 'magicl
 
 ## Recommended smoke-run procedure
 
-1. Confirm the orchestrator can read `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from `fsi-app/.env.local`. Both are present per the audit. The operator's email address is supplied through the environment, never written here. The operator must supply their current Supabase password through a prompt or an `OPERATOR_PASSWORD` env var that the orchestrator reads at runtime and does not log.
+1. Confirm the orchestrator can read `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from `fsi-app/.env.local`. Both are present per the audit. The operator's email address is supplied through the environment. The operator must supply their current Supabase password through a prompt or an `OPERATOR_PASSWORD` env var that the orchestrator reads at runtime and does not log.
 
 2. Mint the bearer with one POST. From a Node or shell context:
    ```
