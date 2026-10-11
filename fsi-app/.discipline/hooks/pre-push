@@ -237,14 +237,14 @@ echo "[discipline pre-push] step 1 (untracked critical files): OK"
 # Runs the consistency runner AND honors `Consistency-Override:` trailers on the commits being pushed
 # (the escape hatch this hook advertised but never parsed before g1b). override-check.mjs --prepush reads
 # the ref-update lines on stdin, collects the pushed commits' messages, and treats a C-check as overridden
-# only when a VALID trailer is present (non-empty rationale + today-or-future remediation-deadline). Same
+# only when a VALID trailer is present (a rationale sentence naming the check id or its invariant + a remediation-deadline from today to 30 days out). Same
 # primitive rule 014 + the CI backstop use, so the three surfaces cannot drift.
 if ! printf '%s' "$PREPUSH_REFS" | node fsi-app/.discipline/consistency/override-check.mjs --prepush >"$PRE_PUSH_LOG_DIR/c.log" 2>&1; then
   pre_push_log_firing 2 "$PRE_PUSH_LOG_DIR/c.log"
   echo "[discipline pre-push] STEP 2 FAIL: consistency runner reported drift with no valid override:" >&2
   cat "$PRE_PUSH_LOG_DIR/c.log" >&2
   echo "[discipline pre-push] fix the drift above, OR add on a commit being pushed:" >&2
-  echo "[discipline pre-push]   Consistency-Override: C<N> (rationale: <non-empty>; remediation-deadline: YYYY-MM-DD[future])" >&2
+  echo "[discipline pre-push]   Consistency-Override: C<N> (rationale: <a sentence naming C<N> or its invariant>; remediation-deadline: YYYY-MM-DD, today to +30 days)" >&2
   exit 1
 fi
 cat "$PRE_PUSH_LOG_DIR/c.log"

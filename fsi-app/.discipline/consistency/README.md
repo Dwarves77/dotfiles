@@ -94,7 +94,7 @@ Exit codes:
 
 ## 14th binding rule
 
-`fsi-app/.discipline/rules/014-inventory-consistency.mjs`. Trigger: any commit modifying `docs/inventories/*.md` files. Check: full consistency runner must exit 0 on the resulting state. Override: `Consistency-Override: C-N (rationale: <text>; remediation-deadline: YYYY-MM-DD)` trailer per the rule 13 override pattern; logged in audit for operator follow-up.
+`fsi-app/.discipline/rules/014-inventory-consistency.mjs`. Trigger: any commit modifying `docs/inventories/*.md` files. Check: full consistency runner must exit 0 on the resulting state. Override: `Consistency-Override: C-N (rationale: <text>; remediation-deadline: YYYY-MM-DD)` trailer per the rule 13 override pattern, valid only with a rationale that is a sentence (3 words, 20 characters) naming the check id or its invariant, and a remediation-deadline from today to 30 days out (`override-check.mjs`, GATE-FIX-2); logged in audit for operator follow-up.
 
 ## Tests
 

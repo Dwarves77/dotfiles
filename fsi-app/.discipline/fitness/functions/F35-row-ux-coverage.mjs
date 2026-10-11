@@ -60,6 +60,9 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/coverage/CoveragePageView.tsx': 'spec 00 section 4 generated Coverage page, one row per place (lane COV-1)',
   'src/components/market/OemRoadmapPanelView.tsx': 'spec09 §1.1 OEM roadmap row',
   'src/components/market/ReroutingPanelView.tsx': 'spec09 §1.7 rerouting-multiplier row',
+  // lane GATE-FIX-2 (2026-10-10, coordinator grant; l13 open item): the fully-loaded labour chain renders one row per
+  // chain term inside the matrix panel; labour-chain-smoke.mjs mounts it, and its title is the shared SectionHeading.
+  'src/components/operations/LabourChain.tsx': 'spec 04 section 5 and section 6 component 5 fully-loaded labour chain, one row per term (lane L13)',
   'src/components/operations/AuxiliaryEnergyPanelView.tsx': 'spec09 §1.5 auxiliary-load row',
   'src/components/operations/GridQueuePanelView.tsx': 'spec09 §1.6 grid-queue gate row',
   // Lane L5 (2026-10-02, coordinator-directed registration, extended scope). AssessmentHistoryLedger
