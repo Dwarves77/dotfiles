@@ -1,6 +1,6 @@
 ## 2026-10-09, lane MIG-HIST-2 (mighist2-replay-residue): code-differs rows carry a recorded diff, outside-ledger files are checked against the live catalog
 
-Rows owed to this lane (the `[WORK: MIG-HIST-2]` lines on origin/master 9c303db91): migration-history-2026-10-07 audit item 8 (line 37), remaining-build-register line 325 (item 3), mighist1-recover log lines 29, 30, 66.
+Rows owed to this lane (the `[CLOSED: PR 1085]` lines on origin/master 9c303db91): migration-history-2026-10-07 audit item 8 (line 37), remaining-build-register line 325 (item 3), mighist1-recover log lines 29, 30, 66.
 
 ### Accomplished
 - `fsi-app/scripts/verify/migration-history-diff.mjs` (new). `diffRecord(stored, file)` returns `{class, file_only, stored_only, sha256}` from the shared comparison (`migration-compare.mjs`, unchanged): class `file-only` (audit section 6 H1), `changed-in-place` (H2) or `stored-only`; sha256 over the two normalised statement lists, so a header or comment edit does not move it and any change to either side of the difference does. `annotateMap` writes the record as `diff` on every code-differs entry (and removes it from any other class). CLI `--export-dir <ledger export> [--write]`.

@@ -1,6 +1,6 @@
 # 2026-10-09, lane SEC-8 (sec8-read-policy-scope): SELECT policies that were the literal true for {public} now name authenticated and service_role; anon loses table SELECT on those tables and on the membership and identity tables
 
-Rows worked: `docs/audits/aud-at1-rls-grants-attacked-2026-10-08.md` line 245 (P1 anon SELECT under literal-true policies) and line 247 (P4 foreign rows). Both carry `[WORK: SEC-8]`; this lane does not edit them (executor applies the tokens at merge).
+Rows worked: `docs/audits/aud-at1-rls-grants-attacked-2026-10-08.md` line 245 (P1 anon SELECT under literal-true policies) and line 247 (P4 foreign rows). Both carry `[CLOSED: PR 1071]`; this lane does not edit them (executor applies the tokens at merge).
 
 Coordinator rulings on PR 1071 (2026-10-09), all applied in this PR: (1) anon has no legitimate read of org_memberships or profiles, so 382 revokes anon table SELECT on them and on the other membership and identity tables it touches, and leg C keeps expecting 42501; (2) write set expanded so sources and source_citations close in this PR (fetchSources and the callers of get_source_citation_stats and get_research_source_coverage read through the server client, then 382 narrows both); (3) the sibling static test 382_*.test.mjs is added.
 

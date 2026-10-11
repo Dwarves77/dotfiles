@@ -104,14 +104,14 @@ Counts: 71 rows. CLOSED 34 (PR 1040 x8, 998 x4, 986 x4, 997 x3, 1049 x3, 1042 x2
 
 ## NOT done
 
-- Bash edits of governed files (`sed -i`, `>>`, `python -c`, `git apply`, A-PT-B24 to B27) are not seen by the skill gate; GATE-7 left them outside its brief. [WORK: GATE-FIX-2]
-- A Windows backslash `-C` path hides the subcommand from the isolation belt: `argvOnly` turns `git -C C:\x merge origin/master` into text where the subcommand reads as `sers`, so the command is not asked at all [CONFIRMED: ran argvOnly]. Pre-existing; found while attacking pair 7. [WORK: GATE-FIX-2]
+- Bash edits of governed files (`sed -i`, `>>`, `python -c`, `git apply`, A-PT-B24 to B27) are not seen by the skill gate; GATE-7 left them outside its brief. [CLOSED: PR 1096]
+- A Windows backslash `-C` path hides the subcommand from the isolation belt: `argvOnly` turns `git -C C:\x merge origin/master` into text where the subcommand reads as `sers`, so the command is not asked at all [CONFIRMED: ran argvOnly]. Pre-existing; found while attacking pair 7. [CLOSED: PR 1096]
 - Section 5 exemption lists were not touched; current counts: closure NEVER_RUN_DORMANT 0, exemptions.EXEMPTIONS 19, F25 LEGACY_ALLOWLIST 17, F36 PRE_EXISTING_ALLOWLIST 14, F64 RLS_ENABLE_ALLOWLIST 12, F21 SANCTIONED 7, F9 ALLOWED_TSCONFIG_EXCLUDES 6, F15 LEGACY_ALLOWLIST 5, F40 BEARER_BUILDER_ALLOWLIST 3, F47 ALLOWLIST 2. [NOT-WORK: scope statement, section 5 lists are not this lane's]
 - The skill gate test "the gate stays under 300 ms" fails locally (340 to 420 ms cold scan) on the unmodified gate as well; CI decides. [NOT-WORK: fact, load dependent timing, unchanged by this PR]
 - A `git stash` run in this worktree interleaved with sibling lanes (the stash list is shared by every worktree): one pop applied another lane's `brief-candidates.mjs` edit here and into the chain5 worktree, and my own stash was popped elsewhere. I removed the stray copy from this worktree; the chain5 worktree still held a copy of the dfix2 edit when written. [REFUTED: the chain5 worktree was removed at the PR 1072 merge]
 
 ## Open items
 
-- Consistency-Override accepts any non-empty rationale and any future date (aud-at3 line 528). [WORK: GATE-FIX-2]
+- Consistency-Override accepts any non-empty rationale and any future date (aud-at3 line 528). [CLOSED: PR 1096]
 - The F64 RLS_ENABLE_ALLOWLIST entry for `intelligence_items_domain_backfill_audit` states the table was never applied; migration 101 is in APPLIED-MAP and migration 219 drops the table, so the reason is false and the check should treat a dropped table as out of scope [CONFIRMED: read F64 lines 196 to 198, APPLIED-MAP line 96, migration 219 line 48]. [WORK: EXEMPT-1]
 - The first push failed `Discipline engine unit tests` on runner.test.mjs:355 (a moved-and-edited home-path line in a surviving file passed because X11 paired it); fixed by the narrowing above. [CLOSED: PR 1086]
