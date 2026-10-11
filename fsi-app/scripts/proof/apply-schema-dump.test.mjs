@@ -1,7 +1,7 @@
 /** Tests for scripts/proof/apply-schema-dump.mjs (lane PROOF-1, rewritten by PROOF-6), with a fake psql. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { psqlArgs, assertOracleUrl, collectErrors, missingRole, buildReport, applySchemaDump as applyRaw, DEFAULT_ACL_QUERY, parseDefaultAclRows, clearDefaultAclStatements, parseDumpDefaultAcl, compareDefaultAcl } from "./apply-schema-dump.mjs";
+import { psqlArgs, assertOracleUrl, collectErrors, missingRole, buildReport, applySchemaDump as applyRaw, DEFAULT_ACL_QUERY, parseDefaultAclRows, clearDefaultAclStatements, parseDumpDefaultAcl, compareDefaultAcl, summaryLine } from "./apply-schema-dump.mjs";
 
 // The dump text is injected (no file on disk); a test that cares passes its own readText.
 const applySchemaDump = (o) => applyRaw({ readText: () => "", ...o });
@@ -298,4 +298,90 @@ test("DRIFT-1b ATTACK: an image default the dump never declares survives the app
   assert.equal(red.ok, false);
   assert.deepEqual(red.default_acl.extra, ["postgres|public|r|anon"]);
   assert.match(red.errors.at(-1).message, /never declared: postgres\|public\|r\|anon/);
+});
+
+// ── lane DRIFT-2 (2026-10-11): the default-privilege check compares what the migrations govern ───────────────────
+// Chain proof fire 10 (run 38143319917): default privileges cleared 69, declared by the dump 9, oracle after 17, extra 8,
+// every one created by an extension's own install script (cron, pgsodium) while the dump ran. pg_dump never emits an
+// extension's internal ALTER DEFAULT PRIVILEGES, so the dump can never declare them: red by construction, not by drift.
+// The report gives counts and the 8 names; the 9 declared rows below are any 9 entries in the governed scope (reconstructed).
+const key = (r) => [r.owner, r.schema, r.objtype, r.grantee].join("|");
+const FIRE10_DECLARED = [
+  { owner: "postgres", schema: "public", objtype: "r", grantee: "anon" },
+  { owner: "postgres", schema: "public", objtype: "r", grantee: "authenticated" },
+  { owner: "postgres", schema: "public", objtype: "r", grantee: "service_role" },
+  { owner: "postgres", schema: "public", objtype: "S", grantee: "service_role" },
+  { owner: "postgres", schema: "public", objtype: "f", grantee: "service_role" },
+  { owner: "supabase_admin", schema: "public", objtype: "r", grantee: "service_role" },
+  { owner: "supabase_admin", schema: "public", objtype: "S", grantee: "service_role" },
+  { owner: "supabase_admin", schema: "public", objtype: "f", grantee: "service_role" },
+  { owner: "supabase_admin", schema: "", objtype: "f", grantee: "PUBLIC" },
+];
+const FIRE10_EXTENSION_ROWS = [
+  ["supabase_admin", "cron", "S", "postgres"], ["supabase_admin", "cron", "f", "postgres"], ["supabase_admin", "cron", "r", "postgres"],
+  ["supabase_admin", "pgsodium_masks", "S", "pgsodium_keyiduser"], ["supabase_admin", "pgsodium_masks", "f", "pgsodium_keyiduser"], ["supabase_admin", "pgsodium_masks", "r", "pgsodium_keyiduser"],
+  ["supabase_admin", "pgsodium", "S", "pgsodium_keyholder"], ["supabase_admin", "pgsodium", "r", "pgsodium_keyholder"],
+].map(([owner, schema, objtype, grantee]) => ({ owner, schema, objtype, grantee }));
+
+test("DRIFT-2 fire-10 fixture: 17 oracle rows (9 declared + 8 extension-internal) against the 9 declared => extra [] and out_of_scope 8", () => {
+  const oracle = [...FIRE10_DECLARED, ...FIRE10_EXTENSION_ROWS];
+  assert.equal(oracle.length, 17);
+  const c = compareDefaultAcl(oracle, FIRE10_DECLARED);
+  assert.deepEqual(c.extra, []);
+  assert.deepEqual(c.missing, []);
+  assert.equal(c.out_of_scope, 8);
+});
+
+test("DRIFT-2 end to end: the fire-10 oracle state is GREEN in applySchemaDump, the report names the scope and counts the 8 excluded rows", () => {
+  const word = { r: "TABLES", S: "SEQUENCES", f: "FUNCTIONS" };
+  const dumpText = FIRE10_DECLARED.map((r) => `ALTER DEFAULT PRIVILEGES FOR ROLE ${r.owner}${r.schema ? ` IN SCHEMA ${r.schema}` : ""} GRANT ALL ON ${word[r.objtype]} TO ${r.grantee};`).join("\n") + "\n";
+  assert.equal(parseDumpDefaultAcl(dumpText).length, 9, "the fixture dump declares exactly the 9 rows");
+  const afterRows = [...FIRE10_DECLARED, ...FIRE10_EXTENSION_ROWS].map(key).join("\n");
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", readText: () => dumpText, spawn: aclSpawn({ afterRows }).spawn });
+  assert.equal(r.ok, true);
+  assert.equal(r.fatal_errors, 0);
+  assert.equal(r.default_acl.declared, 9);
+  assert.equal(r.default_acl.after, 17);
+  assert.deepEqual(r.default_acl.extra, []);
+  assert.deepEqual(r.default_acl.scope, ["", "public"]);
+  assert.equal(r.default_acl.out_of_scope, 8);
+});
+
+test("DRIFT-2 ATTACK: a public-schema entry the dump never declared is still extra, with extension rows present", () => {
+  const stray = { owner: "postgres", schema: "public", objtype: "r", grantee: "anon_ro" };
+  const c = compareDefaultAcl([...FIRE10_DECLARED, ...FIRE10_EXTENSION_ROWS, stray], FIRE10_DECLARED);
+  assert.deepEqual(c.extra, ["postgres|public|r|anon_ro"]);
+  assert.equal(c.out_of_scope, 8);
+  const dumpText = "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO service_role;\n";
+  const red = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", readText: () => dumpText, spawn: aclSpawn({ afterRows: "postgres|public|r|service_role\npostgres|public|r|anon_ro\nsupabase_admin|cron|r|postgres" }).spawn });
+  assert.equal(red.ok, false);
+  assert.deepEqual(red.default_acl.extra, ["postgres|public|r|anon_ro"]);
+  assert.equal(red.default_acl.out_of_scope, 1);
+});
+
+test("DRIFT-2 ATTACK: a global ('' schema) entry the dump never declared is still extra", () => {
+  const stray = { owner: "supabase_admin", schema: "", objtype: "r", grantee: "PUBLIC" };
+  const c = compareDefaultAcl([...FIRE10_DECLARED, ...FIRE10_EXTENSION_ROWS, stray], FIRE10_DECLARED);
+  assert.deepEqual(c.extra, ["supabase_admin||r|PUBLIC"]);
+  assert.equal(c.out_of_scope, 8);
+});
+
+test("DRIFT-2: an entry the dump declares in the governed scope that the oracle lacks is still missing; the scope is a parameter", () => {
+  const c = compareDefaultAcl(FIRE10_EXTENSION_ROWS, FIRE10_DECLARED);
+  assert.equal(c.missing.length, 9);
+  assert.equal(c.out_of_scope, 8);
+  const all = compareDefaultAcl(FIRE10_EXTENSION_ROWS, [], { schemas: ["", "public", "cron", "pgsodium", "pgsodium_masks"] });
+  assert.equal(all.extra.length, 8, "widening the scope compares the extension rows again");
+  assert.equal(all.out_of_scope, 0);
+});
+
+test("DRIFT-2: the console line prints the out-of-scope count", () => {
+  const f = aclSpawn({ afterRows: [...FIRE10_DECLARED, ...FIRE10_EXTENSION_ROWS].map(key).join("\n") });
+  const dumpText = FIRE10_DECLARED.map((r) => `ALTER DEFAULT PRIVILEGES FOR ROLE ${r.owner}${r.schema ? ` IN SCHEMA ${r.schema}` : ""} GRANT ALL ON ${{ r: "TABLES", S: "SEQUENCES", f: "FUNCTIONS" }[r.objtype]} TO ${r.grantee};`).join("\n");
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", readText: () => dumpText, spawn: f.spawn });
+  const line = summaryLine(r);
+  assert.match(line, /^apply-schema-dump: OK;/);
+  assert.match(line, /out of scope 8/);
+  assert.match(line, /extra 0/);
+  assert.match(line, /declared by the dump 9, oracle after 17/);
 });
