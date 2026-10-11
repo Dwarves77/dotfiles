@@ -33,7 +33,7 @@ Reused instead of built: the attack engine and persona fixtures for the views le
 
 ## Red then green
 
-Every new test file has an attack on the attacker (a scripted leak turns the attack red) alongside the control that passes. Run at the head of this branch: `node --test` over all 22 changed `*.test.mjs` files, 244 tests, 244 pass, 0 fail. The forbid test turns red for a vacuous matcher (4 violations), a blanket matcher (4), and a matcher covering one pair of three (2); the real specs are asserted to carry one selector in 14 files.
+Every new test file has an attack on the attacker (a scripted leak turns the attack red) alongside the control that passes. Run at the head of this branch: `node --test` over all 15 changed `*.test.mjs` files, 244 tests, 244 pass, 0 fail. The forbid test turns red for a vacuous matcher (4 violations), a blanket matcher (4), and a matcher covering one pair of three (2); the real specs are asserted to carry one selector in 14 files.
 
 ## Decisions
 
