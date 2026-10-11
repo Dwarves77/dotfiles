@@ -4,6 +4,8 @@ Catalog of the Rules-as-Code (RaC) discipline engine at `fsi-app/.discipline/` p
 
 ## Status
 
+**Update 2026-10-10 (lane DOCS-5, from the GATE-1 log, PR 997).** The commit rules engine below is no longer the slim-engine list: rules 014, 016 and 020 were deleted (rule 014 inventory consistency, rule 016 canonical Anthropic path, folded into F15's SANCTIONED set, rule 020 fork log frozen, replaced by `rules/fork-log-archived.test.mjs`), and `lib/predicates.mjs` with its test was deleted (its helpers served only rule 014 and the trailer handling). Rules 012, 015, 017, 018, 019, 021, 022 judge introduced lines only, through `ctx.introducedLines` in `lib/context.mjs`; rule 023 (a source file git does not diff as text) was added later. The registered rule list is `fsi-app/.discipline/manifest.mjs`; read it, not the tables below, for what runs. The tables below are the 2026-05-21 record.
+
 **Slim engine, 2026-05-21** (post-audit slim refactor). Engine cut from 33 mechanisms to 8 plus 1 pre-push hook. The audit found that 25 mechanisms had zero documented bug catches in their lifetimes; 12 were structurally unable to catch what they claimed (dispatcher-controlled attestation strings, no-op extractors, wrong source-of-truth); the other 13 (the UNCERTAIN tier) had no enforceable review path outside Claude Code. All 25 + 4 UNCERTAINs were deleted in this dispatch.
 
 Replaced with a **pre-push hook** (CI-parity gate) that runs the same 4 checks CI runs, locally, before push leaves the machine.
