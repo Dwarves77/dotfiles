@@ -38,4 +38,4 @@ Reused: the brief's deleted-enforcer sentence verbatim; docs/plans/rebuild/prote
 
 ## Verification
 
-- Local tier per EXEC-9: npm run lint (--max-warnings=0) and npm run typecheck in the worktree; results in the PR.
+- Local tier per EXEC-9, run in the worktree after `npm ci`: `npm run lint -- --max-warnings=0` exit 0; `npm run typecheck` exit 0.
