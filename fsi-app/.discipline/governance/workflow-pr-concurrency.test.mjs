@@ -84,7 +84,8 @@ test("every pull_request workflow carries a per-PR concurrency group with cancel
   const files = readdirSync(WORKFLOWS).filter((f) => f.endsWith(".yml"));
   assert.ok(files.length >= 20, `expected to scan the real workflows directory, found ${files.length} file(s)`);
   const prWorkflows = files.filter((f) => triggerEvents(readFileSync(join(WORKFLOWS, f), "utf8")).has("pull_request"));
-  assert.ok(prWorkflows.length >= 6, `expected the known pull_request workflows, found ${prWorkflows.length}`);
+  // Lane PIPE-1 (2026-10-11): the eight pull_request workflows became the one ci.yml.
+  assert.deepEqual(prWorkflows, ["ci.yml"], `expected the one pull_request workflow, found ${prWorkflows.join(", ")}`);
   const violations = files.flatMap((f) => findConcurrencyViolations(f, readFileSync(join(WORKFLOWS, f), "utf8")));
   assert.deepEqual(violations, [], "add concurrency: group per PR number and cancel-in-progress for pull_request events (ADR-047)");
 });
