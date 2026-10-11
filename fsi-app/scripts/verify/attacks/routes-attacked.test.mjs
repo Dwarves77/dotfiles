@@ -7,6 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createHmac } from "node:crypto";
 import {
   parseRegister, parsePageRegister, pageUrlPath, planPageProbes, routeUrlPath, planProbes, personasFor, runProbes, evaluate, expectedOpenProblems, isWriteAttackRow,
   cliMain, REGISTER_PATH, EXPECTED_OPEN_PATH, PLACEHOLDER_ID, MAX_BROKEN,
@@ -242,31 +243,47 @@ test("route personas: the creation statements make a platform admin, a viewer an
   assert.ok(st.filter((s) => s.label.startsWith("profiles ")).filter((s) => s.params[3] === true).length === 1);
 });
 
-test("route personas: a refused request carries the auth service's own error code, never the password", async () => {
-  const env = { NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321", NEXT_PUBLIC_SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s" };
+const PERSONA_ENV = { NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321", SUPABASE_SERVICE_ROLE_KEY: "s", ROUTE_PERSONA_JWT_SECRET: "jwt-secret-for-tests" };
+
+test("route personas: a refused request carries the auth service's own error code, never the secret", async () => {
   await assert.rejects(
-    () => setupRoutePersonas({ client: { query: async () => ({}) }, env, tag: "t", makePassword: () => "pw-secret", fetchImpl: async () => ({ ok: false, status: 422, json: async () => ({ error_code: "email_provider_disabled", msg: "Email logins are disabled" }) }) }),
-    (e) => /answered 422 \(email_provider_disabled: Email logins are disabled\)/.test(e.message) && !/pw-secret/.test(e.message),
+    () => setupRoutePersonas({ client: { query: async () => ({}) }, env: PERSONA_ENV, tag: "t", fetchImpl: async () => ({ ok: false, status: 422, json: async () => ({ error_code: "email_provider_disabled", msg: "Email logins are disabled" }) }) }),
+    (e) => /answered 422 \(email_provider_disabled: Email logins are disabled\)/.test(e.message) && !/jwt-secret-for-tests/.test(e.message),
   );
 });
 
-test("route personas: sign-in failures and missing keys name the step, never a credential", async () => {
+test("route personas: missing keys name the step, never a credential", async () => {
   const client = { query: async () => ({}) };
-  await assert.rejects(() => setupRoutePersonas({ client, env: {} }), /API url or keys are missing/);
-  const env = { NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321", NEXT_PUBLIC_SUPABASE_ANON_KEY: "a", SUPABASE_SERVICE_ROLE_KEY: "s" };
+  await assert.rejects(() => setupRoutePersonas({ client, env: {} }), /API url or service key is missing/);
+  await assert.rejects(() => setupRoutePersonas({ client, env: { ...PERSONA_ENV, ROUTE_PERSONA_JWT_SECRET: undefined } }), /ROUTE_PERSONA_JWT_SECRET .* is missing/);
   await assert.rejects(
-    () => setupRoutePersonas({ client, env, tag: "t", makePassword: () => "pw-secret", fetchImpl: async () => ({ ok: false, status: 500, json: async () => ({}) }) }),
-    (e) => /create admin: auth service answered 500/.test(e.message) && !/pw-secret/.test(e.message),
+    () => setupRoutePersonas({ client, env: PERSONA_ENV, tag: "t", fetchImpl: async () => ({ ok: false, status: 500, json: async () => ({}) }) }),
+    (e) => /create admin: auth service answered 500/.test(e.message) && !/jwt-secret-for-tests/.test(e.message),
   );
+});
+
+test("route personas: one token per persona, HS256 signed with the stack secret, sub is the created user, no password is ever sent", async () => {
+  const bodies = [];
   let calls = 0;
-  const fetchImpl = async (url) => {
+  const fetchImpl = async (url, init) => {
     calls += 1;
-    if (String(url).includes("/admin/users")) return { ok: true, status: 200, json: async () => ({ id: `00000000-0000-4000-8000-0000000000${10 + calls}` }) };
-    return { ok: true, status: 200, json: async () => ({ access_token: `tok-${calls}` }) };
+    bodies.push(String(init?.body ?? ""));
+    return { ok: true, status: 200, json: async () => ({ id: `00000000-0000-4000-8000-0000000000${10 + calls}` }) };
   };
-  const out = await setupRoutePersonas({ client, env, tag: "t", fetchImpl });
+  const now = 1_800_000_000;
+  const out = await setupRoutePersonas({ client: { query: async () => ({}) }, env: PERSONA_ENV, tag: "t", fetchImpl, now });
   assert.deepEqual(Object.keys(out.tokens).sort(), ["admin", "member_a", "member_b", "viewer_a"]);
-  await teardownRoutePersonas({ client, userIds: out.userIds, env, fetchImpl });
+  assert.ok(bodies.every((b) => !/password/.test(b)), "no request carries a password");
+  const [head, body, sig] = out.tokens.admin.split(".");
+  assert.deepEqual(JSON.parse(Buffer.from(head, "base64url")), { alg: "HS256", typ: "JWT" });
+  const claims = JSON.parse(Buffer.from(body, "base64url"));
+  assert.equal(claims.sub, out.userIds.admin);
+  assert.equal(claims.aud, "authenticated");
+  assert.equal(claims.role, "authenticated");
+  assert.equal(claims.exp, now + 3600);
+  assert.equal(sig, createHmac("sha256", "jwt-secret-for-tests").update(`${head}.${body}`).digest("base64url"));
+  assert.notEqual(sig, createHmac("sha256", "another-secret").update(`${head}.${body}`).digest("base64url"), "a different secret does not verify");
+  await teardownRoutePersonas({ client: { query: async () => ({}) }, userIds: out.userIds, env: PERSONA_ENV, fetchImpl });
 });
 
 test("cliMain refuses outside the local stack and when the app is not on a loopback host, and exits 0 on a good run", async () => {

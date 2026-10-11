@@ -43,6 +43,7 @@ Every new test file has an attack on the attacker (a scripted leak turns the att
 
 ## NOT done
 
+- Routes persona tokens: the local stack refuses email password sign-in, so `fixtures/route-personas.mjs` creates the users without a password and mints HS256 access tokens with the stack's JWT secret (`ROUTE_PERSONA_JWT_SECRET`, read from `supabase status -o env` in the workflow step and masked). [NOT-WORK: fact, no action]
 - The owner-run view census (names of non-guarded public views without security_invoker), previously recorded here as owed to SEC-10 for 6 views: [REFUTED: the first attack matched only security_invoker=true; migration 369 sets =on; with both spellings every public view holds. CI run 38105710932 printed zero `owner-run view:` lines and every view attack held]
 
 - The browser leg of the forbid attack and the stack legs (routes, views, accept_invitation, count RPCs, gate-step attacks) cannot run in a lane: no chromium, no Docker stack, no `npm ci`. They are proven by unit tests against fakes here and execute for the first time in this PR's CI. [NOT-WORK: CI is the gate, COMMON rule 9; a red job is read from its log]
@@ -53,5 +54,7 @@ Every new test file has an attack on the attacker (a scripted leak turns the att
 - daudit2:175: whether `open-state-sweep.mjs` and `overflow-sweep.mjs` should sweep `page-frame-1440-full-brief` is an edit to two non-test modules outside the write set. [WORK: owed]
 
 ## Open items
+
+- [auth.email] enable_signup=false in fsi-app/supabase/config.toml disables email password sign-in on the local stack (auth 422); whether production's auth settings match is unverified [WORK: owed]
 
 - The forbid fixture mirrors the ListRow markup by class name; a test pins the class names against `ListRow.tsx` and `Absence.tsx`, but a markup change that keeps the names and breaks the selector would be seen only by the audit's own forbid row. [NOT-WORK: scope statement, the audit row on the real mount is the second guard]

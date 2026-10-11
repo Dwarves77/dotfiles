@@ -193,6 +193,13 @@ jobs:
           set -o pipefail
           . "$RVA_ENV"
           node scripts/proof/preflight.mjs
+          # The local stack runs with [auth.email] enable_signup = false, so the auth service refuses every email password
+          # sign-in (422); the persona tokens are minted with the stack's own JWT secret, read from its status output here
+          # (the stack is loopback-only and disposable) and masked in the log. It is passed to the one script that needs it.
+          jwt_secret="$(cd "$RVA_STACK" && supabase status -o env | sed -n 's/^JWT_SECRET=//p' | tr -d '"')"
+          test -n "$jwt_secret"
+          echo "::add-mask::$jwt_secret"
+          export ROUTE_PERSONA_JWT_SECRET="$jwt_secret"
           node scripts/verify/attacks/routes-attacked.mjs --base-url http://127.0.0.1:3100 --out-dir "$RVA_OUT_DIR" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the attack reports (route paths, personas, status codes, outcome classes)
