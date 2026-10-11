@@ -4,8 +4,7 @@
 // element under its own named invariant. Without `contentChecks` the runner behaves exactly as before.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runLiveSmoke, readCandidatesFile, VIEWPORTS, LIST_SURFACES, getWithThrottleRetry, retryOnThrottle, adminGateOutcome, THROTTLE } from "./live-smoke.mjs";
-import { formatSummary } from "./live-assertions.mjs";
+import { runLiveSmoke, readCandidatesFile, VIEWPORTS, LIST_SURFACES, getWithThrottleRetry, retryOnThrottle, adminGateOutcome, summaryLines, THROTTLE } from "./live-smoke.mjs";
 import { INVARIANTS } from "./live-assertions.mjs";
 import { CONTENT_REQUIREMENTS, CONTENT_INVARIANT_IDS } from "./live-content.mjs";
 import { collectSnapshotInPage, collectLinksInPage, collectContentInPage } from "./live-snapshot.mjs";
@@ -306,7 +305,7 @@ test("ADMIN GATE: a throttled probe (429 after retries) is a HOLD with reason th
   assert.equal(h.invariant, INVARIANTS.ADMIN_GATE);
   assert.match(h.reason, /^throttled/);
   assert.doesNotMatch(JSON.stringify(out), /platform admin/);
-  const lines = formatSummary(out.findings, out.holds).join(" | ");
+  const lines = summaryLines(out.findings, out.holds).join(" | ");
   assert.match(lines, /HOLD admin-gate :: \/api\/admin\/integrity-flags \(api\): throttled/);
   assert.doesNotMatch(lines, /candidates=/);
   assert.match(lines, /0 failure\(s\).*1 hold\(s\)/);
