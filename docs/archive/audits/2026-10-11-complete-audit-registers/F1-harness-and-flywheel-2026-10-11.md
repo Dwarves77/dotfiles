@@ -1,7 +1,7 @@
 # F1 register: harness and flywheel (LEARNING class), second-pass audit, 2026-10-11
 
 Lane audit2-f1-harness-and-flywheel. FACT lane, read-only. Output: this file only. No commit, push, PR, CI run, migration or `--apply`. Sonnet.
-Tree: `C:\Users\jason\dotfiles`, master `0d0766347` (DRIFT-1 #1100), working tree clean apart from an untracked `show2.sh` at the repo root that belongs to another session and was left alone.
+Tree: `<repo>`, master `0d0766347` (DRIFT-1 #1100), working tree clean apart from an untracked `show2.sh` at the repo root that belongs to another session and was left alone.
 Status tokens follow CLAUDE.md rule 14. STATUS values are the charter's: LIVE (code, trigger, executed proof, consumer all present; says nothing about the build-mode hold, which is stated in LAST REAL RUN and CAN IMPROVE), HALF-SLICE (a writer or a reader or an input path is missing), DEAD (no caller), UNPROVEN (runs or exists with no executed proof), UNWIRED (code with no runtime that executes it), STALE (output or claim out of date).
 CLASS: CAPABILITY makes the output better than alternatives; LEARNING lets the system improve as sources and rules change; SELF-MAINTENANCE protects those two; NONE has no stage purpose. Assignment is mine, row by row, stated in WHAT.
 

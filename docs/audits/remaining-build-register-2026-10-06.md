@@ -41,7 +41,7 @@ Proof-level histogram (48 items):
 Caveat on L4: migrations 351 to 356 are applied live (section 6), so the schema half of Stages 3, 4, 6 and 7 is at L4, but the code that uses those tables has never run against live data; each item is scored at its code level. [H: scoring is mine, applied uniformly]
 
 Other counts:
-- Workflows: 31 under `.github/workflows`. Never run: 3 (layout-baseline-renewal, question-answers, theme-briefs). [CONFIRMED: gh run list per workflow, section 5] [WORK: DORMANT-1]
+- Workflows: 31 under `.github/workflows`. Never run: 3 (layout-baseline-renewal, question-answers, theme-briefs). [CONFIRMED: gh run list per workflow, section 5] [CLOSED: PR 1056]
 - Loop hops in `loop-hops.d`: 13. `enforceFired` true: 2 (hops 01 and 04). `enforceFired` false: 11 (hops 02, 03, 05, 06, 07, 08, 09, 10, 11, 12, 13). [C: grep of `enforceFired` in `fsi-app/.discipline/governance/loop-hops.d/*.json` on origin/master]
 - Migrations: every migration file on master numbered 351 and above is applied; 355 is applied live but its PR (959) is not merged. See section 6.
 - Design changes owed: one request file, 16 artboard sections, 69 numbered or lettered items, about 21 lines tagged LOGGED and 9 DERIVED. [C: grep counts on `fsi-app/scripts/tmp/claude-design-request-2026-10-06.md`; the file is untracked on master]
@@ -302,14 +302,14 @@ Last-run data: `gh run list --workflow <file> --limit 3` on 2026-10-06 (UTC date
 | uptime-probes | 2026-09-04 | success | dispatch (cron commented) |
 
 Observations:
-- Workflows that have never run: 3. Workflows whose most recent real run is a failure: 2 (data-audit-lane, spot-check-monthly). [CONFIRMED: gh run list per workflow, section 5] [WORK: DORMANT-1]
+- Workflows that have never run: 3. Workflows whose most recent real run is a failure: 2 (data-audit-lane, spot-check-monthly). [CONFIRMED: gh run list per workflow, section 5] [CLOSED: PR 1056]
 - Workflows with a run since 2026-10-04 (post-plan): research-walker (10-03, before), source-resolution (10-06), live-smoke (10-06 and 10-07). Everything else last ran 2026-09-29 or earlier. [C]
-- Of the new lane workflows added since 2026-10-04 (layout-baseline-renewal, theme-briefs, question-answers, source-resolution, live-smoke): 2 have fired, 3 never. [CONFIRMED: gh run list per workflow, section 5] [WORK: DORMANT-1]
+- Of the new lane workflows added since 2026-10-04 (layout-baseline-renewal, theme-briefs, question-answers, source-resolution, live-smoke): 2 have fired, 3 never. [CONFIRMED: gh run list per workflow, section 5] [CLOSED: PR 1056]
 - No workflow has run against a branch database. `maintenance.yml` last real dispatch 2026-09-28 predates every Stage 1 to 7 maintenance step (steps 59 to 63). [H: step dates from logs; not matched step by step]
 
 Closure gate NEVER-RUN clock:
 - Allowlist in `closure-gate.mjs` holds two entries: `workflow:downstream-chain.yml` and `workflow:producers.yml`, expiry train 80. [C: file read, lines 649 to 665]. Both have gh run history (downstream-chain 2026-09-29, producers 2026-09-05), but the gate credits evidence only from `harness-ledger-export.json` regeneration, not from gh. [H: current train number not computed; entry may already be stale or expired]
-- Closure-gate NEVER-RUN eligible without any evidence path, each past a three-train grace: `layout-baseline-renewal`, `theme-briefs`, `question-answers` (no run), plus maintenance steps `recompute-tiers`, tier steps from Stage 1, and others never dispatched. [HYPOTHESIS: not computed by running the gate; the logs for S0-B and S1-C say "will read NEVER-RUN after grace"]. The `live-smoke` family will clear when `live-smoke-run-001` lands in `harness_runs`. [HYPOTHESIS] [WORK: DORMANT-1]
+- Closure-gate NEVER-RUN eligible without any evidence path, each past a three-train grace: `layout-baseline-renewal`, `theme-briefs`, `question-answers` (no run), plus maintenance steps `recompute-tiers`, tier steps from Stage 1, and others never dispatched. [HYPOTHESIS: not computed by running the gate; the logs for S0-B and S1-C say "will read NEVER-RUN after grace"]. The `live-smoke` family will clear when `live-smoke-run-001` lands in `harness_runs`. [HYPOTHESIS] [CLOSED: PR 1056]
 
 Rule 15 (verifiers tracked but not executed): [H] with this basis only: `discipline.yml` is green on master (2026-10-07) and its invariant-coverage meta-gate includes `execution-wiring.mjs`, so any registry-cited `selftest:` or `audit:` enforcer with no execution path should fail it. Verifiers not cited in the registry are outside that check and cannot be enumerated without running the gate. Specific candidates visible from this pass: `section-marker-audit.mjs` (hard audit, first live run owed, never run); `repair-smoke-account.mjs` (not run); `prov-guard-adversarial-audit.mjs` and the tier-override attack test run as fakes. Not verified.
 
@@ -337,7 +337,7 @@ Population-stage repairs
 Code and wiring owed
 12. `market_series` and `regional_data_facts` outbox rows carry no single entity so reach no item | l4a, l4d [CLOSED: PR 1026]
 13. Question answers and propagation drain not chained to a workflow | l4b-question-answers [CLOSED: PR 1023]
-14. `seek-more.mjs` still names `operator-priced-only` | l4a-questions-on-change [WORK: DOCS-5]
+14. `seek-more.mjs` still names `operator-priced-only` | l4a-questions-on-change [CLOSED: PR 1104]
 15. `trust-recompute.yml` retirement (workflow delete, closure-gate entry) | coordinator state; S6-4 [CLOSED: PR 980]
 16. GUARD-1 token (ADR-016 item b); provenance-heal `+strip-unprovable` opt-in | g6-gates; coordinator state [NOT-WORK: operator item, recorded on the board]
 17. Theme-briefs workflow not chained; Research reader selects only exact-id brief row | s3c [CLOSED: PR 1023]
@@ -350,7 +350,7 @@ Code and wiring owed
 24. Repair command for the smoke account, `repair-smoke-account.mjs --arg <email>`, dry then `--apply`; not run | auth2-provision-heal [NOT-WORK: smoke account repaired 2026-10-07 per PROGRAM-BOARD (AUTH-2 heal), no action]
 25. Pre-existing personal workspaces created by the old callback untouched | auth2-provision-heal [NOT-WORK: fact, no action]
 26. Closure-gate registration for `layout-baseline-renewal` (needs write-set expansion to `closure-gate.mjs`) | s0b-baseline-renewal-tool [WORK: DORMANT-1]
-27. `ProvisionalReviewCard.tsx` copy still describes the 0.65 to 0.79 band as proposed on approval | s1b-host-verdicts [WORK: DOCS-5]
+27. `ProvisionalReviewCard.tsx` copy still describes the 0.65 to 0.79 band as proposed on approval | s1b-host-verdicts [CLOSED: PR 1104]
 28. Production dependencies of `plan-drain.mjs` proven on fakes only; `db-catalog.json` refresh not done | g6-drain [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 29. `loop-fired-evidence` for hops 12 and 13 until a chained row lands | s1e-source-chain [NOT-WORK: needs a chained production row in loop-fired-evidence.json; build mode holds dispatch (rule 16)]
 
@@ -387,7 +387,7 @@ Chain proof (Stage 9 item 1, lane L20)
 - [ ] The branch run log is exported before teardown and attached.
 
 Execution wiring (rule 15)
-- [ ] Every workflow in section 5 has a recorded run of its current code at least once in dry mode with an artifact (today 3 never run; 28 of 31 ran, but most predate the Stage 1 to 7 changes). [HYPOTHESIS: restates the section 5 counts, not re-derived] [WORK: DORMANT-1]
+- [ ] Every workflow in section 5 has a recorded run of its current code at least once in dry mode with an artifact (today 3 never run; 28 of 31 ran, but most predate the Stage 1 to 7 changes). [HYPOTHESIS: restates the section 5 counts, not re-derived] [CLOSED: PR 1056]
 - [ ] Every maintenance step added since 2026-09-28 (steps 59 to 63) has dispatch evidence.
 - [ ] `execution-wiring.mjs` reports zero cited-but-unrun verifiers; the closure gate reports zero NEVER-RUN failures with no expired allowlist entry. [HYPOTHESIS: a proof condition, current state not re-derived] [WORK: DORMANT-1]
 - [ ] Each security-critical invariant has an adversarial check run against the branch database, not only fakes: tier override, corrections layer, provenance guard (mig 250 template), ADR-035 aggregate floor, admin gate, cross-organisation read (S8-5 is not yet built).

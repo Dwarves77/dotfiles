@@ -12,7 +12,7 @@
 
 ## Read and reused
 
-- Read: CLAUDE.md, COMMON, batch2 GATE-FIX-2 section, the `[WORK: GATE-FIX-2]` rows with 10 lines of context, the gate (`scanArgv`, `gitInvocations`, `isolationAsk`, `evaluateCore`, `gateWrite`), `pretooluse-scope.mjs`, `skill-map.mjs` (`skillsForFile`, `canonPath`), `override-check.mjs`, the consistency manifest.
+- Read: CLAUDE.md, COMMON, batch2 GATE-FIX-2 section, the `[CLOSED: PR 1096]` rows with 10 lines of context, the gate (`scanArgv`, `gitInvocations`, `isolationAsk`, `evaluateCore`, `gateWrite`), `pretooluse-scope.mjs`, `skill-map.mjs` (`skillsForFile`, `canonPath`), `override-check.mjs`, the consistency manifest.
 - Reused, not built: `gateWrite` (the Edit route's deny and allow), `governedPath` and `skillsForFile`, `scanArgv` / `interpreterPayloads` / `unwrap` / `gitInvocations`, the consistency manifest for the invariant names, the existing `x7Tree` fixture.
 
 ## Confirmed

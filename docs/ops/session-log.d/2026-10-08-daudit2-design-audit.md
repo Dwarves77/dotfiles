@@ -170,7 +170,7 @@ Ids are `<spec id>#<index>` in the committed results.json (regenerated at b35837
 ## What is NOT done
 
 - Not run locally, per COMMON rule 9: the whole suite, the fitness runner, tsc, lint. CI is the gate. [NOT-WORK: build-mode hold, COMMON rule 9: CI is the gate]
-- The vacuous-guard repair (90 occurrences, 14 specs) is not proven by attack: no scratch mount was built to show a D-M4 forbid firing on a row with two reason words in value cells (that would create files outside the write set). The repaired selectors are exercised only in the sense that they are valid and match nothing on the current product. [WORK: TESTS-2]
+- The vacuous-guard repair (90 occurrences, 14 specs) is not proven by attack: no scratch mount was built to show a D-M4 forbid firing on a row with two reason words in value cells (that would create files outside the write set). The repaired selectors are exercised only in the sense that they are valid and match nothing on the current product. [CLOSED: PR 1101]
 - `operations-matrix.json` still has a forbid on `td:not(:has(.cl-absence))` ("no cell contains a word"); it is not vacuous (it tests every cell now) but its exclusion clause is stale. Left as is. [WORK: TESTS-2]
 - `open-state-sweep.mjs` and `overflow-sweep.mjs` (not in the write set) iterate every `AUDIT_MOUNTS` key, so they now also sweep `page-frame-1440-full-brief`; `open-state-sweep` has an INTERACTED set for mounts that press something, and this one presses the Full brief control. Whether it belongs there is for the coordinator. [WORK: TESTS-2]
 - The five BUILD DEFECTS and the DESIGN CHANGES OWED above are listed, not fixed. [CLOSED: PR 1059]
