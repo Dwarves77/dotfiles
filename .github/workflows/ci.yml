@@ -328,20 +328,6 @@ jobs:
             scripts/lib/verification-decision.selftest.mjs \
             scripts/lib/error-drop-probe.selftest.mjs
 
-      # SOFT: the repo-wide scans flag CANDIDATES for review and are REPORT-ONLY (the lexicon still has documented
-      # false-positive classes). Kept as one step, not a job: retiring it would leave these four scripts with no
-      # workflow root (F25 module liveness). The duplicate migration-prefix scan is report-only by doctrine: Supabase
-      # applies by timestamp, so a duplicate prefix is cosmetic and must never gate a merge.
-      - name: SOFT - bug-class repo scans (review signals, never fail the build)
-        if: needs.inputs.outputs.code == 'true'
-        working-directory: fsi-app
-        run: |
-          set -euo pipefail
-          node scripts/lib/inconclusive-report.mjs . || true
-          node scripts/lib/type-consumer-probe.mjs . || true
-          node scripts/lib/error-drop-probe.mjs . || true
-          node scripts/verify/migration-number-collision.mjs || true
-
       # ---- gate-step attacks (lane TESTS-2, CLAUDE.md rule 15): the CI steps that need the installed app, attacked for
       # real. They run LAST: DS24 and F9 write attack files into the tree, which must not exist while the steps above
       # compile or lint it, and the final step removes them on every exit.

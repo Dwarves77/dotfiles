@@ -6,7 +6,7 @@
 // same components this audit found unfinished, because "done" was tracked by prose nothing reads back.
 // This is a governance check (same shape as invariant-coverage.mjs / doctrine-contradiction.mjs): a
 // PURE, injectable core per check (fixture-testable, red-then-green) plus a git/fs-driven live runner,
-// wired as its own step in .github/workflows/discipline.yml's test-discipline-engine job — it runs in
+// wired as its own step in .github/workflows/ci.yml's static job (lane PIPE-1) — it runs in
 // CI on every train, exactly where the meta-gate runs, not folded into the per-file fitness runner
 // (all four checks are holistic, whole-tree analyses, not per-file scans).
 //
@@ -573,7 +573,7 @@ export const HARNESS_FAMILY_BY_WORKFLOW = {
   'uptime-probes.yml': 'uptime-probes',
   'source-monitoring.yml': 'source-monitoring',
   'spot-check-monthly.yml': 'spot-check-monthly',
-  'design-audit.yml': 'design-audit',
+  'ci.yml': 'design-audit',
 };
 
 // Lane GATE-3 (2026-10-08): the NEVER-RUN clock. Dispatch evidence is the committed harness ledger export

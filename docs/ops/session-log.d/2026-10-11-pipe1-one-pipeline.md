@@ -35,7 +35,7 @@ Chosen: the `schema` job, on the same stack as the migration proof and the RLS m
 | discipline.yml `rendering-guard` | `app`: Run rendering guard (exact shape pinned by F52 RG-1, RG-2) |
 | bug-class-guard.yml `inputs` | RETIRED (duplicate of `inputs`; register 2B: 13 to 16 s, not required, three more copies in discipline, design-audit, rls-persona-matrix) |
 | bug-class-guard.yml `discrimination-guard` (HARD, required) | `static` HARD step (code) and `master` HARD step (push) |
-| bug-class-guard.yml `bug-class-scan` (SOFT) | one step `SOFT - bug-class repo scans` in `static` (code). Kept, not retired: the four scripts it runs (inconclusive-report, type-consumer-probe, error-drop-probe, migration-number-collision) have no other workflow root, so F25 module liveness would flag them. It gates nothing (every command `|| true`; register 2B: not required). Deleting it with the four scripts is the coordinator's call |
+| bug-class-guard.yml `bug-class-scan` (SOFT) | RETIRED, with `fsi-app/scripts/verify/migration-number-collision.mjs` deleted (coordinator ruling, 2026-10-11). Register 2B: the job was not required, every command was `|| true` (never gates), and three of its four scripts (`scripts/lib/inconclusive-report.mjs`, `type-consumer-probe.mjs`, `error-drop-probe.mjs`) were already absent from the tree, so those steps ran nothing; the fourth, the duplicate-prefix report, was report-only by doctrine and had no other root or test |
 | build-proof.yml `build-proof` | `app`: next build (placeholders); `master`: next build when `master_build` (the old `paths:` set). The `paths:` filter is RETIRED |
 | design-audit.yml `inputs` | RETIRED (duplicate of `inputs`; register 2B: not required) |
 | design-audit.yml `design-audit` (required, soft) | `app`: Run the design audit, job summary, dispatch commit-back, Upload, Attack the D-M4 forbid rows. Soft contract kept: reports and exits 0 whenever the audit ran; register 2B confirms it never gated |
@@ -59,14 +59,13 @@ Read: CLAUDE.md, COMMON, the brief, the whole-build plan, register AUD-SYS-2B (s
 - Job names equal job ids, so the five required contexts are exactly `inputs`, `static`, `schema`, `app`, `master`.
 - `workflow_dispatch` is kept on ci.yml for the design-audit commit-back (DAUDIT-3) and its harness-run record (family design-audit); `app` therefore holds `contents: write` at job level on every event, as design-audit.yml did. A pull request still never commits and never names a secret.
 - No separate tsc step: F9 inside the fitness runner is tsc --noEmit over the whole app.
+- Out-of-write-set files granted by the coordinator (2026-10-11), reference-only edits, deleted workflow names become ci.yml: execution-wiring.mjs and its test, skill-map.mjs, pretooluse-scope.mjs, pretooluse-honest-forms.test.mjs, the design-audit family.json and rationale, the closure-gate.mjs family key, docs/inventories/discipline.md, five runbooks, the local-stack action description. The HARD discrimination step still lists two selftest paths that do not exist (`type-consumer-probe.selftest.mjs`, `error-drop-probe.selftest.mjs`); `node --test` ignores a missing file, so it is unchanged.
 
 ## NOT done
 
-- The final push and the CI run. The branch cannot go green without edits outside this lane's write set, found by running the gates on the tree (details in the report): execution-wiring.mjs reads `.github/workflows/discipline.yml` and throws ENOENT, which stops the invariant-coverage meta-gate, test-discovery and the F23 fitness function; F28 names the deleted design-audit.yml as a governing file of family design-audit. A verification copy outside the repo with the six edits applied passed invariant-coverage, test-discovery, F23, F25, F28, F50, F52, F61, F68. [WORK: owed]
-- Per-job billed minutes of ci.yml's own run (needs the final push). [WORK: owed]
-- Branch protection: switch the required contexts to `inputs`, `static`, `schema`, `app`, `master` before merging this PR (executor). [WORK: owed]
-- Stale workflow references outside the write set: `docs/inventories/discipline.md` (lines 86, 150, 202), runbooks 64-chain-proof, layout-guard-baseline-renewal, warm-static-detail-routes, sprint4-dataops-ledger, the audit-catalogue rows, and the description of `.github/actions/local-stack/action.yml` ("shared by chain-proof.yml and migration-proof.yml"). [WORK: owed]
-- The SOFT bug-class scan step and its four scripts: delete both or keep (coordinator). [WORK: owed]
+- Per-job billed minutes of ci.yml's own run are read from the jobs timing API after the single run and reported to the coordinator; they are not in this file because they do not exist before the run. [NOT-WORK: the number is a report output, not a build item]
+- Branch protection: the executor switches the required contexts to `inputs`, `static`, `schema`, `app`, `master` before merging this PR. [NOT-WORK: executor step named in the brief]
+- Stale references that remain by design: historical rows of `docs/runbooks/audit-catalogue.md` (line 357, an audit-time record) and the session logs and audits that name the deleted workflows as they were. [NOT-WORK: dated records are not rewritten]
 
 ## Open items
 

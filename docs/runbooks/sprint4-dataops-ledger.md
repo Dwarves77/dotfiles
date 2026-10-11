@@ -65,7 +65,7 @@ tests that **cannot touch prod at all**:
 (no DB/HTTP/Date) and assert it in a fixture. Applied to `assessAndUpdateSource`
 (`check-sources-decision.mjs`) and `verifyCandidate` (`verification-decision.mjs`); both routes now
 delegate to the pure fn. **Every route is now composition-fixtured** and all three fixtures run in the
-CI HARD gate (`.github/workflows/bug-class-guard.yml`). Sentinel harnesses fully replaced.
+CI HARD gate (`.github/workflows/ci.yml, static and master jobs`). Sentinel harnesses fully replaced.
 
 ## Bucket 1 — PURE CODE (mergeable via PR; NOT in this ledger)
 

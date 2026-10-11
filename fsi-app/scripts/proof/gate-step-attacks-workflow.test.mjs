@@ -114,17 +114,16 @@ test("F9: the compiler half runs the attack script in a disposable checkout and 
   for (const f of ["__eslint_control.ts", "__eslint_warning_attack.ts", "__eslint_error_attack.ts", "__f9_attack_type_error.ts"]) assert.ok(rm.body.includes(f), `${f} is not removed`);
 });
 
-test("the job has a time limit set from measurement and the workflow supersedes pull request runs; the only swallowed failures are the named soft report-only scans", () => {
+test("the job has a time limit set from measurement and the workflow supersedes pull request runs; no step swallows a failure", () => {
   assert.match(WF_CODE, /concurrency:\n {2}group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}\n {2}cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/);
   assert.match(CODE, /^ {4}timeout-minutes: 19$/m);
   assert.match(TEXT, /FROM MEASUREMENT/);
   assert.doesNotMatch(CODE, /continue-on-error/);
-  // every `|| true` in the job is inside the one SOFT scan step, whose name says it never fails the build
+  // the SOFT bug-class scan was deleted by lane PIPE-1 (register 2B: it never gated, and three of its four scripts were already gone), so
+  // the only tolerated `|| true` is the defensive base-branch fetch; no step may swallow a failure
   for (const s of steps()) {
-    const run = s.body.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
-    if (/\|\| true/.test(run.replace(/git fetch --no-tags origin "\$BASE_REF" \|\| true/g, ""))) {
-      assert.match(s.name, /^SOFT - /, `step "${s.name}" swallows a failure but is not a SOFT report-only step`);
-    }
+    const run = s.body.split(String.fromCharCode(10)).filter((l) => !l.trim().startsWith("#")).join(String.fromCharCode(10));
+    assert.doesNotMatch(run.replace(/git fetch --no-tags origin "\$BASE_REF" \|\| true/g, ""), /\|\| true/, `step "${s.name}" swallows a failure`);
   }
 });
 
