@@ -7,7 +7,7 @@
 // --mode/--arg/--out, load .env.local when run by hand, refuse cleanly when DB creds are absent for a
 // step that needs them — so that plumbing lives here once rather than seven times. What each step
 // actually DOES (the deps it needs, the DB calls it makes) stays in that step's own file; this module
-// never imports db.mjs itself, so a step that needs no DB (tier-opinions, w1-dispositions) never pays
+// never imports db.mjs itself, so a step that needs no DB (tier-opinions) never pays
 // for a credential check it doesn't need.
 //
 // CONTRACT every wrapper's main(opts, deps) receives opts = { mode, arg, out } (out is this run's

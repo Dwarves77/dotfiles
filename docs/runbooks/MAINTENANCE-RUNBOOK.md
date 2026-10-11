@@ -123,7 +123,6 @@ One line per step, in dispatch order. The step text lives in its own file.
 
 - [1. `community-topics-seed`, RETIRED (Lane REVIEW-WIRE, 2026-09-04)](maintenance.d/01-community-topics-seed.md)
 - [2. `tier-opinions`](maintenance.d/02-tier-opinions.md)
-- [3. `w1-dispositions`](maintenance.d/03-w1-dispositions.md)
 - [4. `origin-class-backfill`](maintenance.d/04-origin-class-backfill.md)
 - [4a. `source-type-backfill`](maintenance.d/04a-source-type-backfill.md)
 - [4b. `derive-obligations`](maintenance.d/04b-derive-obligations.md)

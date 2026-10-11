@@ -36,7 +36,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, recompute-tiers, recompute-trust-scores, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals, plan-quarantine-disposition, lineage-gap-targets, backfill-market-series-entity]
+        options: [all, tier-opinions, recompute-tiers, recompute-trust-scores, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals, plan-quarantine-disposition, lineage-gap-targets, backfill-market-series-entity]
       arg:
         description: 'Optional per-step argument (an optional committed ruling-file path for the review-apply steps, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the two spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -207,14 +207,6 @@ jobs:
           step: recompute-trust-scores
           mode: ${{ env.RUN_MODE }}
           out_root: ${{ env.OUT_ROOT }}
-
-      - name: w1-dispositions
-        # Ruling R-C is closed, so no token and no arg. Apply mode makes NO code edit (see the step's own
-        # header), it reports the wire/delete worklist.
-        if: env.RUN_STEP == 'w1-dispositions' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
-        run: |
-          mkdir -p "$OUT_ROOT/w1-dispositions"
-          node scripts/maintenance/w1-dispositions.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/w1-dispositions"
 
       - name: origin-class-backfill
         # Ruling R-E is accepted, the mapping is the rule: no token and no arg.
