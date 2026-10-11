@@ -79,9 +79,6 @@ fsi-app/scripts/_diag/
 Claude outputs/
 
 # CLEAN-1 (2026-10-11): machine output is generated at run time and never committed
-fsi-app/.discipline/rendering/audit/results.json
-fsi-app/.discipline/governance/coverage-report.json
-fsi-app/.discipline/rendering/layout-guard/results.json
 fsi-app/scripts/harness-runs/*/*-run-[0-9]*.json
 fsi-app/scripts/harness-runs/*/traces/
 fsi-app/scripts/harness-runs/*/LAST-PROPOSER-PASS.md
