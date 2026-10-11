@@ -60,6 +60,16 @@ test("RED PROMISEALL: a destructured Promise.all element without an error bindin
   assert.deepEqual(check(nonSupabaseSlot), [], "a slot whose element is not a Supabase call is out of reach");
 });
 
+test("RED: a query held in a variable and awaited later is the same defect (builder, pending promise, held Promise.all)", () => {
+  assert.deepEqual(shapes('const p = sb.from("x").select("id");\nconst { data } = await p;'), ["DATA-ONLY"]);
+  assert.deepEqual(shapes('let q = sb.from("x").select("id");\nq = q.eq("a", 1);\nconst { data: rows } = await q.limit(5);'), ["DATA-ONLY"]);
+  assert.deepEqual(shapes('const q = sb.from("x").select("id");\nconst { data } = await (flag ? q.eq("a", 1) : q.eq("a", 2)).maybeSingle();'), ["DATA-ONLY"]);
+  assert.deepEqual(shapes('const ops = Promise.all([sb.from("x").select("id"), sb.from("y").select("id")]);\nconst [{ data: a }, { data: b, error: bErr }] = await ops;'), ["PROMISEALL"]);
+  assert.deepEqual(check('const p = sb.from("x").select("id");\nconst { data, error } = await p;'), []);
+  assert.deepEqual(check('const ops = Promise.all([sb.from("x").select("id")]);\nconst [xRes] = await ops;'), [], "a whole-result binding is out of reach");
+  assert.deepEqual(check('const p = fetchSomething();\nconst { data } = await p;'), [], "a variable that is not a query is never one");
+});
+
 test("GREEN: the correct `{ data, error }` shapes pass", () => {
   assert.deepEqual(check('const { data, error } = await sb.from("x").select("id");'), []);
   assert.deepEqual(check('const { error } = await sb.from("x").insert({ a: 1 });'), []);

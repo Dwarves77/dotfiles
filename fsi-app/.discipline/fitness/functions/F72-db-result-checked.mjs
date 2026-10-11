@@ -169,11 +169,59 @@ function leftHandSide(c, awaitIdx) {
   return { kind: 'flows' }; // return, arrow body, argument, object value: the result goes somewhere
 }
 
+/** For `Promise.all([a, b, ...])` text: one boolean per element, true when the element is a Supabase query (by its
+ *  root chain, or by naming a known query variable). null when `expr` is not an inline Promise.all array. */
+function promiseAllFlags(expr, queryVars) {
+  const all = /^Promise\s*\.\s*all\s*\(\s*\[/.exec(expr);
+  if (!all) return null;
+  const arrOpen = expr.indexOf('[', all[0].length - 1);
+  const arrClose = matchForward(expr, arrOpen);
+  if (arrClose === -1) return null;
+  return splitTopLevel(expr.slice(arrOpen + 1, arrClose - 1))
+    .map((e) => e.trim())
+    .map((e) => !e.startsWith('...') && (rootIsSupabase(e) || namesQueryVar(e, queryVars)));
+}
+
+/** True when `expr` starts at (or inside its first parenthesised group names) a known query variable: a builder or
+ *  a pending promise held in a variable and awaited later, e.g. `const q = sb.from(...); ... await q.eq(...)`. */
+function namesQueryVar(expr, queryVars) {
+  if (queryVars.size === 0) return false;
+  const head = /^([A-Za-z_$][\w$]*)/.exec(expr);
+  if (head) return queryVars.has(head[1]);
+  if (expr.startsWith('(')) {
+    const end = matchForward(expr, 0);
+    const group = end === -1 ? '' : expr.slice(0, end);
+    for (const name of queryVars.keys()) {
+      const escaped = name.replace(/\$/g, '\\$');
+      if (new RegExp('(?<![\\w$.])' + escaped + '(?![\\w$])').test(group)) return true;
+    }
+  }
+  return false;
+}
+
+/** Variables initialised (not awaited) from a Supabase query or from an inline Promise.all of them. Map name -> flags
+ *  (the Promise.all element flags) or null for a single query. */
+function collectQueryVars(c) {
+  const vars = new Map();
+  const declRe = /(?<![\w$.])(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::[^=;(){}]+)?=\s*/g;
+  let m;
+  while ((m = declRe.exec(c)) !== null) {
+    const start = m.index + m[0].length;
+    if (/^await\b/.test(c.slice(start, start + 6))) continue;
+    const expr = c.slice(start, expressionEnd(c, start)).trim();
+    const flags = promiseAllFlags(expr, vars);
+    if (flags) { if (flags.some(Boolean)) vars.set(m[1], flags); continue; }
+    if (rootIsSupabase(expr) || namesQueryVar(expr, vars)) vars.set(m[1], null);
+  }
+  return vars;
+}
+
 /** Pure: every unchecked Supabase result in `content`. Returns `[{ start, end, shape, detail }]` as character spans
  *  of the code view (`end` exclusive). */
 export function findDroppedResults(content) {
   const c = views(content).code;
   const out = [];
+  const queryVars = collectQueryVars(c);
 
   const awaitRe = /(?<![\w$.])await\b/g;
   let m;
@@ -184,13 +232,9 @@ export function findDroppedResults(content) {
     const lhs = leftHandSide(c, m.index);
     const span = { start: lhs.start ?? m.index, end: exprEnd };
 
-    const all = /^Promise\s*\.\s*all\s*\(\s*\[/.exec(expr);
-    if (all) {
-      const arrOpen = expr.indexOf('[', all[0].length - 1);
-      const arrClose = matchForward(expr, arrOpen);
-      if (arrClose === -1) continue;
-      const elements = splitTopLevel(expr.slice(arrOpen + 1, arrClose - 1)).map((e) => e.trim());
-      const supabase = elements.map((e) => !e.startsWith('...') && rootIsSupabase(e));
+    const headVar = /^([A-Za-z_$][\w$]*)\s*$/.exec(expr);
+    const supabase = promiseAllFlags(expr, queryVars) ?? (headVar && Array.isArray(queryVars.get(headVar[1])) ? queryVars.get(headVar[1]) : null);
+    if (supabase) {
       if (!supabase.some(Boolean)) continue;
       if (lhs.kind === 'statement') {
         out.push({ ...span, shape: 'BARE-AWAIT', detail: 'await Promise.all([...]) of Supabase calls as a statement: every result is discarded' });
@@ -207,7 +251,7 @@ export function findDroppedResults(content) {
       continue;
     }
 
-    if (!rootIsSupabase(expr)) continue;
+    if (!rootIsSupabase(expr) && !namesQueryVar(expr, queryVars)) continue;
     if (lhs.kind === 'statement') {
       out.push({ ...span, shape: 'BARE-AWAIT', detail: 'the awaited Supabase call is a statement: its result (data and error) is discarded' });
     } else if (lhs.kind === 'object' && !objectPatternBindsError(lhs.text)) {

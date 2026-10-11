@@ -34,11 +34,13 @@ async function resolveItemUuid(
   itemId: string
 ): Promise<string | null> {
   if (UUID_RE.test(itemId)) return itemId;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("intelligence_items")
     .select("id")
     .eq("legacy_id", itemId)
     .maybeSingle();
+  // A failed lookup must not read as "no such item" (404): throw, and withErrorCapture records it as a 500.
+  if (error) throw new Error(`intelligence_items lookup failed: ${error.message}`);
   return data?.id ?? null;
 }
 

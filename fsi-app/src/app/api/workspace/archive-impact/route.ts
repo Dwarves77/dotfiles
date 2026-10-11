@@ -44,10 +44,13 @@ async function handleGET(request: NextRequest) {
   const itemQuery = supabase
     .from("intelligence_items")
     .select("id, legacy_id, title, priority, effective_priority");
-  const { data: itemRow } = await (UUID_RE.test(itemId)
+  const { data: itemRow, error: itemErr } = await (UUID_RE.test(itemId)
     ? itemQuery.eq("id", itemId)
     : itemQuery.eq("legacy_id", itemId)
   ).maybeSingle();
+  if (itemErr) {
+    return NextResponse.json({ error: itemErr.message }, { status: 500 });
+  }
 
   if (!itemRow) {
     return NextResponse.json(
@@ -63,12 +66,15 @@ async function handleGET(request: NextRequest) {
   // Caller's role — advisory only; the write path re-checks.
   let role: string | null = null;
   if (orgId) {
-    const { data: membership } = await supabase
+    const { data: membership, error: membershipErr } = await supabase
       .from("org_memberships")
       .select("role")
       .eq("org_id", orgId)
       .eq("user_id", auth.userId)
       .maybeSingle();
+    if (membershipErr) {
+      return NextResponse.json({ error: membershipErr.message }, { status: 500 });
+    }
     role = (membership?.role as string | null) ?? null;
   }
   const canArchiveWorkspace = role === "owner" || role === "admin";
@@ -91,20 +97,26 @@ async function handleGET(request: NextRequest) {
   let watcherIds: string[] = [];
   let onTeamWatchlist = false;
   if (orgId) {
-    const { data: memberRows } = await supabase
+    const { data: memberRows, error: memberRowsErr } = await supabase
       .from("org_memberships")
       .select("user_id")
       .eq("org_id", orgId);
+    if (memberRowsErr) {
+      return NextResponse.json({ error: memberRowsErr.message }, { status: 500 });
+    }
     const memberIds = (memberRows || []).map((m) => m.user_id as string);
 
     if (memberIds.length > 0) {
-      const { data: watchRows } = await supabase
+      const { data: watchRows, error: watchRowsErr } = await supabase
         .from("user_watchlist")
         .select("user_id")
         // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
         .in("user_id", memberIds)
         // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
         .in("item_id", watchKeys);
+      if (watchRowsErr) {
+        return NextResponse.json({ error: watchRowsErr.message }, { status: 500 });
+      }
       watcherIds = Array.from(
         new Set((watchRows || []).map((w) => w.user_id as string))
       ).filter((id) => id !== auth.userId);
@@ -114,13 +126,16 @@ async function handleGET(request: NextRequest) {
     // An item on the workspace rail was deliberately surfaced to everyone, so
     // archiving it is precisely the case the warning exists for. It is not a
     // per-user watch, so it does not inflate watcherCount.
-    const { data: teamWatchRows } = await supabase
+    const { data: teamWatchRows, error: teamWatchErr } = await supabase
       .from("org_watchlist")
       .select("id")
       .eq("org_id", orgId)
       // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
       .in("item_id", watchKeys)
       .limit(1);
+    if (teamWatchErr) {
+      return NextResponse.json({ error: teamWatchErr.message }, { status: 500 });
+    }
     onTeamWatchlist = (teamWatchRows || []).length > 0;
   }
 
@@ -129,12 +144,15 @@ async function handleGET(request: NextRequest) {
   let ownerUserId: string | null = null;
   let alreadyWorkspaceArchived = false;
   if (orgId) {
-    const { data: override } = await supabase
+    const { data: override, error: overrideErr } = await supabase
       .from("workspace_item_overrides")
       .select("owner_user_id, is_archived, priority_override")
       .eq("org_id", orgId)
       .eq("item_id", intelItemId)
       .maybeSingle();
+    if (overrideErr) {
+      return NextResponse.json({ error: overrideErr.message }, { status: 500 });
+    }
     ownerUserId = (override?.owner_user_id as string | null) ?? null;
     alreadyWorkspaceArchived = !!override?.is_archived;
     if (override?.priority_override) {
@@ -143,12 +161,15 @@ async function handleGET(request: NextRequest) {
     }
   }
 
-  const { data: personalRow } = await supabase
+  const { data: personalRow, error: personalErr } = await supabase
     .from("user_item_state")
     .select("is_archived")
     .eq("user_id", auth.userId)
     .eq("item_id", intelItemId)
     .maybeSingle();
+  if (personalErr) {
+    return NextResponse.json({ error: personalErr.message }, { status: 500 });
+  }
 
   // Display names for the watchers (capped) and the owner, in one lookup.
   const nameTargets = Array.from(
@@ -156,11 +177,13 @@ async function handleGET(request: NextRequest) {
   );
   const nameById = new Map<string, string>();
   if (nameTargets.length > 0) {
-    const { data: profiles } = await supabase
+    const { data: profiles, error: profilesErr } = await supabase
       .from("profiles")
       .select("id, full_name, display_name, email")
       // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
       .in("id", nameTargets);
+    // Names only decorate the warning; a missing one falls back to "A teammate" below.
+    if (profilesErr) console.warn("[archive-impact] watcher name read failed: " + profilesErr.message);
     for (const p of profiles || []) {
       const row = p as {
         id: string;

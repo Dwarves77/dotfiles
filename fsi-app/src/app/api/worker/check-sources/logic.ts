@@ -88,7 +88,7 @@ export async function assessAndUpdateSource(
   supabase: ServiceSupabase,
   source: CheckSourceRow,
   opts?: { render?: RenderFn; classify?: ClassifyFn }
-): Promise<{ status: string; httpStatus: number; outcome: string; changeDetected: boolean; portalCandidates: number }> {
+): Promise<{ status: string; httpStatus: number; outcome: string; changeDetected: boolean; portalCandidates: number; warnings?: string[] }> {
   const render = opts?.render ?? (browserlessRender as unknown as RenderFn);
   const classify = opts?.classify ?? (classifyReachability as ClassifyFn);
 
@@ -147,14 +147,22 @@ export async function assessAndUpdateSource(
     // INCONCLUSIVE: quarantine — record the check, leave status as-is. No eviction.
   }
 
-  await supabase.from("sources").update(updates).eq("id", source.id);
-  await supabase.from("source_trust_events").insert({
+  // The sources update IS the assessment's stored outcome: a failure throws, and the route records this source
+  // as an error entry (buildErrorEntry) instead of reporting an assessment that never persisted.
+  const { error: updateErr } = await supabase.from("sources").update(updates).eq("id", source.id);
+  if (updateErr) throw new Error(`sources update failed: ${updateErr.message}`);
+  const warnings: string[] = [];
+  const { error: trustErr } = await supabase.from("source_trust_events").insert({
     source_id: source.id,
     event_type: "accessibility_check",
     details: { type: "accessibility_check", success: isAccessible, http_status: httpStatus, reachability: outcome, change_detected: changeDetected, content_hash: newHash },
     created_by: "worker",
   });
-  await supabase.from("monitoring_queue").insert({
+  if (trustErr) {
+    console.warn(`[check-sources] trust event insert failed after sources update for ${source.url}: ${trustErr.message}`);
+    warnings.push("trust event not recorded");
+  }
+  const { error: queueErr } = await supabase.from("monitoring_queue").insert({
     source_id: source.id,
     scheduled_check: new Date().toISOString(),
     priority: "normal",
@@ -163,6 +171,10 @@ export async function assessAndUpdateSource(
     checked_at: new Date().toISOString(),
     error_message: isAccessible ? null : `${outcome} (HTTP ${httpStatus})`,
   });
+  if (queueErr) {
+    console.warn(`[check-sources] monitoring_queue insert failed after sources update for ${source.url}: ${queueErr.message}`);
+    warnings.push("monitoring queue row not recorded");
+  }
   // PORTAL DEEP-LINK DISCOVERY (P2-5 / S2-08): ~55% of sources are root portals whose deep links
   // (the actual instruments) nothing enumerated. For portal-class sources, extract candidate
   // instrument links from the SAME uncapped html this render already returned (zero extra units)
@@ -183,7 +195,14 @@ export async function assessAndUpdateSource(
       console.warn(`[portal-crawl] extraction failed for ${source.url}: ${(e as Error).message}`);
     }
   }
-  return { status: isAccessible ? "accessible" : outcome, httpStatus, outcome, changeDetected, portalCandidates };
+  return {
+    status: isAccessible ? "accessible" : outcome,
+    httpStatus,
+    outcome,
+    changeDetected,
+    portalCandidates,
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
 }
 
 /** One `results[]` entry, as returned in the route's JSON response. */
@@ -195,6 +214,7 @@ export interface CheckSourcesResultEntry {
   changeDetected: boolean;
   portalCandidates: number;
   error?: string;
+  warnings?: string[];
 }
 
 /**
@@ -206,7 +226,7 @@ export interface CheckSourcesResultEntry {
  */
 export function buildResultEntry(
   sourceName: string,
-  assessed: { status: string; httpStatus: number; outcome: string; changeDetected: boolean; portalCandidates: number }
+  assessed: { status: string; httpStatus: number; outcome: string; changeDetected: boolean; portalCandidates: number; warnings?: string[] }
 ): CheckSourcesResultEntry {
   return {
     source: sourceName,
@@ -215,6 +235,7 @@ export function buildResultEntry(
     outcome: assessed.outcome,
     changeDetected: assessed.changeDetected,
     portalCandidates: assessed.portalCandidates,
+    ...(assessed.warnings && assessed.warnings.length > 0 ? { warnings: assessed.warnings } : {}),
   };
 }
 

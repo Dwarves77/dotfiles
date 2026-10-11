@@ -83,7 +83,9 @@ async function handleGET(request: NextRequest) {
   const noticedEntityIds = [...new Set(notices.map((n) => n.entityId).filter((id): id is string => id != null))];
   if (noticedEntityIds.length > 0) {
     // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
-    const { data: entities } = await supabase.from("entities").select("entity_id,canonical_name").in("entity_id", noticedEntityIds);
+    const { data: entities, error: entitiesErr } = await supabase.from("entities").select("entity_id,canonical_name").in("entity_id", noticedEntityIds);
+    // Labels only decorate the notices; attachEntityLabels falls back to the raw entity id when one is missing.
+    if (entitiesErr) console.warn("[notices] entity label read failed: " + entitiesErr.message);
     labelsByEntityId = Object.fromEntries((entities ?? []).map((e: { entity_id: string; canonical_name: string }) => [e.entity_id, e.canonical_name]));
   }
 

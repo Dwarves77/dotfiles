@@ -56,11 +56,15 @@ export async function POST(request: NextRequest) {
   // Fetch the slug + name for the response so the caller can route to
   // /admin or /onboarding without an extra round trip.
   const orgId = created.orgId;
-  const { data: org } = await auth.supabase
+  const { data: org, error: orgErr } = await auth.supabase
     .from("organizations")
     .select("id, name, slug")
     .eq("id", orgId)
     .maybeSingle();
+  // The org is already created; this read only decorates the response (slug null, name from the request).
+  if (orgErr) {
+    console.warn("[orgs] slug/name read failed after org creation: " + orgErr.message);
+  }
 
   return NextResponse.json(
     {
@@ -69,6 +73,7 @@ export async function POST(request: NextRequest) {
       name: org?.name ?? parsed.input.name,
       settings_saved: created.settingsSaved,
       profile_saved: created.profileSaved,
+      ...(orgErr ? { warnings: ["slug not read back"] } : {}),
     },
     { status: 201, headers: rateLimitHeaders(auth.userId) }
   );

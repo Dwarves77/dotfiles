@@ -29,14 +29,14 @@ async function getMembership(
   supabase: SupabaseClient,
   orgId: string,
   userId: string
-): Promise<{ role: string } | null> {
-  const { data } = await supabase
+): Promise<{ membership: { role: string } | null; error: string | null }> {
+  const { data, error } = await supabase
     .from("org_memberships")
     .select("role")
     .eq("org_id", orgId)
     .eq("user_id", userId)
     .maybeSingle();
-  return (data as { role: string } | null) ?? null;
+  return { membership: (data as { role: string } | null) ?? null, error: error?.message ?? null };
 }
 
 export async function GET(
@@ -57,7 +57,13 @@ export async function GET(
   const service = getServiceSupabase();
 
   // Membership gate — caller must be a member of this org.
-  const membership = await getMembership(service, org_id, auth.userId);
+  const { membership, error: membershipError } = await getMembership(service, org_id, auth.userId);
+  if (membershipError) {
+    return NextResponse.json(
+      { error: membershipError },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
   if (!membership) {
     return NextResponse.json(
       { error: "Not a member of this organization" },
@@ -80,7 +86,7 @@ export async function GET(
   // Resolve the owner (earliest 'owner' membership for the org) + a
   // display name from profiles. There can be multiple owners; we show
   // the first by created_at and let the Members tab list the rest.
-  const { data: ownerRow } = await service
+  const { data: ownerRow, error: ownerError } = await service
     .from("org_memberships")
     .select("user_id, created_at, user:profiles!user_id(full_name, avatar_url)")
     .eq("org_id", org_id)
@@ -88,13 +94,25 @@ export async function GET(
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+  if (ownerError) {
+    return NextResponse.json(
+      { error: ownerError.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
 
   const ownerProfile = (ownerRow?.user || null) as { full_name?: string | null } | null;
 
-  const { count: memberCount } = await service
+  const { count: memberCount, error: memberCountError } = await service
     .from("org_memberships")
     .select("id", { count: "exact", head: true })
     .eq("org_id", org_id);
+  if (memberCountError) {
+    return NextResponse.json(
+      { error: memberCountError.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
 
   return NextResponse.json(
     {
@@ -152,7 +170,13 @@ export async function PATCH(
 
   const service = getServiceSupabase();
 
-  const membership = await getMembership(service, org_id, auth.userId);
+  const { membership, error: membershipError } = await getMembership(service, org_id, auth.userId);
+  if (membershipError) {
+    return NextResponse.json(
+      { error: membershipError },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
   if (!membership) {
     return NextResponse.json(
       { error: "Not a member of this organization" },

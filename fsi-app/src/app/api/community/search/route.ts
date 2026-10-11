@@ -140,13 +140,15 @@ export async function GET(request: NextRequest) {
   const identityRows = peopleRes.rows;
 
   const postGroupIds = Array.from(new Set(postRows.map((p) => p.group_id)));
-  const { data: postGroups } = postGroupIds.length
+  const { data: postGroups, error: postGroupsErr } = postGroupIds.length
     ? await auth.supabase
         .from("community_groups")
         .select("id, name, slug")
         // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
         .in("id", postGroupIds)
-    : { data: [] as Array<{ id: string; name: string; slug: string }> };
+    : { data: [] as Array<{ id: string; name: string; slug: string }>, error: null };
+  // Group names only decorate the post rows ("Unknown group" below when one is missing).
+  if (postGroupsErr) console.warn("[community-search] post group name read failed: " + postGroupsErr.message);
   const groupNameById = new Map(
     (postGroups ?? []).map((g) => [g.id, { name: g.name, slug: g.slug }] as const)
   );

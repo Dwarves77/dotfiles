@@ -18,11 +18,13 @@ async function resolveItemUuid(
   itemId: string
 ): Promise<string | null> {
   if (UUID_RE.test(itemId)) return itemId;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("intelligence_items")
     .select("id")
     .eq("legacy_id", itemId)
     .maybeSingle();
+  // A failed lookup must not read as "no such item" (404): throw, and withErrorCapture records it as a 500.
+  if (error) throw new Error(`intelligence_items lookup failed: ${error.message}`);
   return data?.id ?? null;
 }
 
@@ -200,24 +202,30 @@ async function handlePOST(request: NextRequest) {
         console.warn(`[archive-notify] org member read failed for org ${orgId}: ${membersErr.message}; skipping notification fan-out rather than notifying cross-org`);
       }
       const memberIds = (orgMembers ?? []).map((m) => m.user_id as string);
-      const { data: watchers } = memberIds.length
+      const { data: watchers, error: watchersErr } = memberIds.length
         ? await supabase
             .from("user_watchlist")
             .select("user_id")
             // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
             .in("user_id", memberIds)
             .in("item_id", [itemId, intelItemId])
-        : { data: [] as { user_id: string }[] };
+        : { data: [] as { user_id: string }[], error: null };
+      if (watchersErr) {
+        console.warn(`[archive-notify] watcher read failed for item ${intelItemId}: ${watchersErr.message}; the owner is still notified`);
+      }
       for (const w of watchers || []) recipients.add(w.user_id as string);
       const ownerId = (data as { owner_user_id?: string | null } | null)?.owner_user_id;
       if (ownerId) recipients.add(ownerId);
       recipients.delete(auth.userId);
       if (recipients.size > 0) {
-        const { data: itemRow } = await supabase
+        const { data: itemRow, error: itemRowErr } = await supabase
           .from("intelligence_items")
           .select("title, legacy_id")
           .eq("id", intelItemId)
           .maybeSingle();
+        if (itemRowErr) {
+          console.warn(`[archive-notify] item read failed for ${intelItemId}: ${itemRowErr.message}; notifying with a generic title`);
+        }
         const title = itemRow?.title || "an item";
         const uiId = itemRow?.legacy_id || intelItemId;
         const reason = typeof body.archiveReason === "string" ? body.archiveReason : "";

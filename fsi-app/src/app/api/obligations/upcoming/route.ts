@@ -73,7 +73,9 @@ async function handleGET(request: NextRequest) {
     let resolvedItemId: string | null = itemIdParam;
     if (variant === "detail" && itemIdParam && !UUID_RE.test(itemIdParam)) {
       try {
-        const { data } = await supabase.from("intelligence_items").select("id").eq("legacy_id", itemIdParam).maybeSingle();
+        const { data, error: resolveErr } = await supabase.from("intelligence_items").select("id").eq("legacy_id", itemIdParam).maybeSingle();
+        // This route's soft-fail posture (empty events) stays; the failure is no longer silent.
+        if (resolveErr) console.warn("[api/obligations/upcoming] legacy_id resolution failed: " + resolveErr.message);
         resolvedItemId = data?.id ?? null;
       } catch {
         resolvedItemId = null;

@@ -87,7 +87,12 @@ async function handleGET(request: NextRequest) {
       // client, and an id that does not resolve yields no rows (honest omission, never a leak or error).
       let resolvedItemId: string | undefined = itemIdParam ?? undefined;
       if (itemIdParam && !UUID_RE.test(itemIdParam)) {
-        const { data } = await supabase.from("intelligence_items").select("id").eq("legacy_id", itemIdParam).maybeSingle();
+        const { data, error: resolveErr } = await supabase.from("intelligence_items").select("id").eq("legacy_id", itemIdParam).maybeSingle();
+        // A failed lookup is not "this id does not resolve": the empty answer below is only for a clean miss.
+        if (resolveErr) {
+          console.error("[api/obligations/register] legacy_id resolution failed: " + resolveErr.message);
+          return NextResponse.json({ error: "internal error fetching obligations" }, { status: 500 });
+        }
         resolvedItemId = data?.id ?? undefined;
       }
       if (!resolvedItemId) {
