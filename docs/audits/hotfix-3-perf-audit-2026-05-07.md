@@ -11,7 +11,7 @@ This is the measurement-evidence dispatch the perf playbook requires before
 any "perf wave" lever is pulled. Per `docs/PERF-PLAYBOOK.md` and the
 `fsi-app/.claude/CLAUDE.md` "Perf Work Discipline" rule: no perf dispatch
 without evidence. The deliverable below is that evidence , fixes await
-explicit Jason auth.
+explicit the operator auth.
 
 Real-user RUM (Speed Insights / Analytics) is deferred per the playbook's
 traffic threshold; this audit uses build-time bundle analysis + the
@@ -159,7 +159,7 @@ tabs) → ~15-18 kB off entry. Similar leverage on /regulations/[slug],
 **Risk**: deferred tabs flash a loading state on first click. Acceptable
 for settings/profile-style pages where tab switching is interactive,
 not on the critical path.
-**Recommendation**: **AWAIT-JASON-AUTH** , proven pattern, but
+**Recommendation**: **AWAIT-OPERATOR-AUTH** , proven pattern, but
 architectural choice (when to defer, accepting the tab-click flash
 trade-off, whether to pre-prefetch on hover).
 
@@ -175,7 +175,7 @@ Next 16 rewrites these to deep imports automatically.
 **Estimated win**: unknown without analyzer (which is webpack-only
 on this stack). Likely 2-8 kB shared layout reduction; possibly more.
 **Risk**: low , Next 16 stable feature.
-**Recommendation**: **AWAIT-JASON-AUTH** , XS effort, but per the
+**Recommendation**: **AWAIT-OPERATOR-AUTH** , XS effort, but per the
 playbook, pilot ONE config change and remeasure before scaling. Worth
 the round-trip.
 
@@ -192,7 +192,7 @@ fetcher's cached path. Either drops one Supabase round-trip per
 **Estimated win**: ~1 round-trip (~50-150ms) off TTFB on /regulations
 cold renders. Doesn't move bundle bytes; moves server timing.
 **Risk**: very low. The number is workspace-agnostic.
-**Recommendation**: **AWAIT-JASON-AUTH** , XS effort but it's a behavior
+**Recommendation**: **AWAIT-OPERATOR-AUTH** , XS effort but it's a behavior
 change to a server query path; worth a one-line review.
 
 #### 4. UserMenu in shared layout (S)
@@ -206,7 +206,7 @@ the menu panel itself behind a `useState(false)` open guard.
 route).
 **Risk**: moderate , affects auth-state visibility on every page. Needs
 care to preserve "logged in / logged out" visual cue without a flash.
-**Recommendation**: **AWAIT-JASON-AUTH** , small-effort but visible to
+**Recommendation**: **AWAIT-OPERATOR-AUTH** , small-effort but visible to
 every user every render.
 
 #### 5. RegulationsSurface 1658-LOC monolith (L, **DEFER**)
@@ -284,15 +284,15 @@ This dispatch surfaces no image/font bottleneck. **NO ACTION**.
 
 | ID | Lever | Recommendation | Reason |
 |----|-------|----------------|--------|
-| 1 | Tab-deferred dynamic imports (settings/profile/market/detail) | **AWAIT-JASON-AUTH** | Highest-impact lever (~15-20 kB reachable per affected route). Architectural choice on tab-flash trade-off. |
-| 2 | lucide-react `optimizePackageImports` | **AWAIT-JASON-AUTH** | XS one-line change, but per playbook pilot-one-and-measure; worth Jason's go-ahead before scaling. |
-| 3 | Cache `/regulations` platform-total count | **AWAIT-JASON-AUTH** | XS server-side change. Workspace-agnostic value, perfect cache candidate. |
-| 4 | Defer UserMenu panel from shared layout | **AWAIT-JASON-AUTH** | Affects every route + visible auth cue. Small but careful. |
+| 1 | Tab-deferred dynamic imports (settings/profile/market/detail) | **AWAIT-OPERATOR-AUTH** | Highest-impact lever (~15-20 kB reachable per affected route). Architectural choice on tab-flash trade-off. |
+| 2 | lucide-react `optimizePackageImports` | **AWAIT-OPERATOR-AUTH** | XS one-line change, but per playbook pilot-one-and-measure; worth the operator's go-ahead before scaling. |
+| 3 | Cache `/regulations` platform-total count | **AWAIT-OPERATOR-AUTH** | XS server-side change. Workspace-agnostic value, perfect cache candidate. |
+| 4 | Defer UserMenu panel from shared layout | **AWAIT-OPERATOR-AUTH** | Affects every route + visible auth cue. Small but careful. |
 | 5 | Split RegulationsSurface monolith | **DEFER** | Architectural change, dedicated PR per dispatch halt clause. |
 
 **No items recommended for APPLY-AUTONOMOUSLY.** The Hotfix 3 contract
 is explicit: "perf optimization choices have real architectural
-implications" , every fix here passes through Jason for go/no-go on
+implications" , every fix here passes through the operator for go/no-go on
 which to apply.
 
 ---
@@ -310,9 +310,9 @@ deliverable; writes phase awaits explicit auth.
 
 ---
 
-## 9. Suggested writes-phase dispatch shape (for Jason)
+## 9. Suggested writes-phase dispatch shape (for the operator)
 
-If Jason authorizes any subset, the suggested writes dispatch order is:
+If the operator authorizes any subset, the suggested writes dispatch order is:
 
 1. **Pilot ONE change first** (per playbook anti-pattern note). Recommend
    #2 (lucide-react optimizePackageImports) as the pilot , XS, low risk,
@@ -325,7 +325,7 @@ If Jason authorizes any subset, the suggested writes dispatch order is:
 4. #5 (RegulationsSurface split) lives in its own PR with its own
    measurement step.
 
-If Jason says "skip everything, current bundles are acceptable for the
+If the operator says "skip everything, current bundles are acceptable for the
 pilot phase," that's also a valid outcome , the audit shows the largest
 single-route entry is 471 kB on /regulations/[slug], which is in the
 range Next 16 ships from many production apps. The +21.7 kB on /settings

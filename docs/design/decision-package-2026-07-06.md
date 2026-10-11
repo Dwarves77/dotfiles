@@ -2,7 +2,7 @@
 
 Doctrine: **NO-QUARANTINE** (two states: VERIFIED / IN-WORK) as **amended by EARTH-EXHAUSTION**
 (no unreachability hold-or-delete until full-ladder + seek-more exhaustion is PROVEN with a per-item
-record). Read-only until Jason rules. Scrape hold LIVE, zero fetch/mint. Generated 2026-07-06.
+record). Read-only until the operator rules. Scrape hold LIVE, zero fetch/mint. Generated 2026-07-06.
 
 ## Headline: the counsel split resolves to ZERO legal questions
 
@@ -11,23 +11,23 @@ legal-interpretation question.** Every one is a RETRIEVAL problem — the hold r
 `counsel_NO_SOURCE_QUALIFIED` ("declared primary fetched/roadblocked; best_resolved_tier=X;
 slot-bound / below-floor facts"). No role-determination, no defined-term, no
 entity-applicability question in the set. Under Earth-Exhaustion these are exactly the mis-resting
-states the doctrine abolishes: they route to seek-more / re-ground / 4d, **not to Jason/counsel.**
-If a residual legal question survives *after* exhaustion, THAT reaches Jason — not now, not on
+states the doctrine abolishes: they route to seek-more / re-ground / 4d, **not to the operator/counsel.**
+If a residual legal question survives *after* exhaustion, THAT reaches the operator — not now, not on
 retrieval grounds. **Zero one-line counsel questions are owed.**
 
 ## Vehicles = tranches = the path to zero in-work
 
 | Tranche | Vehicle | Count | Unblock condition | Cost axis |
 |---|---|---|---|---|
-| T1 | Chokepoint re-ground (pool-complete, source already ≥floor & English; no fetch, Sonnet-only, full-text post-cat-2-fix) | ~34 | Jason's go on standing envelope | Sonnet ~$0.25–0.40/item, 0 units |
+| T1 | Chokepoint re-ground (pool-complete, source already ≥floor & English; no fetch, Sonnet-only, full-text post-cat-2-fix) | ~34 | the operator's go on standing envelope | Sonnet ~$0.25–0.40/item, 0 units |
 | T2 | Seek-more (roadblocked / wrong-page / portal / failed-fetch → identifier resolution to real source, full ladder, exhaustion record) | 7 | ladder+seek-more merge + cadence line | web_search ~free + render units on JS-shell only |
 | T3 | 4d translated-labeled (non-English official source; verbatim original span, display "translated from X") | 2 | 4d build (after ladder lands) | Sonnet + minimal |
 | T4 | Hold-lift batch-1 re-fetch (fetch-dependent) | overlaps T1/T2 | ladder merge + cadence line | ~11–22 units |
-| T5 | Jason value-DELETE / reclassify candidates (identity or value, NOT unreachability — allowed now) | 6 | Jason's ruling (dedup pair: verify identity first) | 0 |
+| T5 | the operator value-DELETE / reclassify candidates (identity or value, NOT unreachability — allowed now) | 6 | the operator's ruling (dedup pair: verify identity first) | 0 |
 
 Every non-verified item lands in a tranche with a keep-decision + next action + vehicle. None rests.
 
-## T5 — DELETE / reclassify candidates (Jason rules; my recommendation in parens)
+## T5 — DELETE / reclassify candidates (the operator rules; my recommendation in parens)
 
 | key | title | why | recommendation |
 |---|---|---|---|
@@ -88,7 +88,7 @@ pending**. Exhaustion records get written when batch-1 runs post-cadence.
 ## Counts per proposed call
 
 - KEEP-in-work (all tranches T1–T4): 46
-- Jason value/identity-DELETE candidates (T5): 6 (2 of which are a dedup pair — 1 survivor each → net
+- The operator value/identity-DELETE candidates (T5): 6 (2 of which are a dedup pair — 1 survivor each → net
   ~4–6 deletes depending on your ruling)
 - Genuine legal-interpretation questions to counsel: **0**
 - Unreachability terminal holds proposable right now: **0** (all not-attempted → forbidden by doctrine)

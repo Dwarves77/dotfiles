@@ -1,7 +1,7 @@
 # Lane G1: the skill gate reads the acting agent's own transcript (coordinator, 2026-09-19 night)
 
 Read `brief-m-common.md` first (its Amendment 1 overrides the text above it). Lane id `g1`. Worktree
-`C:/Users/jason/dotfiles/.worktrees/wt-hashsep-0911`; first command from its root:
+`C:/Users/USER/dotfiles/.worktrees/wt-hashsep-0911`; first command from its root:
 `git status --short` (must print nothing, else STOP), then
 `git fetch origin master && git switch -c lane/g1-skill-gate-agent-transcript-2026-09-19 origin/master`.
 If `fsi-app/node_modules` is missing there, STOP. Shared ids assigned: NONE. If you need one, STOP.
@@ -29,7 +29,7 @@ so a gate no lane can satisfy stops the build. No workaround: the gate must judg
    b. What a PreToolUse payload carries when a SUB-AGENT makes the call. One WebFetch of the official Claude
       Code hooks reference is allowed for this (record the documented input fields; look for an agent id, an
       agent type and an agent transcript path). Nothing else from the web.
-   c. Where this machine stores sub-agent transcripts (search under `C:/Users/jason/.claude/projects/` for a
+   c. Where this machine stores sub-agent transcripts (search under `C:/Users/USER/.claude/projects/` for a
       recent `.jsonl` containing the string `lane-prepush-check`, list only file names and sizes, never print
       a transcript). Confirm whether a sub-agent's `Skill` tool_use is in the sub-agent's own file and absent
       from the parent's file.
@@ -63,7 +63,7 @@ Sessions run the MAIN checkout's copy of the gate, so the fix is live only after
 ## Amendment 1 (coordinator, 2026-09-19 night, before dispatch)
 
 The worktree named at the top is wrong: `wt-hashsep-0911` carries untracked files [CONFIRMED by `git status`].
-Your worktree is `C:/Users/jason/dotfiles/.worktrees/wt-landdocs-0911` (clean, `node_modules` present). Same
+Your worktree is `C:/Users/USER/dotfiles/.worktrees/wt-landdocs-0911` (clean, `node_modules` present). Same
 first commands, same branch name.
 
 ## Amendment 2 (coordinator, 2026-09-20; answers lane G1's STOP at the push gate)

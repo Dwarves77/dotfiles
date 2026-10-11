@@ -6,7 +6,7 @@ and the header/method of `AUDIT-2026-09-07.md` (4060-line generated file, not re
 "2557 MATCH, 0 MISMATCH" summary is cited, not reproduced); read every named `src/components/ui/` part
 plus the detail-surface, list-surface, dashboard, sidebar and command-bar components that mount them; grep
 every `src/app/**/page.tsx` for literal card/chip/rule styles. No rendering run, no browser, no DB query , 
-source read only, at repo commit `7f28bbcd21dd9eb058140ea9ac87314b49df164d` (`C:\Users\jason\dotfiles\.worktrees\wt-session-c`,
+source read only, at repo commit `7f28bbcd21dd9eb058140ea9ac87314b49df164d` (`C:\Users\USER\dotfiles\.worktrees\wt-session-c`,
 `fsi-app/`). Depth varies by row: rows marked "spot-checked" below verified a sample of routes, not all 20;
 nothing here is a rendered measurement (no `npm run audit:design`, no Playwright), so a route not read
 directly is not claimed either way.

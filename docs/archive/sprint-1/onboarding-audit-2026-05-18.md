@@ -54,7 +54,7 @@ Two-sentence summary: The onboarding code paths are wired end-to-end (signup, em
 
 ## Section A: Signup flow
 
-File: `C:/Users/jason/dotfiles/fsi-app/src/app/signup/page.tsx`.
+File: `C:/Users/USER/dotfiles/fsi-app/src/app/signup/page.tsx`.
 
 Fields: email (required, type=email), password (required, minLength=8), confirm password.
 

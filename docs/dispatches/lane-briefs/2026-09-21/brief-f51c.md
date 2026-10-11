@@ -1,6 +1,6 @@
 # Lane F51c: check 5 measures concurrent editing, not serial touches by one owner (coordinator, 2026-09-22)
 
-Model: Sonnet (gate logic). Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-p5a-nonreg`. Branch: `lane/f51c-hotspot-concurrency`, cut from `origin/master` (at or past `af898bc2`). Read `docs/dispatches/lane-common-contract.md`, then ONLY the header comment and check 5 of `fsi-app/.discipline/fitness/functions/F51-no-shared-append.mjs` (`countHotspots`, `evaluateHotspotViolations`, `runCheck5`, `HOTSPOT_ALLOWLIST`) and the check 5 tests in its test file. STOP on anything not covered.
+Model: Sonnet (gate logic). Worktree: `C:/Users/USER/dotfiles/.worktrees/wt-p5a-nonreg`. Branch: `lane/f51c-hotspot-concurrency`, cut from `origin/master` (at or past `af898bc2`). Read `docs/dispatches/lane-common-contract.md`, then ONLY the header comment and check 5 of `fsi-app/.discipline/fitness/functions/F51-no-shared-append.mjs` (`countHotspots`, `evaluateHotspotViolations`, `runCheck5`, `HOTSPOT_ALLOWLIST`) and the check 5 tests in its test file. STOP on anything not covered.
 
 ## The three occurrences (all [CONFIRMED] in the session log, 2026-09-19 to 2026-09-21)
 
@@ -20,4 +20,4 @@ Check 5 refused: (1) the lane-briefs README, appended by three serial coordinato
 
 ## Report
 
-ONE final report, six lines maximum, sent once, no interim messages: commit sha; the concurrency definition in one sentence; attack test results (a) to (d); entries deleted (count) and F51 live-tree result; npm totals, fitness violations, gate exit code; any STOP with its measurement. Write `pr-f51c.md` into `C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad, `C--Users-jason`, not your own): first line `## Lane F51c: check 5 measures concurrent editing, not serial touches by one owner`, then `## Summary`, `## Evidence`, `## UX compliance` ("Not a UI change."), last line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+ONE final report, six lines maximum, sent once, no interim messages: commit sha; the concurrency definition in one sentence; attack test results (a) to (d); entries deleted (count) and F51 live-tree result; npm totals, fitness violations, gate exit code; any STOP with its measurement. Write `pr-f51c.md` into `C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad, `C--Users-USER`, not your own): first line `## Lane F51c: check 5 measures concurrent editing, not serial touches by one owner`, then `## Summary`, `## Evidence`, `## UX compliance` ("Not a UI change."), last line `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.

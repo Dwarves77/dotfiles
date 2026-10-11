@@ -4,7 +4,7 @@
 **Scope:** Read-only comparison of design source-of-truth (claude.ai design project 5de59f85-2c21-4711-87ea-ca309f461d5f) versus production (carosledge.com, Dietl/Rockit Enterprise workspace).
 **Auditor:** automated visual reconciliation pass (Claude in Chrome).
 **Status:** Draft for review.
-**Companion to:** the functional integrity audit already in `docs/`. Together these two documents informed the eight architectural decisions Jason locked for PR-A1 (the California test pattern).
+**Companion to:** the functional integrity audit already in `docs/`. Together these two documents informed the eight architectural decisions the operator locked for PR-A1 (the California test pattern).
 
 ## 1. Executive summary
 
@@ -57,7 +57,7 @@ Other files seen in `preview/` not in scope for this 11-route audit (component s
 | Design has WATCHLIST sidebar with populated regulation rows (item title, jurisdiction badge, due date); production renders sidebar header but list is empty/zero state | PRODUCTION DRIFT (HOLLOW) |
 | Design BY OWNER sidebar shows owner avatars + counts; production shows the heading but no rows | PRODUCTION DRIFT (HOLLOW) |
 | Design COVERAGE callout shows jurisdictional coverage progress with values; production shows "Coverage values are placeholders" literal text | PRODUCTION DRIFT (HOLLOW) |
-| User footer in side rail: design shows "CARO MENDEL · ADMIN" with role badge; production shows "jasonlosh ⌄" with dropdown caret | PRODUCTION DRIFT |
+| User footer in side rail: design shows "CARO MENDEL · ADMIN" with role badge; production shows "the operator ⌄" with dropdown caret | PRODUCTION DRIFT |
 
 ### 3.2 Regulations index, `/regulations` vs `regulations.html`
 
@@ -202,7 +202,7 @@ This is the largest single delta in the audit.
 
 **Stat-tile row width.** Same pattern: design clamps the stat row inside the content column; production lets the parent stretch with `max-width: none`, so the tile gutters scale unevenly on wide viewports.
 
-**Side-rail IA grammar.** Design's rail is product surfaces only (Dashboard, Regulations, Market, Research, Operations, Map) with Community below a separator, and Profile/Settings/Admin reachable via the user footer ("CARO MENDEL · ADMIN" with a role badge). Production's rail adds Profile, Settings, and Admin as first-class rail items between Map and Community, and the user footer becomes a "jasonlosh ⌄" dropdown. This changes the navigation grammar from product-vs-account to a flat rail.
+**Side-rail IA grammar.** Design's rail is product surfaces only (Dashboard, Regulations, Market, Research, Operations, Map) with Community below a separator, and Profile/Settings/Admin reachable via the user footer ("CARO MENDEL · ADMIN" with a role badge). Production's rail adds Profile, Settings, and Admin as first-class rail items between Map and Community, and the user footer becomes a "the operator ⌄" dropdown. This changes the navigation grammar from product-vs-account to a flat rail.
 
 **HOLLOW content pattern.** Production renders many populated-content slots as styled placeholders ("Not yet ingested.", "Coverage values are placeholders...", zero-count tabs, empty kanban columns, sidebar headers without rows). Design's previews always show the populated state. This makes production feel like a scaffold even where the components themselves are correct, it's a content/data drift, not a component drift, but it reads visually as drift because the slots are visible-and-empty rather than visible-and-full.
 
@@ -212,7 +212,7 @@ This is the largest single delta in the audit.
 
 **Accent color tokens.** Navy base `#171e19`, red/orange critical, amber high, gray moderate, green low, consistent across both sides. No color-token drift detected at this level of inspection.
 
-**User footer.** Design = "CARO MENDEL · ADMIN" with role badge in caps. Production = "jasonlosh ⌄" with dropdown caret. Different grammar (badge vs dropdown), different identity surfacing (full name vs handle).
+**User footer.** Design = "CARO MENDEL · ADMIN" with role badge in caps. Production = "the operator ⌄" with dropdown caret. Different grammar (badge vs dropdown), different identity surfacing (full name vs handle).
 
 ## 5. Components designed but not present in production (orphan design work)
 

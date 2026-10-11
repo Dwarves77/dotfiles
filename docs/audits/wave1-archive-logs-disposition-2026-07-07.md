@@ -13,10 +13,10 @@ one-way mirror; keep the two-homes drift class from re-forming."
 
 That rests on a premise that the machine does not support. Verified directly:
 
-- `%APPDATA%\obsidian\obsidian.json` registers **exactly one vault**: `C:\Users\jason\dotfiles\docs`
+- `%APPDATA%\obsidian\obsidian.json` registers **exactly one vault**: `C:\Users\USER\dotfiles\docs`
   , the repo's own `docs/` folder. `ts` present, `open: true`.
 - No Obsidian Sync: `docs/.obsidian/` has no `sync.json` / sync dir; no community plugins.
-- No other `.obsidian` vault anywhere under `C:\Users\jason` (find, depth 3).
+- No other `.obsidian` vault anywhere under `C:\Users\USER` (find, depth 3).
 
 **Therefore the Obsidian vault IS the repo's `docs/`.** There is no separate "designated backup
 knowledge space" to mirror into , `docs/archive/logs/` is already inside the vault. Consequences:

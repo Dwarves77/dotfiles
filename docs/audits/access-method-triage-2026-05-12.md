@@ -59,7 +59,7 @@ to route any of these three sources to a different fetcher.
 
 ### D. Recommended path
 Switch this row to `access_method=rss` with `rss_feed_url=https://www.sec.gov/news/pressreleases.rss`,
-add a SEC-compliant `User-Agent` (e.g. `FSI Agent jasonlosh@gmail.com`) to the
+add a SEC-compliant `User-Agent` (e.g. `FSI Agent <contact address>`) to the
 RSS fetcher's outbound headers, and abandon the homepage scrape entirely.
 
 ### E. Implementation effort

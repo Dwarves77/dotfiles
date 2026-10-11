@@ -1,7 +1,7 @@
 # Template 11 (Community) — Schema-Mapping Report
 
 **Status: GATE — report only. No UI built. No schema changed. No migration written or applied.**
-Awaiting Jason's go decision before Template 11 builds.
+Awaiting the operator's go decision before Template 11 builds.
 
 - Branch: `docs/redesign-t11-community-mapping` (off `master`)
 - Date: 2026-07-06
@@ -75,7 +75,7 @@ removing. **Seed data + two count queries, not new structure.**
 
 **Region-vocabulary mismatch (decision needed, §3/§5):** the `community_groups.region` CHECK
 (migration 028) is `EU, UK, US, LATAM, APAC, HK, MEA, GLOBAL` (8 values). The mock's 7 rooms fold
-**HK into APAC** (Jason's home jurisdictions are "EU · Hong Kong · United Kingdom" and the mock shows
+**HK into APAC** (the operator's home jurisdictions are "EU · Hong Kong · United Kingdom" and the mock shows
 him "here" in EU/UK/APAC) and label **MEA as "MEAF"**. This is reconcilable at the presentation layer
 (map HK→APAC, display "MEA" as "Middle East & Africa") with **no migration**, OR by a CHECK alter if
 `MEAF` must be a literal code. Recommend presentation-layer mapping; treat the CHECK alter as optional.
@@ -260,7 +260,7 @@ instead.** The two layers are parallel by history; T11 lives entirely on the new
 - **Region-vocabulary** (#1) — resolve HK→APAC / MEAF display mapping at build time (no migration
   recommended).
 
-### Decisions owed to Jason before build
+### Decisions owed to the operator before build
 1. **Room = seeded canonical `community_groups` per region** (recommended) vs a different rooms model?
 2. **Region vocabulary** — presentation-layer map (recommended, no migration) vs CHECK alter to add
    `MEAF`/first-class `HK`?

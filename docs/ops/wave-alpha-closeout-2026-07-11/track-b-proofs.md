@@ -45,8 +45,8 @@ FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
 WHERE n.nspname='public' AND p.proname='get_market_intel_items';   -- expect: t
 ```
 Behavioural (run via the appropriate DSNs):
-- As the Jason auth user vs home org `a0000000-0000-0000-0000-000000000001` → rows returned.
-- As the Jason auth user vs `00000000-0000-0000-0000-000000000999` → **ERROR 42501 'Not a member of org …'**.
+- As the operator auth user vs home org `a0000000-0000-0000-0000-000000000001` → rows returned.
+- As the operator auth user vs `00000000-0000-0000-0000-000000000999` → **ERROR 42501 'Not a member of org …'**.
 - As service_role vs the fake org → 0 rows, NO exception (bypass).
 Then `NOTIFY pgrst, 'reload schema';`
 

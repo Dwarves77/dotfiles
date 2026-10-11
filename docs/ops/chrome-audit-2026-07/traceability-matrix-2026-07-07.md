@@ -33,10 +33,10 @@ so committing here **is** the one-way mirror; there is no second copy to drift.
 - **IN-BLOCK** — inside the current option-2 (verifiable-backend) block; names the item (a–e).
 - **PHASED** — deferred to a named phase AND its gate (browser-verification wave · intake-gate
   precondition · loop flip · DDL/apply window · dashboard action). The gate is why it isn't done now.
-- **WON'T-FIX (proposed)** — recommended not to fix, with a reason; **Jason rules these**.
+- **WON'T-FIX (proposed)** — recommended not to fix, with a reason; **the operator rules these**.
 
 Standing gates in force: autonomous loop **OFF**, scrape hold **LIVE**, **zero mints**, migrations are
-committed files until Jason's apply window.
+committed files until the operator's apply window.
 
 ---
 
@@ -44,7 +44,7 @@ committed files until Jason's apply window.
 
 | ID | Surface | Sev | Evidence (observed) | Disposition |
 |----|---------|-----|---------------------|-------------|
-| S1-01 | intake / system_state | S1 | `global_processing_paused=true`, `scrape_cadence='off'` since 2026-05-18 — loop off at the switch | **PHASED** — loop flip (operator); stays OFF per Jason's ruling |
+| S1-01 | intake / system_state | S1 | `global_processing_paused=true`, `scrape_cadence='off'` since 2026-05-18 — loop off at the switch | **PHASED** — loop flip (operator); stays OFF per the operator's ruling |
 | S1-02 | /api/staged-updates | S1 | outside `/api/admin/*`, only `requireAuth` then service-role approve/materialize — any customer could push to prod | **FIXED — PR #233** |
 | S1-03 | intelligence_items/sources/staged_updates/provisional_sources | S1 | `SELECT TO public USING(true)` — anon reads 128 quarantined + 57 unverified + 497 provisional + all staged | **FIXED (authored) — PR #233 / mig 157**; PHASED on **apply** (operator DDL window) |
 | S1-04 | 7 worker/cron routes | S1 | `WORKER_SECRET || "dev-worker-secret"` public fallback | **FIXED — PR #233** |

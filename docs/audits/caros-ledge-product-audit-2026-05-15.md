@@ -510,7 +510,7 @@ This document, together with the companion `caros-ledge-supabase-schema-audit-20
 ## Appendix: Methodology
 
 Eight investigation areas dispatched in parallel as read-only sub-agents on 2026-05-15. Each agent had access to:
-- Repo at C:\Users\jason\dotfiles
+- Repo at C:\Users\USER\dotfiles
 - Live Supabase project kwrsbpiseruzbfwjpvsp via service role key in fsi-app/.env.local
 - Full latitude on methodology and depth within their assigned area
 - Explicit constraint: read-only, no fixes, no migrations, no PRs, no downstream dispatches

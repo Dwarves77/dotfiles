@@ -211,7 +211,7 @@ page now composes the deck server-side and the surface renders the full hero), a
   `TILES_AS_LIVE_FILTERS === false`. Until approved, clicking a tile scrolls to the `#priority`
   "This week" list (the mock's `href="#priority"` behaviour).
 - **Why:** Explicit "build the plumbing to allow it … flagged, awaiting operator approval." Activation
-  is a one-line flip once approved. **Needs Jason's ruling.**
+  is a one-line flip once approved. **Needs the operator's ruling.**
 
 ### D01-2 · "Top priority" analysis line binds real `whyMatters`, labeled "Our analysis" (no per-item "do now" field)
 - **What:** The mock's glance rows carry an imperative "OUR ANALYSIS · DO NOW" directive with a

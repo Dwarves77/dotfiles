@@ -4,7 +4,7 @@ Region:            APAC
 Depth:             normal
 Jurisdictions:     5
 Cost cap:          (none)
-Output:            C:\Users\jason\dotfiles\docs\W3-tier1-APAC-results.json
+Output:            C:\Users\USER\dotfiles\docs\W3-tier1-APAC-results.json
 Started:           2026-05-04T20:29:53.208Z
 ══════════════════════════════════════════════════════════════
 
@@ -122,5 +122,5 @@ Duplicates:   12
 Haiku calls:  23
 Wall time:    439.6s
 Total cost:   $0.5230 (Sonnet $0.5000 + Haiku $0.0230)
-Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-APAC-results.json
+Wrote:        C:\Users\USER\dotfiles\docs\W3-tier1-APAC-results.json
 ══════════════════════════════════════════════════════════════

@@ -1,6 +1,6 @@
 # Lane W10-CommandBar, Amendment 1 (coordinator, 2026-09-21): the Rendering guard's review of PR #769. Read after `brief-w10-commandbar.md`; this file wins.
 
-State: PR #769, branch `lane/w10-commandbar`, pushed sha `89fc5671`, worktree `C:/Users/jason/dotfiles/.worktrees/wt-l34-detail-admin-primitives`. Every local gate passed. On GitHub the Rendering guard FAILED, on the new `/search` page only (fixtures 14, checks 746, 6 failures), verbatim:
+State: PR #769, branch `lane/w10-commandbar`, pushed sha `89fc5671`, worktree `C:/Users/USER/dotfiles/.worktrees/wt-l34-detail-admin-primitives`. Every local gate passed. On GitHub the Rendering guard FAILED, on the new `/search` page only (fixtures 14, checks 746, 6 failures), verbatim:
 
 ```
 ✗ search-results:one-row@375: placeholder literal rendered — Tier <!-- glyph:verbatim -->

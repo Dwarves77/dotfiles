@@ -259,7 +259,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
   //    a plain link to /profile (nothing to open a menu about).
   //
   //    A THIRD row stays forbidden (the production defect that preceded
-  //    all of this shipped Account + Admin + a "jasonlosh ▾" utility row). ──
+  //    all of this shipped Account + Admin + a "the operator ▾" utility row). ──
   const footer = (variant: "card" | "drawer") => {
     const drawer = variant === "drawer";
     const rowStyle: React.CSSProperties = {

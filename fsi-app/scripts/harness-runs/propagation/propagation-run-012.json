@@ -22,7 +22,7 @@
       "outcome": "drained",
       "verdict": "50 event(s) considered, 0 value(s) would be invalidated (dry, nothing written)",
       "evidence_refs": [
-        "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-012.report.json"
+        "C:\\Users\\USER\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-012.report.json"
       ],
       "error": null
     }
@@ -40,7 +40,7 @@
   },
   "defects_found": [],
   "full_trace_refs": [
-    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-012.report.json"
+    "C:\\Users\\USER\\dotfiles\\.claude\\worktrees\\loop-b-firing\\fsi-app\\scripts\\harness-runs\\propagation\\traces\\propagation-run-012.report.json"
   ],
   "proposer_notes": "Auto-emitted by run-propagation-drain.mjs, the propagation family's canonical entry point (lane DP-ENGINE, 2026-09-02, system-completion train). Drives runPropagationDrain (src/lib/propagation/drain.ts) against the propagation_events outbox (migration 284) and the derivation DAG (migration 285)."
 }

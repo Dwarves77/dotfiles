@@ -4,7 +4,7 @@ Region:            AU
 Depth:             normal
 Jurisdictions:     9
 Cost cap:          (none)
-Output:            C:\Users\jason\dotfiles\docs\W3-tier1-AU-results.json
+Output:            C:\Users\USER\dotfiles\docs\W3-tier1-AU-results.json
 Started:           2026-05-04T20:29:57.549Z
 ══════════════════════════════════════════════════════════════
 
@@ -202,5 +202,5 @@ Duplicates:   31
 Haiku calls:  23
 Wall time:    931.3s
 Total cost:   $0.9230 (Sonnet $0.9000 + Haiku $0.0230)
-Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-AU-results.json
+Wrote:        C:\Users\USER\dotfiles\docs\W3-tier1-AU-results.json
 ══════════════════════════════════════════════════════════════

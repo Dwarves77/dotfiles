@@ -108,7 +108,7 @@ subject_type: item 1,240 / surface 105 / source 36 / system 4 (all 5 allowed exc
 ### Deferral payloads (created_by='disposition_deferred', 202 rows: 162 open / 40 resolved)
 Payload lives at `recommended_actions[0].deferral` with keys `owner` / `reason` / `resolution_event` /
 `deferred_until`.
-- **Shape-valid (all 4 keys present): 201/202.** Owner is "operator (Jason)" throughout; reasons are one of two
+- **Shape-valid (all 4 keys present): 201/202.** Owner is "operator" throughout; reasons are one of two
   class-reason templates (network-stable Phase-3 grounding lane block; renewed variants).
 - **Malformed: 1** — `409eae23-fbb6-4592-88c4-c6e980b8c359` (open, item `ff4064ab…`): description still says
   "Lane-#4 deferral (→2026-07-02) … self-resurrects" but `recommended_actions` was overwritten with

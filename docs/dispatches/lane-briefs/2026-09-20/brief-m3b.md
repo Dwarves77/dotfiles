@@ -36,7 +36,7 @@ Any yml edit (none should be needed: all three workflows already pass the upstre
 
 ## Gates, each once, in this order, from `fsi-app/` unless noted
 
-`node --test` on the files you touched plus `loop-manifest.test.mjs`, `F50-loop-wiring.test.mjs`, `run-artifact.test.mjs`, `family-registry.test.mjs`; `npx tsc --noEmit`; `node .discipline/fitness/runner.mjs` (F45 must not exceed the merge-base count; F50 "hops not yet enforced" stays 11); `node .discipline/consistency/override-check.mjs --range=origin/master..HEAD`; then, LAST and ONCE, the locked push gate `bash "C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/lane-prepush-check.sh"` from the worktree root. You commit; you do NOT push. Commit message ends with `Co-Authored-By: Claude Sonnet <noreply@anthropic.com>`.
+`node --test` on the files you touched plus `loop-manifest.test.mjs`, `F50-loop-wiring.test.mjs`, `run-artifact.test.mjs`, `family-registry.test.mjs`; `npx tsc --noEmit`; `node .discipline/fitness/runner.mjs` (F45 must not exceed the merge-base count; F50 "hops not yet enforced" stays 11); `node .discipline/consistency/override-check.mjs --range=origin/master..HEAD`; then, LAST and ONCE, the locked push gate `bash "C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/lane-prepush-check.sh"` from the worktree root. You commit; you do NOT push. Commit message ends with `Co-Authored-By: Claude Sonnet <noreply@anthropic.com>`.
 
 ## Your session-log file
 

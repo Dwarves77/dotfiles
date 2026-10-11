@@ -116,7 +116,7 @@ export would show it correctly. Not a logic defect.
 
 ## ROUND 2: 146-150/240/260 -- the DB-executor verification results
 
-Per `C:/Users/jason/dotfiles/fsi-app/scripts/tmp/db-executor-2026-10-01-r45.md` (Part A), all seven
+Per `C:/Users/USER/dotfiles/fsi-app/scripts/tmp/db-executor-2026-10-01-r45.md` (Part A), all seven
 migrations' created objects exist live except two pieces of 146:
 
 - **147, 148, 240, 260**: every named column/function/trigger/index EXISTS live. Headers corrected to

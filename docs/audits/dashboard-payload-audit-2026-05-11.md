@@ -8,11 +8,11 @@ The dashboard route `/` is the only surface in the application that consumes the
 
 The query that produces the 728 KB regulations slab on the dashboard is issued by `app/page.tsx`:
 
-`C:/Users/jason/dotfiles/fsi-app/src/app/page.tsx:35` calls `await getAppData()`.
+`C:/Users/USER/dotfiles/fsi-app/src/app/page.tsx:35` calls `await getAppData()`.
 
-`C:/Users/jason/dotfiles/fsi-app/src/lib/data.ts:46` defines `cachedAppData` which wraps `fetchDashboardData(orgId)` plus `fetchSourceData()` in `unstable_cache` with a 60s TTL. The cookies read at `src/lib/data.ts:98` (`resolveOrgIdFromCookies()`) forces dynamic rendering, so the inner cache only spares re-fetch cost, not Vercel cache hits at the response level (this is consistent with the documented `x-vercel-cache MISS` observation).
+`C:/Users/USER/dotfiles/fsi-app/src/lib/data.ts:46` defines `cachedAppData` which wraps `fetchDashboardData(orgId)` plus `fetchSourceData()` in `unstable_cache` with a 60s TTL. The cookies read at `src/lib/data.ts:98` (`resolveOrgIdFromCookies()`) forces dynamic rendering, so the inner cache only spares re-fetch cost, not Vercel cache hits at the response level (this is consistent with the documented `x-vercel-cache MISS` observation).
 
-`C:/Users/jason/dotfiles/fsi-app/src/lib/supabase-server.ts:543` defines `fetchDashboardData(orgId)`. At line 581 it calls `fetchWorkspaceResources(orgId)` with no `slim` flag, which at `src/lib/supabase-server.ts:408` resolves the RPC name to `get_workspace_intelligence` (the FULL variant). The full RPC is defined at `C:/Users/jason/dotfiles/fsi-app/supabase/migrations/007_full_brief.sql:10`.
+`C:/Users/USER/dotfiles/fsi-app/src/lib/supabase-server.ts:543` defines `fetchDashboardData(orgId)`. At line 581 it calls `fetchWorkspaceResources(orgId)` with no `slim` flag, which at `src/lib/supabase-server.ts:408` resolves the RPC name to `get_workspace_intelligence` (the FULL variant). The full RPC is defined at `C:/Users/USER/dotfiles/fsi-app/supabase/migrations/007_full_brief.sql:10`.
 
 Fields selected by the full RPC (`007_full_brief.sql:11-43`):
 
@@ -31,11 +31,11 @@ LIMIT applied: none. The RPC returns all non-archived workspace items (current c
 
 What gets passed across the server/client boundary on `/`:
 
-`C:/Users/jason/dotfiles/fsi-app/src/app/page.tsx:62-74` passes the resolved `data.resources` (full Resource[] shape including `fullBrief`, `whatIsIt`, `whyMatters`, `keyData`, `tags`, `jurisdictions`, `modes`, etc.) to two consumers:
+`C:/Users/USER/dotfiles/fsi-app/src/app/page.tsx:62-74` passes the resolved `data.resources` (full Resource[] shape including `fullBrief`, `whatIsIt`, `whyMatters`, `keyData`, `tags`, `jurisdictions`, `modes`, etc.) to two consumers:
 
-- `<DashboardHero resources={data.resources} />` server-renders the 4-up tile strip. `C:/Users/jason/dotfiles/fsi-app/src/components/home/DashboardHero.tsx:52-61` only uses `r.priority` to bucket-count the items. Every other field on every Resource is dead weight inside the hero subtree.
+- `<DashboardHero resources={data.resources} />` server-renders the 4-up tile strip. `C:/Users/USER/dotfiles/fsi-app/src/components/home/DashboardHero.tsx:52-61` only uses `r.priority` to bucket-count the items. Every other field on every Resource is dead weight inside the hero subtree.
 
-- `<HomeSurface initialResources={data.resources} ... />` (`C:/Users/jason/dotfiles/fsi-app/src/components/home/HomeSurface.tsx`) is a `"use client"` component, so the entire resources array crosses the RSC boundary as a serialized JSON-in-string payload. Inside `HomeSurface` the resources flow into `WeeklyBriefing` (`src/components/home/WeeklyBriefing.tsx`) which sorts top-5 by `urgencyScore` and renders title/dayCount; into `WhatChanged` which references `changelog`; into `Supersessions` which uses the `resourceMap`; and into `DashboardByOwner` which counts.
+- `<HomeSurface initialResources={data.resources} ... />` (`C:/Users/USER/dotfiles/fsi-app/src/components/home/HomeSurface.tsx`) is a `"use client"` component, so the entire resources array crosses the RSC boundary as a serialized JSON-in-string payload. Inside `HomeSurface` the resources flow into `WeeklyBriefing` (`src/components/home/WeeklyBriefing.tsx`) which sorts top-5 by `urgencyScore` and renders title/dayCount; into `WhatChanged` which references `changelog`; into `Supersessions` which uses the `resourceMap`; and into `DashboardByOwner` which counts.
 
 Critically, `grep -rn "fullBrief"` across `src/components/` finds zero references in any home/dashboard component (`DashboardHero`, `HomeSurface`, `WeeklyBriefing`, `WhatChanged`, `Supersessions`, `DashboardByOwner`, `DashboardCoverageGaps`, `DashboardWatchlist`, `DashboardAwaitingReview`). The only consumers of `r.fullBrief` are `RegulationDetailSurface.tsx`, `ResourceDetail.tsx`, `DomainItemList.tsx`, and `SectorSynopsis.tsx`. None of those mount on `/`. So 100% of the `full_brief` payload shipped with the dashboard is unrendered.
 
@@ -43,7 +43,7 @@ Critically, `grep -rn "fullBrief"` across `src/components/` finds zero reference
 
 ## 2. Markdown brief import pattern
 
-There is no markdown loader in this codebase. `grep` for `import.meta.glob`, `require.context`, `\.md(['"]|$)` returns no application-code matches. The `find` for `*.md` finds only documentation (`README.md`, `STATUS.md`, `docs/*.md`, `.claude/*.md`), not regulatory briefs. There is no MDX configuration in `next.config.ts` (`C:/Users/jason/dotfiles/fsi-app/next.config.ts` only declares `turbopack.root`, `redirects()`, and the bundle analyzer wrapper). There is no `content/` or `briefs/` directory under `src/` or `public/`.
+There is no markdown loader in this codebase. `grep` for `import.meta.glob`, `require.context`, `\.md(['"]|$)` returns no application-code matches. The `find` for `*.md` finds only documentation (`README.md`, `STATUS.md`, `docs/*.md`, `.claude/*.md`), not regulatory briefs. There is no MDX configuration in `next.config.ts` (`C:/Users/USER/dotfiles/fsi-app/next.config.ts` only declares `turbopack.root`, `redirects()`, and the bundle analyzer wrapper). There is no `content/` or `briefs/` directory under `src/` or `public/`.
 
 The 99 markdown regulatory fact documents the investigation flagged are not file imports. They live in the Postgres column `intelligence_items.full_brief` (TEXT). They enter the RSC tree the same way as the regulations table itself, via the `get_workspace_intelligence` RPC return at `src/lib/supabase-server.ts:411`. Each row's `full_brief` text is mapped onto `Resource.fullBrief` at `src/lib/supabase-server.ts:463`, then passed through `HomeSurface` as part of `initialResources` (`src/components/home/HomeSurface.tsx:50, 63`).
 
@@ -55,22 +55,22 @@ Lazy-load feasibility: very high. None of the dashboard's home components read `
 
 There is no global `no-store` directive applied to authenticated routes. Specifically:
 
-- `C:/Users/jason/dotfiles/fsi-app/next.config.ts` defines no `headers()` callback at all. No global Cache-Control rule.
-- `C:/Users/jason/dotfiles/fsi-app/vercel.json` is minimal: `framework`, `regions: ["iad1"]`. No headers.
-- There is no `src/middleware.ts`. The closest analog is `C:/Users/jason/dotfiles/fsi-app/src/proxy.ts` (the new Next 15+ proxy convention), which only reads cookies, refreshes the Supabase session via `supabase.auth.getUser()`, and either passes through or redirects unauthenticated requests. It sets no response headers other than the auth cookies.
+- `C:/Users/USER/dotfiles/fsi-app/next.config.ts` defines no `headers()` callback at all. No global Cache-Control rule.
+- `C:/Users/USER/dotfiles/fsi-app/vercel.json` is minimal: `framework`, `regions: ["iad1"]`. No headers.
+- There is no `src/middleware.ts`. The closest analog is `C:/Users/USER/dotfiles/fsi-app/src/proxy.ts` (the new Next 15+ proxy convention), which only reads cookies, refreshes the Supabase session via `supabase.auth.getUser()`, and either passes through or redirects unauthenticated requests. It sets no response headers other than the auth cookies.
 - No page-level `export const dynamic = "force-dynamic"` on `/`, `/regulations`, `/market`, `/operations`, `/map`, `/research`, or `/settings`. The only routes that explicitly declare `export const dynamic = "force-dynamic"` are under `/community/*` (`browse`, root, `moderation`, `[slug]`).
 
 The reason `x-vercel-cache: MISS` lands on every authenticated render is structural, not header-driven: every page in the protected tree resolves the org from cookies via `resolveOrgIdFromCookies()` (called from `getAppData`, `getResourcesOnly`, `getMapData`, `getSettingsData`) and reads cookies via `auth.getUser()` for membership checks. Reading cookies from a Server Component opts the route into dynamic rendering and disables ISR / response-level caching, regardless of the `unstable_cache` wrapper around the inner data fetcher. The page-level comments in `app/page.tsx`, `app/settings/page.tsx`, and `app/research/page.tsx` all acknowledge this directly. The route handlers themselves do set explicit Cache-Control:
 
-- `C:/Users/jason/dotfiles/fsi-app/src/app/api/admin/attention/route.ts` sets `private, max-age=30` on 200, `private, max-age=60` on 401/403, and `no-store` only on 500. The 60s `useAdminAttention` poll (`src/lib/hooks/useAdminAttention.ts:39`) uses a fetch call without a `cache: "no-store"` override so the browser HTTP cache honours the 30s positive cache (the comment at line 111-115 documents this explicitly). If `x-vercel-cache: MISS` is observed on every poll, that is consistent with the routes being function invocations (not statically cached); the per-region runtime cache absorption happens at the browser level, not the Vercel edge.
-- `C:/Users/jason/dotfiles/fsi-app/src/app/api/admin/sources/recently-auto-approved/route.ts:150` is the only other route with an explicit `Cache-Control: no-store`.
+- `C:/Users/USER/dotfiles/fsi-app/src/app/api/admin/attention/route.ts` sets `private, max-age=30` on 200, `private, max-age=60` on 401/403, and `no-store` only on 500. The 60s `useAdminAttention` poll (`src/lib/hooks/useAdminAttention.ts:39`) uses a fetch call without a `cache: "no-store"` override so the browser HTTP cache honours the 30s positive cache (the comment at line 111-115 documents this explicitly). If `x-vercel-cache: MISS` is observed on every poll, that is consistent with the routes being function invocations (not statically cached); the per-region runtime cache absorption happens at the browser level, not the Vercel edge.
+- `C:/Users/USER/dotfiles/fsi-app/src/app/api/admin/sources/recently-auto-approved/route.ts:150` is the only other route with an explicit `Cache-Control: no-store`.
 - Several community fetchers issue `fetch(..., { cache: "no-store" })` from the client (`NotificationsBell.tsx:42`, `NotificationsList.tsx:140,176`, `NotificationPreferencesPanel.tsx:97`), but these are per-call browser overrides, not server-emitted headers.
 
 Override feasibility: high. There is no centralized policy to revise. Per-route Cache-Control can be added directly in route handler responses (the pattern in `api/admin/attention/route.ts` is the model). Page-level cache-control on dynamic Server Components is not directly settable from the page module, but for the dashboard specifically the rational target is not response-level caching (the cookie read forces dynamic) but trimming the payload that has to cross the wire on each MISS.
 
 ## 4. Shared layout vs per-route
 
-The shared layout at `C:/Users/jason/dotfiles/fsi-app/src/app/layout.tsx` runs `await resolveServerBootstrap()` (`src/lib/api/server-bootstrap.ts:40`), which is auth + workspace + sectors only (org_membership + user_profiles, no resources). It does NOT issue the regulations query, and it does NOT pass resources to `AppShell` or any other shared chrome. So the 728 KB blob is not sourced from the layout.
+The shared layout at `C:/Users/USER/dotfiles/fsi-app/src/app/layout.tsx` runs `await resolveServerBootstrap()` (`src/lib/api/server-bootstrap.ts:40`), which is auth + workspace + sectors only (org_membership + user_profiles, no resources). It does NOT issue the regulations query, and it does NOT pass resources to `AppShell` or any other shared chrome. So the 728 KB blob is not sourced from the layout.
 
 The query is per-route. The full-fat path (`get_workspace_intelligence` returning `full_brief`) runs ONLY on `/`:
 

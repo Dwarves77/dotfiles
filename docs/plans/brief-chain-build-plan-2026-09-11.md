@@ -46,7 +46,7 @@ Copied from `CLAUDE.md` standing rules and the discipline registry; every task's
 - Facts live in Supabase; never hand-edit published rows; data changes go through migrations or guarded scripts (`scripts/lib/db.mjs`) (rule 1, rule 3 two-track: DDL applied before dependent code merges).
 - Single write sites hold: `synthesiseAndWriteBrief` is the one brief write (`canonical-pipeline.ts:734`); `mint-item.ts` is the one INSERT (F13); `groundBrief` is the one grounding entry (F21); no second Anthropic path (F15).
 - Every finding carries `[CONFIRMED]` / `[HYPOTHESIS]` / `[REFUTED]` (rule 14). A proof executes or it is not a proof (rule 15). A flag is work (rule 13).
-- Agent git operations only in the agent's worktree, never the main checkout `C:\Users\jason\dotfiles` (RD-19); never `--no-verify`; stage explicit paths.
+- Agent git operations only in the agent's worktree, never the main checkout `C:\Users\USER\dotfiles` (RD-19); never `--no-verify`; stage explicit paths.
 - Any `.tsx`/`.css` change reads `docs/design/ux-laws.md` and `docs/design/design-principles.md` first and carries a `### UX compliance` block in its session-log addendum (RD-60; CI memory gate).
 - No em dashes, en dashes or the section-sign glyph in new prose. Every plan-level dollar framing is out of scope: build work is free by standing ruling.
 - Gates per lane (all, exit codes read): `npx tsc --noEmit`; `node .discipline/fitness/runner.mjs` (0 violations); `bash .discipline/run-test-suite.sh` (0 fail); `node --test` on touched tests; `node .discipline/rendering/run-rendering-guard.mjs` when anything renders; `npm run audit:design`; `npx next build`; `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`.

@@ -266,7 +266,7 @@
   },
   "defects_found": [],
   "full_trace_refs": [
-    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\l8\\fsi-app\\scripts\\research/../harness-runs/theme-backfill/traces/theme-backfill-run-001.result.json"
+    "C:\\Users\\USER\\dotfiles\\.claude\\worktrees\\l8\\fsi-app\\scripts\\research/../harness-runs/theme-backfill/traces/theme-backfill-run-001.result.json"
   ],
   "proposer_notes": "Lane L8 dry fire: this run's classifications recomputed through the SAME themeCardsFromResults bucketing ResearchLedger.tsx's live themeCards/unclassifiedCount derivation uses, proving the downstream data path is connected (rule 17), not only that the classification call succeeded.",
   "trigger": "manual"

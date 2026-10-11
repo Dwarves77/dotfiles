@@ -29,7 +29,7 @@ waivers), and the rationale. Keep newest first.
 
 | Opened | Failing check(s) | Disposition | Until | Owner | Rationale |
 |---|---|---|---|---|---|
-| 2026-06-21 | unregistered-span-host (1060 vs 841 floor) | waiver | 2026-07-15 | Jason | Pre-existing standing drift, not new. Layer B now stops NEW regressions; this backlog is being cleaned by re-grounding through the gated runner (CSRD first). Waiver covers the cleanup window; revisit at expiry. |
+| 2026-06-21 | unregistered-span-host (1060 vs 841 floor) | waiver | 2026-07-15 | the operator | Pre-existing standing drift, not new. Layer B now stops NEW regressions; this backlog is being cleaned by re-grounding through the gated runner (CSRD first). Waiver covers the cleanup window; revisit at expiry. |
 
 ## Notes
 

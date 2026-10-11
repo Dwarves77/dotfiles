@@ -100,7 +100,7 @@ exist.** Options:
   per the platform-intent skill's Authority Grant requires explicit operator strong-emphasis authorization
   (a synthesis agent cannot do it by inference).
 - **Recommendation: (a) FOLD** — 0 items + binding 5-surface model + zero skill-change cost. SANCTION is a
-  deliberate product expansion that only Jason can authorize, and there's no content pressure forcing it.
+  deliberate product expansion that only the operator can authorize, and there's no content pressure forcing it.
 
 ---
 

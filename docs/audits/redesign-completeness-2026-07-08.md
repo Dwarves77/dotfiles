@@ -39,12 +39,12 @@ archetype is live and is explicitly reused by T05 (Signal detail) and the Resear
 ## Residual (fix-forward, not blocking)
 
 - **DESIGN-DEVIATIONS.md is empty** , no logged pixel deviations from the eleven builds. Any visual
-  drift Jason spots on review lands there as a proposal + a fix-forward PR (per the review-after-push
+  drift the operator spots on review lands there as a proposal + a fix-forward PR (per the review-after-push
   model); none blocks the cadence flip.
-- **Browser-only verification** (Jason's close-out list): NotesField happy-path + any per-template
+- **Browser-only verification** (the operator's close-out list): NotesField happy-path + any per-template
   E2E that needs a real session. These are visual/session confirmations, not build work.
 
 ## Verdict
 
 Redesign build is **COMPLETE (11/11)**. The "site update" the flip sequence waits on is done on the
-build side; what remains is Jason's visual review + his go-lines. No template work is outstanding.
+build side; what remains is the operator's visual review + his go-lines. No template work is outstanding.

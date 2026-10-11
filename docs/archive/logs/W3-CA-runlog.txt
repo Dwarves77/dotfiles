@@ -4,7 +4,7 @@ Region:            CA
 Depth:             normal
 Jurisdictions:     14
 Cost cap:          (none)
-Output:            C:\Users\jason\dotfiles\docs\W3-tier1-CA-results.json
+Output:            C:\Users\USER\dotfiles\docs\W3-tier1-CA-results.json
 Started:           2026-05-04T20:29:50.945Z
 ══════════════════════════════════════════════════════════════
 
@@ -302,5 +302,5 @@ Duplicates:   39
 Haiku calls:  85
 Wall time:    1000.9s
 Total cost:   $1.4850 (Sonnet $1.4000 + Haiku $0.0850)
-Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-CA-results.json
+Wrote:        C:\Users\USER\dotfiles\docs\W3-tier1-CA-results.json
 ══════════════════════════════════════════════════════════════

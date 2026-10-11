@@ -22,7 +22,7 @@ related: ADR-011, ADR-015, RD-11 (F16 fetch-hold gate), remediation-discipline Â
 
 # ADR-012 â€” Intake cadence + launch-complete definition
 
-## Decision (operator ruling, Jason, 2026-07-11, transmitted-as-written)
+## Decision (operator ruling, the operator, 2026-07-11, transmitted-as-written)
 
 ### 1. Intake is MANUAL-TRIGGERED by design (not an emergency hold)
 
@@ -144,7 +144,7 @@ The program is **build-complete** (launch-ready) only when ALL hold simultaneous
     The purge's exit conditions (a)-(c) above are unchanged by this re-measurement; only the counts
     they will be checked against move.
 
-At that point **launch-readiness = Jason fires intake runs at will.**
+At that point **launch-readiness = the operator fires intake runs at will.**
 
 ### 3. Sequence (unchanged)
 

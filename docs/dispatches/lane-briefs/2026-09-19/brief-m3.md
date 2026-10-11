@@ -68,7 +68,7 @@ named (say where); the enrichment block cannot be extracted without changing beh
 
 ## Amendment 1 (coordinator, 2026-09-19, post 6.8; read after brief-m-common.md Amendment 1). Where it disagrees with the text above, this wins.
 
-A. Worktree `C:/Users/jason/dotfiles/.worktrees/wt-l34-detail-admin-primitives`; first command, from its root: `git fetch origin master && git switch -c lane/m3-turns-chained-2026-09-19 origin/master`. If the tree is not clean before that, STOP. Shared ids assigned to M3: NONE. If you need one, STOP.
+A. Worktree `C:/Users/USER/dotfiles/.worktrees/wt-l34-detail-admin-primitives`; first command, from its root: `git fetch origin master && git switch -c lane/m3-turns-chained-2026-09-19 origin/master`. If the tree is not clean before that, STOP. Shared ids assigned to M3: NONE. If you need one, STOP.
 
 B. [REFUTED premise, corrected here] Item 3 says M1 and M2 propagate `loop_run_id`. They do not: on master only `.github/workflows/source-sweep.yml` and `fsi-app/scripts/turns/run-source-sweep.mjs` carry it [CONFIRMED by grep from the repo root, 2026-09-19]. That stop condition is withdrawn and replaced by this work item, done FIRST:
    1. Read how `run-source-sweep.mjs` receives `loop_run_id` and where it records it in its artifact (`config.loop_run_id`), and which artifact field records the GitHub run id of the run that wrote it.

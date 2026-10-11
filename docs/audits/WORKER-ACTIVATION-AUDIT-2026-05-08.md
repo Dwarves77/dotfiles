@@ -172,7 +172,7 @@ Ship Fix 2 alongside Fix 1 , Fix 2 is free and restores the prober's stated inte
 
 ## 9. Halt conditions surfaced
 
-- **Architectural-redesign signal:** Fix 1 is genuinely architectural , it commits the platform to a content-fetch-and-regenerate cron path with a Claude API budget contract. Today's design treats every regeneration as an admin-triggered manual action (per CLAUDE.md "Permitted live Claude API calls" table). Cron-driven regeneration changes the cost model. **This is a Jason-level decision, not an in-place autonomous fix.** A 5-source-per-4h cadence at $0.15/regeneration = ~$135/month at full saturation if every probe finds change; lower in steady state.
+- **Architectural-redesign signal:** Fix 1 is genuinely architectural , it commits the platform to a content-fetch-and-regenerate cron path with a Claude API budget contract. Today's design treats every regeneration as an admin-triggered manual action (per CLAUDE.md "Permitted live Claude API calls" table). Cron-driven regeneration changes the cost model. **This is a operator-level decision, not an in-place autonomous fix.** A 5-source-per-4h cadence at $0.15/regeneration = ~$135/month at full saturation if every probe finds change; lower in steady state.
 - **No third-party-infrastructure halt.** GitHub Actions, Vercel, and Supabase are all operating as configured. The cron is firing on schedule; the route is responding 2xx; no infra is in the way.
 - **Worker route is approximately as expected.** No major refactor since dispatch context was written. HEAD-only prober is the current shape , that is itself the finding.
 

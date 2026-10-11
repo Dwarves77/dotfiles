@@ -58,7 +58,7 @@
 - **Admin panel**: User management, org view, staged updates approval/rejection.
 - **Workspace profile page**: Sector selection from 16 freight sectors, persists to Supabase.
 - **Monitoring worker**: POST /api/worker/check-sources with accessibility checks and trust events.
-- **Admin user created**: jasonlosh@hotmail.com as owner of Dietl/Rockit workspace.
+- **Admin user created**: the operator's hotmail address as owner of Dietl/Rockit workspace.
 - **Seed content neutralized**: All 17 biased whyMatters entries rewritten to be sector-neutral.
 - **Map tab restored**.
 - **View in dashboard bug fixed** (was routing to defunct 'explore' tab).
@@ -113,7 +113,7 @@
 #### How to Deploy Migrations
 Option A — Supabase CLI:
 ```bash
-cd /c/Users/jason/dotfiles/fsi-app
+cd /c/Users/USER/dotfiles/fsi-app
 npx supabase link --project-ref kwrsbpiseruzbfwjpvsp
 # Enter database password when prompted
 npx supabase db query --linked -f supabase/migrations/004_source_trust_framework.sql
@@ -278,7 +278,7 @@ After deployment, the app will automatically use live data (no code changes need
 
 #### Constraints reaffirmed in B.0
 - Per Rule 11, deprecation = deletion not annotation. All B.0a/B.0b/B.0c/B.0g one-shot scripts deleted in commit. No "scheduled for removal" annotations carried forward.
-- IMODOCS authenticated access deferred (no public API key model). Public IMO scraping continues for the 3 IMO sources. Workaround: manual document retrieval via Jason's account when a specific compliance question requires exact MEPC text.
+- IMODOCS authenticated access deferred (no public API key model). Public IMO scraping continues for the 3 IMO sources. Workaround: manual document retrieval via the operator's account when a specific compliance question requires exact MEPC text.
 - Pause flags honoured by automated paths only. Manual fetch and regenerate actions are explicit admin overrides and bypass pause.
 
 #### Next Steps

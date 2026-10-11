@@ -14,7 +14,7 @@ After this layer lands, inventories aren't just generated; they're asserted trut
 | Layer | What it checks | Direction | Example |
 |---|---|---|---|
 | Attestation rules (1-13) | Commit message contains required lines | Per-commit | "Loop-closure: ... line present" |
-| Content rules (12) | Forbidden patterns in file contents | Per-commit | "No `C:/Users/jason/...` literal" |
+| Content rules (12) | Forbidden patterns in file contents | Per-commit | "No `C:/Users/USER/...` literal" |
 | Fitness functions (F1-F9) | Code applies skill principles | Whole-repo per-file scan | "Every admin route uses isPlatformAdmin" |
 | **Consistency checks (C1-C10)** | **Inventory claims match codebase reality** | **Whole-repo cross-reference** | **"Every skill listed in skills.md actually exists at the documented path"** |
 

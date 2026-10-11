@@ -1957,7 +1957,7 @@ publication basis for this batch; the ≥90% gate is unchanged for the engine's 
 ## 2026-07-30 — P2 proof batch: crash recovery, metering gap CLOSED, clean re-run — audit FAILS at 80%
 
 **Crashed-run state: COMPLETE, not partial.** Recovered from the crashed client's own transcript
-(`~/.claude/projects/C--Users-jason/545c7bea-….jsonl`), not inferred: the 2026-07-29 20:12Z run generated
+(`~/.claude/projects/C--Users-USER/545c7bea-….jsonl`), not inferred: the 2026-07-29 20:12Z run generated
 **5/5 briefs, $0.0438, audit 5/5 = 100% PASS, 37.5s wall**, then printed its summary. The crash landed AFTER
 the run, mid-remediation. No partial/dead state to clean up; no items published (the runner is a measurement
 harness — it never writes `intelligence_items`).
@@ -2455,7 +2455,7 @@ the operator's DDL window per the standing ruling.
 - **Item 1 VAULT UNIT (PR #322, `8bdcc43`):** session-memory mechanization — SessionEnd hook (loud /done + INDEX prior-art + born-link), `/start` boots PROGRAM-BOARD, `done.md` born-linked+board+commit steps, `CLAUDE.md` prior-art rule + standing-rule-8 wikilink→markdown re-issue, ADR-010 pt2, dead-link triage. (The 606-link docs-graph backfill was already #310.)
 - **Item 2 RESIDUAL SWEEP (PR #323, `febf336`):** (a) re-attribution worklist enumerated ([reattribution-worklist-2026-07-14](./reattribution-worklist-2026-07-14.md) — 42 FACT spans/13 items on wikipedia/legiscan/policycommons at the retired `?? 5` T5 stamp; 37 on VERIFIED briefs → logged, NOT swept, follow-on unit queued); (b) `registerCitedSources` `?? 5` FIXED (base_tier now keys off `classTierForHost`; unclassified→worklist candidate, never a guessed row; golden 11/11); (c) board debt (execution-report rule per thread).
 - **Item 3 decision sheet** (`scripts/tmp/acquisition-decision-sheet-2026-07-14.md`): 35 lines → Section 1 RE-SYNTH 8 (one-number scope stated) / Section 2 ACQUIRE 17 (2A 0-KB holes 12 + 2B partials 5) / Section 3 SKIP-FLAGGED 10. Empty PRICE boxes. Caught a manifest mislabel (CELEX 52023PC0445 = Weights & Dimensions, not "ReFuelEU").
-- **Item 4 MCP run-sheet** (`scripts/tmp/mcp-indirection-run-sheet-2026-07-14.md`): exact copy→rewrite→restart→verify→discard steps; github@`C:/Users/jason` + supabase@`C:/Users/jason/corvette23`, stdio/npx, LITERAL→`${VAR}`; SF-11 preserved (agent never read a value).
+- **Item 4 MCP run-sheet** (`scripts/tmp/mcp-indirection-run-sheet-2026-07-14.md`): exact copy→rewrite→restart→verify→discard steps; github@`C:/Users/USER` + supabase@`C:/Users/USER/corvette23`, stdio/npx, LITERAL→`${VAR}`; SF-11 preserved (agent never read a value).
 
 **Decisions:** verified-brief provenance mutations are their own verified unit, never a sweep write (production-surface-verification + four-part standard). registerCitedSources fake-cert = the same `?? 5` seen backward in the corpus; go-forward fixed so the population can't grow.
 
@@ -3115,13 +3115,13 @@ would. Whether this is intended (the doctrine text says "looked at... not just h
 erroring invocation arguably is not) or a gap is an operator call, not resolved here.
 
 **C4 (worktrees.md reality) consistency check.** Step 2 of the pre-push hook then failed on unrelated,
-pre-existing drift: a worktree at `C:/Users/jason/wt-audit` existed on disk, unregistered in
+pre-existing drift: a worktree at `C:/Users/USER/wt-audit` existed on disk, unregistered in
 `docs/inventories/worktrees.md`. Operator confirmed this is Session E's audit lane (dormant-systems audit,
 read-only until audit doc lands, branch `master` at creation 2026-07-18), dispatched without inventory
 registration at launch. Per operator ruling: resolve by registration, not override. Registered as bare
 basename `wt-audit` in the Path column (commit `47a14a0e`).
 
-The first registration attempt used the full path `C:/Users/jason/wt-audit` in the Path cell and still failed,
+The first registration attempt used the full path `C:/Users/USER/wt-audit` in the Path cell and still failed,
 now on BOTH check directions. Reading `C4-worktrees-reality.mjs`: the Path column is parsed as a bare relative
 name (matching the existing `dotfiles` row, not a full path); the sibling-path convention is resolved as
 `join(dirname(repoRoot), relName)`. Corrected the cell to bare `wt-audit` (commit `763c4321`) — this fixed the
@@ -3131,8 +3131,8 @@ correctly-formatted entry.
 **Root cause, verified, not inferred:** `repoRoot` in `C4-worktrees-reality.mjs` was `getRepoRoot()`
 (`git rev-parse --show-toplevel`), which resolves to the CURRENT worktree's own directory, not the main repo,
 when the pre-push hook runs from a secondary worktree. From `wt-session-d`, `git rev-parse --show-toplevel`
-returns `C:/Users/jason/dotfiles/.worktrees/wt-session-d`; `dirname()` of that is
-`C:/Users/jason/dotfiles/.worktrees`, so the checker looked for `wt-audit` there instead of at its real
+returns `C:/Users/USER/dotfiles/.worktrees/wt-session-d`; `dirname()` of that is
+`C:/Users/USER/dotfiles/.worktrees`, so the checker looked for `wt-audit` there instead of at its real
 location, sibling to the MAIN repo. This is a structural bug, not specific to wt-audit: it breaks sibling-path
 resolution for any push originating from any secondary worktree, always, regardless of which entry is being
 checked. **Operator ruling: root-cause fix, no override trailer** ("Session E pushes from a secondary
@@ -3142,7 +3142,7 @@ worktree, so the audit itself cannot land while this bug exists").
 `git rev-parse --path-format=absolute --git-common-dir` then `dirname()`. `--git-common-dir` is the one `.git`
 directory shared by every worktree of a repo and always lives inside the main worktree, so its dirname is
 stable regardless of where the check executes. Verified empirically before and after the code change:
-`git rev-parse --path-format=absolute --git-common-dir` returns the identical `C:/Users/jason/dotfiles/.git`
+`git rev-parse --path-format=absolute --git-common-dir` returns the identical `C:/Users/USER/dotfiles/.git`
 from both the main checkout and `wt-session-d`. Scope held to the single resolution call per operator
 instruction: no other logic, claims, or inventory-format changes. Ran the full consistency runner from
 `wt-session-d` post-fix: `PASS [C4]`, 0 drift records, both directions (missing-claim and orphan-claim) clear
@@ -3649,7 +3649,7 @@ Universe **21,609**; dispositioned 21,608; null 1. Evidence tier METADATA (v2 ti
 - Sweep-then-index; Gates A + B approved; three-layer statement CORRECTED (analysis layer's per-item guarantee was INCOMPLETE until Gate A — prior claim superseded, evidenced).
 
 **Blockers / open**
-- **Gate A factual-token scope** — awaiting Jason: (a) figures + deadline-dates [recommended], or (b) all numerals incl. citation-years. Sizes residual 140 vs 265.
+- **Gate A factual-token scope** — awaiting the operator: (a) figures + deadline-dates [recommended], or (b) all numerals incl. citation-years. Sizes residual 140 vs 265.
 - Quarantine flows from Gate A inside `validate_item_provenance` (mig 115 trigger controls provenance_status — no direct edit).
 - Sonnet relevance 2nd-pass running in background (`&`-detached, verify via `scripts/tmp/relevance-2nd.log`); 765 content-priors still need a CONTENT-based second judge.
 
@@ -3902,7 +3902,7 @@ Per operator ruling (explicit DERIVED claims, scanner stays mechanical). **A4 ce
 
 **Flagged (tech-debt entries this commit):** stale `check-pretooluse-wired.mjs` in the parked `corpus-integrity/intake-census` main checkout (false step-3c failure + destructive `--apply` suggestion; mitigation: park main checkout on master); duplicate migration filename prefixes (initially mislogged as a landing blocker; corrected same session per the 2026-08-02 retraction — cosmetic, Supabase applies by timestamp, never rename applied files; report-only scan shipped in bug-class-guard SOFT tier).
 
-**Next:** Phase C math on the operator's delta → Phase D on his word; AWAITING-JASON queue unchanged (Layer C governance breach, migration renumbering, misroute contract, org-autonomy hardening, browserless reroute); legacy remediation restarts only with the fleet.
+**Next:** Phase C math on the operator's delta → Phase D on his word; AWAITING-OPERATOR queue unchanged (Layer C governance breach, migration renumbering, misroute contract, org-autonomy hardening, browserless reroute); legacy remediation restarts only with the fleet.
 
 ### 2026-08-08 (later) — fleet consolidation staged, self-metering, checkout stabilization plan
 
@@ -6606,7 +6606,7 @@ route from a Market item to `emission_factors.corridor_id`. There are **zero col
 exist, which is a materially different situation from the DESNZ UNCONFIRMED gate already on record,
 and both now sit on the same WO.
 
-**One item that genuinely needs Jason, stated once.** WO-14 has no text anywhere in the vault beyond a
+**One item that genuinely needs the operator, stated once.** WO-14 has no text anywhere in the vault beyond a
 single row in a sequencing table. The spec's WO-14 section is a clearly-labelled reconstruction, not a
 recovery, and the larger comparative-ribbon / corridor-rate-board / lead-time-chart vision was
 deliberately NOT written into it — none of it exists in code and it is uncosted, so inventing scope
@@ -7176,9 +7176,9 @@ backlog is WO-20's table plus four small items.
 greenfield is confirmed, so it is a clean start), or wait for the four rulings that unblock the
 Market lane. Do NOT read `DONE (WO-20)` as "the table exists".
 
-## Addendum 50 — the five "needs Jason" items, unblocked by measurement (2026-08-30, Cowork session)
+## Addendum 50 — the five "needs the operator" items, unblocked by measurement (2026-08-30, Cowork session)
 
-Jason: *"these items should not be waiting on me, build a plan now to complete them with sonnet
+The operator: *"these items should not be waiting on me, build a plan now to complete them with sonnet
 agents."* He listed five: WO-14 (no vault text), WO-24 (no corridor join), WO-5 B1-B4, DESNZ
 verification, WO-23 (DDL window).
 
@@ -7256,7 +7256,7 @@ ranges are not disjoint write sets — two open PRs against one file conflict at
 distance. Merged them into a single lane. Four lanes total, disjoint by file: L1 market ledger, L2
 watchlist code (gated on migration 270), L3 carbon overlay, L4 regulations chip (after L1).
 
-**What genuinely still needs Jason, stated once:** the THETIS-MRV licence question.
+**What genuinely still needs the operator, stated once:** the THETIS-MRV licence question.
 `emsa_thetis_mrv` carries `redistribution: "conditional"` and `LICENCE_STATUS.conditional.embeddable
 = false`, which keeps `factor-tier.mjs`'s `verified_operator_avg` tier — rank 2 of the hierarchy —
 structurally empty. That is a redistribution judgement, not a technical one; no measurement resolves
@@ -7530,7 +7530,7 @@ lane's scope.
 
 ## Addendum 54 — THETIS-MRV discharged to permitted; corridor-identity correction (2026-08-30, Cowork session)
 
-Jason, mid-turn: *"the emsa is free to all"*, with `https://www.emsa.europa.eu/thetis-mrv.html`. That is
+The operator, mid-turn: *"the emsa is free to all"*, with `https://www.emsa.europa.eu/thetis-mrv.html`. That is
 the operator ruling on the one item I had named as genuinely his in Addendum 50.
 
 **I verified it against the primary source before flipping the field, and it holds.** The THETIS-MRV
@@ -7806,7 +7806,7 @@ lane.
 
 ## Addendum 58 — closing the three things I had deferred rather than fixed (2026-08-30, Cowork session)
 
-Jason, mid-wave: *"everything else doesn't matter unless everything is fixed, leave nothing broken and
+The operator, mid-wave: *"everything else doesn't matter unless everything is fixed, leave nothing broken and
 no workarounds."* Fair. I had left three things labelled "open question" that were really me declining
 to do the work. Two are now fixed and one is answered with a measurement instead of a shrug.
 
@@ -8573,7 +8573,7 @@ field was declared.
 
 ## Addendum 68 — Node 20 deprecation on caros-ledge-backups: I read release notes instead of the manifest (2026-08-30, Cowork session)
 
-The last open item on my list that did not need Jason: `db-backup.yml` in `Dwarves77/caros-ledge-backups`
+The last open item on my list that did not need the operator: `db-backup.yml` in `Dwarves77/caros-ledge-backups`
 was emitting Node 20 deprecation warnings. It is now clear, in two commits, because the first one was
 half wrong and the run said so.
 
@@ -8635,12 +8635,12 @@ which is how the per-tag `action.yml` reads and the workflow's own `with:` block
 and "read something ABOUT the file". Release notes, changelogs and blog posts are the third category.
 For anything the runtime parses, read the thing the runtime parses.
 
-**Open:** nothing on this thread. Schedule re-arm in `producers.yml` remains Jason's call. WO-29 still
+**Open:** nothing on this thread. Schedule re-arm in `producers.yml` remains the operator's call. WO-29 still
 needs ~50 lineage pairs against 11 held.
 
 ## Addendum 69 — the full-read audit: 191,348 lines, and what my status updates missed (2026-08-31, Cowork session)
 
-Jason's instruction, verbatim in substance: my recent status updates were "false and incomplete," he
+The operator's instruction, verbatim in substance: my recent status updates were "false and incomplete," he
 wants a complete audit of the code and all active parts — in-process, incomplete, wired, unwired,
 dead — with every line read by Sonnet, not skimmed, managed by the coordinator. He was right to
 demand it. The immediate trigger: I had reported "nothing else is open" while U7 — the joint that
@@ -8681,7 +8681,7 @@ own required manifest never existed in the repo — the dead-code sweeper was it
 line said the remaining list was the schedule re-arm and WO-29 — false; the §2 defects, §4 unwired
 inventory, and §8 schema drift were all open and unknown); "U7 metered" (it was unbuilt);
 per-claim-basis discipline had been applied to what I checked, but I had never enumerated what I had
-not checked, and status reports built on an unenumerated complement are exactly what Jason called
+not checked, and status reports built on an unenumerated complement are exactly what the operator called
 them.
 
 **Open, from the audit's action queue (all $0):** two operator decisions — the pending_first_fetch
@@ -8724,7 +8724,7 @@ sequential rebase at landing. Landing order: audit branch first, then a1..a4, g1
 mscreen, u7, w1, p2, h1.
 
 **Open ledger:** browser link down (landing, capture-worker redeploy verification, EUR-Lex fetch
-path, producer dispatches, smoke tests all queued on it) · Jason ratifications pending: off_vertical
+path, producer dispatches, smoke tests all queued on it) · the operator ratifications pending: off_vertical
 1,775 archive/park list, W1 register, SERIES_ITEM_MAP new-items approach · coordinator applies
 pending: migration 273, topics seed --apply, gap-flag census export for the 256 fetch-needed rows ·
 follow-ups queued: AuthProvider sector mis-seed, quarantined item showing prices, spec-08 program
@@ -8824,7 +8824,7 @@ and F28 cannot see a run that never wrote its artifact (ranked HIGH, next cycle)
 
 Resume queue (tasks #61-64): landing train 3 (W2 + F1b + MH1-4 + memory) → M2 full-text rebuild +
 batch-001 apply UNDER the hardened validator → v1.6 deploy + drain finish + ladder → mint batches
-002+ proposer-first. Parked for Jason: off-vertical archive + delete-8 ratifications.
+002+ proposer-first. Parked for the operator: off-vertical archive + delete-8 ratifications.
 
 ## Addendum 74 — landing train 3 consolidated: three module wires, capture-worker v1.6, the meta-harness (2026-09-01, landing lane L-3a)
 
@@ -10665,7 +10665,7 @@ container caught the fabrication path this fix exists for: the container cannot 
 fail-closed reader returned `off`, and the report said `cadence_off` as if it had read it; `readScrapeState`
 now throws instead. The gate is not bypassed. Cadence OFF is a standing spend constraint (ADR-015 §3,
 Browserless renders per source, ~2 units each, [UNCONFIRMED] against metered billing) and "the loop/cadence
-flip is the operator's word only" (PROGRAM-BOARD standing constraints). Until Jason sets
+flip is the operator's word only" (PROGRAM-BOARD standing constraints). Until the operator sets
 `scrape_cadence`/`scrape_start_date` (`POST /api/admin/sources/pause-global`), change detection
 reconciles and drains whatever backlog exists and detects nothing; a dispatch cannot open it.
 `change-detection.yml`'s header still described the two route limitations the driver's second commit had
@@ -19819,9 +19819,9 @@ never a fallback title), the non-verified read-back reporting, and both flywheel
 **Standing constraints checked.** No em dashes, en dashes, or section-sign glyph: scanned every new file
 whole-file and every modified file's added (`+`) lines only (Python, byte-level Unicode scan for
 U+2014/U+2013/U+00A7) -- 0 matches. No hardcoded user-home paths: grepped every touched/new file for
-`C:/Users/`, `C:\Users\`, `/Users/jason` -- 0 matches. Findings above are labeled `[CONFIRMED]` with the
+`C:/Users/`, `C:\Users\`, `/Users/USER` -- 0 matches. Findings above are labeled `[CONFIRMED]` with the
 method named. Staged explicitly (named paths); never `git add -A`. Never touched
-`C:\Users\jason\dotfiles` (the main checkout); no `git stash` used to set work aside for this task itself
+`C:\Users\USER\dotfiles` (the main checkout); no `git stash` used to set work aside for this task itself
 (one `git stash push -u -m` was used, and popped immediately in the same investigation, only to confirm
 the F28 finding above was this task's own regression rather than pre-existing -- the same technique task
 3.4's own report already used for an identical purpose). No `--no-verify`; no push. No PreToolUse
@@ -19917,10 +19917,10 @@ dash was caught and fixed in this task's OWN new test fixture (`"EUR-Lex -- 3202
 em dash by mistake, replaced with a plain hyphen matching every other EUR-Lex-title fixture in this same
 file); re-scanned with `git diff origin/master..HEAD | grep '^+' | grep -c
 $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'` -- `0`. No hardcoded user-home paths: grepped every touched file
-for `C:/Users/`, `C:\Users\`, `/Users/jason` -- 0 matches (this entry's own worktree-path prose above
-uses the generic `wt-eudecision-0911` label, never the literal `C:\Users\jason\...` prefix). Findings
+for `C:/Users/`, `C:\Users\`, `/Users/USER` -- 0 matches (this entry's own worktree-path prose above
+uses the generic `wt-eudecision-0911` label, never the literal `C:\Users\USER\...` prefix). Findings
 above labeled `[CONFIRMED]`/`[REFUTED]`. Staged explicitly (named paths); never `git add -A`. Never
-touched `C:\Users\jason\dotfiles` (the main checkout); no `git stash` used. No `--no-verify`; no push. No
+touched `C:\Users\USER\dotfiles` (the main checkout); no `git stash` used. No `--no-verify`; no push. No
 PreToolUse skill-gate denial on any Write/Edit this task. No database access: every gate above is a
 static/pure test or fitness-function run against the working tree.
 
@@ -20004,9 +20004,9 @@ the one the reviewer's own three-item sample did not name).
 
 **Standing constraints checked.** No em dashes/en dashes/section-sign glyph: `git diff
 origin/master..HEAD | grep '^+' | grep -c $'\xe2\x80\x94\|\xe2\x80\x93\|\xc2\xa7'` -- `0`. No hardcoded
-user-home paths: grepped every touched file for `C:/Users/`, `C:\Users\`, `/Users/jason` -- 0 matches.
+user-home paths: grepped every touched file for `C:/Users/`, `C:\Users\`, `/Users/USER` -- 0 matches.
 Findings above labeled `[CONFIRMED]`. Staged explicitly; never `git add -A`. Never touched
-`C:\Users\jason\dotfiles` (the main checkout); no `git stash` used (old committed versions read via
+`C:\Users\USER\dotfiles` (the main checkout); no `git stash` used (old committed versions read via
 `git show HEAD:<path>` only, exactly as this round's RED evidence above describes). No `--no-verify`; no
 push. No PreToolUse skill-gate denial on any Write/Edit this round. No database access.
 
@@ -20241,8 +20241,8 @@ audited via `git diff` restricted to added (`+`) lines (byte-grepped for U+2014/
 Python string-literal scan, which gave a false negative on this pass and had to be redone) across all
 touched/new files; six em dashes were caught in the golden file's own new comments/check-name strings and
 fixed (replaced with a colon, a comma, or removed) before this entry. No hardcoded user-home paths: grepped
-all touched/new files for `C:/Users/`, `C:\Users\`, and `/Users/jason`, zero matches. Staged explicitly
-(paths named in the Files list below), never `git add -A`. `C:\Users\jason\dotfiles` (the main checkout)
+all touched/new files for `C:/Users/`, `C:\Users\`, and `/Users/USER`, zero matches. Staged explicitly
+(paths named in the Files list below), never `git add -A`. `C:\Users\USER\dotfiles` (the main checkout)
 was never touched; no `git stash` used; no `--no-verify`; no push. No PreToolUse skill-gate denial occurred
 on any Write/Edit in this task.
 
@@ -20338,7 +20338,7 @@ never touched in content -- left as-is per reuse-before-construction / minimal-d
 judgment task 3.1's own report made for pre-existing em dashes it did not author. One genuine match in
 `export-corpus-for-extraction.mjs` (a comment authored this round) was fixed (colon in place of the dash).
 No hardcoded user-home paths: grepped every touched/new file for `C:/Users/`, `C:\Users\`, and
-`/Users/jason`, zero matches. Staged explicitly, never `git add -A`. `C:\Users\jason\dotfiles` (the main
+`/Users/USER`, zero matches. Staged explicitly, never `git add -A`. `C:\Users\USER\dotfiles` (the main
 checkout) never touched; no `git stash`; no `--no-verify`; no push. No PreToolUse skill-gate denial occurred
 on any Write/Edit this round.
 
@@ -20484,8 +20484,8 @@ lines only).
 
 **Standing constraints checked.** No em dashes, en dashes, or section-sign glyph in newly authored lines
 (see the glyph-discipline paragraph above for the defect-and-fix). No hardcoded user-home paths: grepped
-every new/touched file for `C:/Users/`, `C:\Users\`, `/Users/jason`, zero matches. Findings above are
-labeled `[CONFIRMED]` with method named. Staged explicitly, never `git add -A`. `C:\Users\jason\dotfiles`
+every new/touched file for `C:/Users/`, `C:\Users\`, `/Users/USER`, zero matches. Findings above are
+labeled `[CONFIRMED]` with method named. Staged explicitly, never `git add -A`. `C:\Users\USER\dotfiles`
 (the main checkout) never touched; no `git stash`; no `--no-verify`; no push. No PreToolUse skill-gate
 denial occurred on any Write/Edit in this task. No live database access: every check in this task is
 pure/static, or a plain SELECT against the fitness/test tooling; the driver's own real per-item pipeline
@@ -20628,7 +20628,7 @@ recomputing all three families' hashes before writing this re-pin.
 lines: diff-scoped scan (added lines only, byte-checked for U+2014/U+2013/U+00A7) across every file this
 round touched; one instance found and fixed (item 4 above), zero remaining after. No hardcoded user-home
 paths: grepped every touched/new file, zero matches. Staged explicitly, never `git add -A`. Never touched
-`C:\Users\jason\dotfiles` (the main checkout); the one `git stash push -u` used mid-round (to verify
+`C:\Users\USER\dotfiles` (the main checkout); the one `git stash push -u` used mid-round (to verify
 `corpus-turn`'s drift was pre-existing, in the ORIGINAL task's own work, not this round's) was popped
 immediately in the same command chain, leaving no state behind; no `--no-verify`; no push. No PreToolUse
 skill-gate denial on any Write/Edit this round.
@@ -20744,9 +20744,9 @@ naming the outcomes section, on a line in `population-turn.yml` I was about to t
 second `echo` line instead of appending to the existing one, so the untouched original line never enters
 this task's own diff at all). Final scan: 0
 matches across every staged file. No hardcoded user-home paths: grepped the staged diff for
-`C:\Users\`/`C:/Users/`/`/Users/jason`, zero matches. Findings above are `[CONFIRMED]` by the method named
+`C:\Users\`/`C:/Users/`/`/Users/USER`, zero matches. Findings above are `[CONFIRMED]` by the method named
 (live hash recomputation, RED/GREEN evidence, diff-scoped grep). Staged explicitly (8 named paths, one new
-file); never `git add -A`. Never touched `C:\Users\jason\dotfiles` (the main checkout, referenced here only
+file); never `git add -A`. Never touched `C:\Users\USER\dotfiles` (the main checkout, referenced here only
 in prose, never as a path an editor followed). No `git stash` used. No `--no-verify`. No push. No
 PreToolUse skill-gate denial on any Write/Edit. No database access of any kind (no DB creds available in
 this session; every gate above is fixture-driven or a pure/static check).
@@ -20807,7 +20807,7 @@ addendum for the full per-commit output. `run-test-suite.sh` NOT run, per instru
 byte scan (`git diff | grep '^+' | grep -c` against U+2014/U+2013/U+00A7) on both touched files, clean
 before commit. No hardcoded user-home paths: grepped the staged diff, zero matches. Staged explicitly (2
 named paths); never `git add -A`. Commit trailer exact: `Co-Authored-By: Claude Fable 5.1
-<noreply@anthropic.com>`. Never touched `C:\Users\jason\dotfiles` (the main checkout, in prose only). No
+<noreply@anthropic.com>`. Never touched `C:\Users\USER\dotfiles` (the main checkout, in prose only). No
 `git stash`. No `--no-verify`. No push. No PreToolUse skill-gate denial. No database access (no DB creds
 in this session; every gate is fixture-driven or pure/static).
 
@@ -20853,7 +20853,7 @@ Four pieces landed, each its own commit. (1) `src/lib/agent/timeline-backfill-de
 
 **Gates.** Every touched test file green: `node --test` across all eleven touched/added test files, 131 pass, 0 fail. `node --test .discipline/glob-portability.test.mjs`: 3/3 (every new file is node-builtin + relative-import only, transitively). `node .discipline/fitness/runner.mjs`: 38 function(s) checked, 0 violation(s). `npx tsc --noEmit` from `fsi-app/`: clean (required adding `"timeline"` to `FlywheelDefectSubtype` in `flywheel-defect.ts`). The full `run-test-suite.sh` was NOT run, per instruction; the pre-commit hook's own smaller rule set ran on every commit and passed each time.
 
-**Standing constraints.** No em dash / en dash / section-sign glyph in any newly authored line: `git diff origin/master..HEAD | grep '^+' | grep -c` against U+2014/U+2013/U+00A7 is 0. No hardcoded user-home paths: same diff grepped for `C:\Users\jason` / `/Users/jason` / `/home/jason`, zero matches. Staged explicitly by named path in every commit; never `git add -A`. Commit trailer exact: `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. Never touched `C:\Users\jason\dotfiles` (the main checkout). No `git stash`. No `--no-verify`. No push. No database access of any kind: no `.env.local` present in this worktree, so even a SELECT-only probe was never available or attempted; every gate here is fixture-driven or pure/static, and the maintenance wrapper's live behavior is unverified against the real corpus (a decision-ready gap, not a silent one; see the report's "undone" section).
+**Standing constraints.** No em dash / en dash / section-sign glyph in any newly authored line: `git diff origin/master..HEAD | grep '^+' | grep -c` against U+2014/U+2013/U+00A7 is 0. No hardcoded user-home paths: same diff grepped for `C:\Users\USER` / `/Users/USER` / `/home/USER`, zero matches. Staged explicitly by named path in every commit; never `git add -A`. Commit trailer exact: `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. Never touched `C:\Users\USER\dotfiles` (the main checkout). No `git stash`. No `--no-verify`. No push. No database access of any kind: no `.env.local` present in this worktree, so even a SELECT-only probe was never available or attempted; every gate here is fixture-driven or pure/static, and the maintenance wrapper's live behavior is unverified against the real corpus (a decision-ready gap, not a silent one; see the report's "undone" section).
 
 **Files.**
 - `fsi-app/src/lib/agent/timeline-backfill-derive.mjs` (new), `.test.mjs` (new)
@@ -23352,7 +23352,7 @@ L36: capture-static-primaries onto identifier-variants to take F46 to 0; (5) P7 
 Every background process gets killed at each pause and the process table re-checked before reporting.
 
 **Vault fix, same close [CONFIRMED by git in the main checkout].** The Obsidian vault is the checkout at
-C:\Users\jason\dotfiles\docs and it sat at the 2026-08-17 commit: 231 commits and 211 session-log entries
+C:\Users\USER\dotfiles\docs and it sat at the 2026-08-17 commit: 231 commits and 211 session-log entries
 behind master, because every session works in a worktree and nothing ever fast-forwarded the checkout; since
 2026-09-11 its config also carried core.bare=true, which made git refuse to touch it. Fixed: core.bare back to
 false, the five stale tracked copies (all older than master, zero lines master lacked) backed up to the
@@ -24203,7 +24203,7 @@ Clock times from GitHub (UTC) or the queue log (EDT). Resume from this entry. Ch
 - **W10-CommandBar: PR #769 OPEN, HELD.** Built (`89fc5671`): one bar, no toggle, inline search, Enter opens the new `/search` results page, Ask and the modifier-Enter chord send to the assistant, "or ask" restored, 13 call sites unchanged, auth frames bar-free. Rule 018 asked for a surface trailer on `/search`; the lane cited ruling 2 and the `/map` precedent; confirmed by the coordinator (a results page, not a sixth surface). The Rendering guard FAILED on GitHub, `/search` only: "placeholder literal rendered" for the word Tier, and three header cells clipped at 1280. Cause (a) [the fix agent's HYPOTHESIS, accepted]: the smoke spec mounted the view without the app CSS; fixed in the fixture (`d550c2d9`). Cause (b): a genuine column label drawn by the shared `ListRowColumnHeader` matches the detector's header literals. The agent added a per-spec safe word as `dashboard-brief-smoke.mjs` already does; the coordinator OVERRULED it (second occurrence of one stop): amendment 2 marks the label as a slot in the shared part, exempts a header word only as the whole text of that slot inside that part (the FactCard part 1 precedent), attack tests, and removes the safe words from both specs. That agent was running at write time; then a runner re-pushes to #769. OWED: `/admin/parts/command-bar` once #771 lands the index.
 - Both UI lanes owe and were sent the parts-brief section 1 presence report (route, file, line).
 
-**Operator decisions today.** The fifteen stashes (open item 3): a read-only review found none belongs to the build (the 2026-08-14 prompt-cache stash was already on master through PR #458, `cache_control` confirmed in `ask/route.ts` by the coordinator; the 2026-05-12 set patches files the rebuilds deleted). Operator, verbatim: "yes, drop them if you see they are not needed". Archived as patches plus shas to `C:/Users/jason/stash-archive-2026-09-21` (outside the repo), then cleared; `git stash list` reads 0 [CONFIRMED]. One residue: `fsi-app/docs/SCOPE_AUDIT.md` lines 99 and 141 still name the retired Managed Agent id; fold into the outside-reviewer cleanup lane. The operator also directed the coordinator to read handoff 2026-09-18 section 1, the 2026-09-19 addendum sections 1 and 5, the first two 2026-09-20 entries, the bundle's undrawn-case rulings and parts-brief section 1: done; the next coordinator reads them too.
+**Operator decisions today.** The fifteen stashes (open item 3): a read-only review found none belongs to the build (the 2026-08-14 prompt-cache stash was already on master through PR #458, `cache_control` confirmed in `ask/route.ts` by the coordinator; the 2026-05-12 set patches files the rebuilds deleted). Operator, verbatim: "yes, drop them if you see they are not needed". Archived as patches plus shas to `C:/Users/USER/stash-archive-2026-09-21` (outside the repo), then cleared; `git stash list` reads 0 [CONFIRMED]. One residue: `fsi-app/docs/SCOPE_AUDIT.md` lines 99 and 141 still name the retired Managed Agent id; fold into the outside-reviewer cleanup lane. The operator also directed the coordinator to read handoff 2026-09-18 section 1, the 2026-09-19 addendum sections 1 and 5, the first two 2026-09-20 entries, the bundle's undrawn-case rulings and parts-brief section 1: done; the next coordinator reads them too.
 
 **Runner and lane lessons, new today.** A Haiku runner read the queue's silence during the pre-push gate as a crash and reported STOP after six minutes while the queue was alive: prompts now say the gate is silent for 20 to 45 minutes and nothing is concluded while `push-queue.lock` exists; a replacement runner only WATCHES (never starts the queue, never appends). Runners repeat their final report on every background wake: say "sent ONCE, then stop". A runner that must wait its turn waits on two facts: no lock, and the previous lane's line in `push-queue.done`. A lane that fills its context on the first build item (M6b's first agent, item 1 of 8 at 250k) is replaced with an amendment that names the exact files and line ranges to read and one commit per group. A premise check by window count must use the window (`git log --first-parent -30` then per-commit file lists), not `git log -30 -- <path>`, which counts the last 30 commits that touch the path. The main checkout's `fsi-app/node_modules` is empty: read-only scripts that need packages run from `wt-w10-factcard`.
 
@@ -24278,8 +24278,8 @@ Fresh session order: (1) live regulation page check; (2) README to 780; (3) rest
 
 - **Rulings:** seven operator rulings recorded in the entry above (PR #793, `1f72906f`). Ruling 8 was withdrawn: the 24-hour per-part sign-off stays as is, with no ADR.
 - **Admin access:**
-  - The operator's only account in use is jasonlosh@hotmail.com (`2b7d21eb-...`). It is platform admin and owner of "Dietl / Rockit", and it was never changed [CONFIRMED by SELECT].
-  - The coordinator wrongly looked up jasonlosh@gmail.com (`a0764ff3-...`, a real account dormant since 2026-06-05), assuming the app sign-in matched the Claude account email. It set that account's `is_platform_admin` to true, then back to false by operator ruling. Only hotmail is platform admin now [CONFIRMED].
+  - The operator's only account in use is the operator's hotmail address (`2b7d21eb-...`). It is platform admin and owner of "Dietl / Rockit", and it was never changed [CONFIRMED by SELECT].
+  - The coordinator wrongly looked up the operator's gmail address (`a0764ff3-...`, a real account dormant since 2026-06-05), assuming the app sign-in matched the Claude account email. It set that account's `is_platform_admin` to true, then back to false by operator ruling. Only hotmail is platform admin now [CONFIRMED].
   - Lesson: never infer the app account from the assistant account's email; ask or read `auth.users`.
 - **Operator ruling (database agents):** database agents MAY write, but only the statements the coordinator approved; they never decide on their own what to change. This replaces "database agents SELECT-only" from HANDOFF-2026-09-18.
 - **Defect** [HYPOTHESIS, strongly evidenced]: a single failed `/api/auth/identity` fetch per tab collapses to a resolved-no-org state. The result is "No workspace yet" and no Admin, sticky for the tab's life. Seen by the operator on two computers at 16:51Z.
@@ -24306,7 +24306,7 @@ Fresh session order: (1) live regulation page check; (2) README to 780; (3) rest
 
 - Live checker in place: `fsi-app/scripts/tmp/live-check.mjs` (gitignored). It is Playwright headless on the operator's saved session, which is kept outside the repo.
 - Findings, brief `docs/dispatches/lane-briefs/2026-09-24/brief-live-findings.md`:
-  1. The nav footer shows `jasonlosh@gmail.com` while the server session is hotmail. This folds into AUTH-IDENTITY.
+  1. The nav footer shows `the operator's gmail address` while the server session is hotmail. This folds into AUTH-IDENTITY.
   2. `/login` "SIGN IN" breaks one letter per line, a regression from #786. New lane MASTHEAD-AUTH: a guard rule for titles narrower than their longest word, plus a precondition that the declared fonts actually loaded (operator reminder: the build used the wrong font).
   3. The ruling-6 regulation page redirects to a slug that renders "This page doesn't exist".
 - Fresh session order: AUTH-IDENTITY, then MASTHEAD-AUTH, then the live regulation check, then the rest of the close entry's list.

@@ -82,7 +82,7 @@
 2026-08-30 9fa9013a Wave 18: assumption_register (WO-20), jurisdictionIso chain closed, severity chips fixed, EPA wired (#499)
 2026-08-30 654d959e Memory: Addendum 61 — DESNZ applied, emission_factors 2 → 6, idempotency proven by execution (#498)
 2026-08-30 d5feb910 Fix the seeder's dead idempotency read: emission_factors keys on factor_id, not id (#497)
-2026-08-30 03697e88 Wave 16: unblock the five "needs Jason" items — four dissolved on measurement (#496)
+2026-08-30 03697e88 Wave 16: unblock the five "needs the operator" items — four dissolved on measurement (#496)
 2026-08-30 3cd2dcfb Wave 14: F27 producer seam-proof gate + three composition proofs (RD-9b) (#495)
 2026-08-30 ac435dbf Memory: Addendum 47 + board — market_series populated, WO-16 complete (#494)
 2026-08-30 55dea0bb Wave 13b: a non-parsing date cell classifies the row as footer (A1087 "Notes:") — fixes producers run #8 exit 2 (#493)

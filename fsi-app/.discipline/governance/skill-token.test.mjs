@@ -143,7 +143,7 @@ test('file-read: reading the skill SKILL.md counts as substantive consultation (
   assert.equal(
     skillFileReadInTranscript(readShape(`/repo/fsi-app/.claude/skills/${SLUG}/SKILL.md`), SLUG), true);
   assert.equal(
-    skillFileReadInTranscript(readShape(`C:\\Users\\jason\\dotfiles\\fsi-app\\.claude\\skills\\${SLUG}\\SKILL.md`), SLUG), true);
+    skillFileReadInTranscript(readShape(`C:\\Users\\USER\\dotfiles\\fsi-app\\.claude\\skills\\${SLUG}\\SKILL.md`), SLUG), true);
 });
 
 test('file-read: DISCIPLINE PRESERVED — reading an unrelated file is not consultation', () => {

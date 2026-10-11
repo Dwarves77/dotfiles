@@ -4,8 +4,8 @@ Live checker: `fsi-app/scripts/tmp/live-check.mjs` (gitignored). It is Playwrigh
 
 ## 1. The identity shown is not the signed-in identity (folds into lane AUTH-IDENTITY; P0 to verify)
 
-The operator signed into Playwright's browser by hand as jasonlosh@hotmail.com (the operator's screenshot of the form). Results [CONFIRMED by the agent's DOM read]:
-- The nav footer reads `jasonlosh@gmail.com · owner`.
+The operator signed into Playwright's browser by hand as the operator's hotmail address (the operator's screenshot of the form). Results [CONFIRMED by the agent's DOM read]:
+- The nav footer reads `the operator's gmail address · owner`.
 - The nav has no Admin link.
 - `/admin` loads without a redirect and shows "PLATFORM ADMIN".
 

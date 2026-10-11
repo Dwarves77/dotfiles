@@ -1,6 +1,6 @@
 # Lane W10-FactCard, Amendment 1 (coordinator, 2026-09-20): answers to the lane's STOPs, and the measured cause. Read after `brief-w10-factcard.md`; where they disagree this file wins.
 
-You are a FRESH agent continuing the lane in its worktree `C:/Users/jason/dotfiles/.worktrees/wt-w10-factcard`, branch `lane/w10-factcard-2026-09-20`, on top of commit `f8fb9d86` (unpushed). Read that commit's session-log file first (`docs/ops/session-log.d/2026-09-20-w10-factcard.md`), then `src/lib/detail/fact-card-model.ts` and `src/components/ui/FactCard.tsx` as they stand. New commits only; never amend.
+You are a FRESH agent continuing the lane in its worktree `C:/Users/USER/dotfiles/.worktrees/wt-w10-factcard`, branch `lane/w10-factcard-2026-09-20`, on top of commit `f8fb9d86` (unpushed). Read that commit's session-log file first (`docs/ops/session-log.d/2026-09-20-w10-factcard.md`), then `src/lib/detail/fact-card-model.ts` and `src/components/ui/FactCard.tsx` as they stand. New commits only; never amend.
 
 ## A. The cause of literal markdown on production [measured in the live DOM, 2026-09-20, sha `6d9d139c`]
 
