@@ -12,7 +12,7 @@ Fact lane, read-only. No fixes, no proposals. Rule 14 status token on every find
 ## 1. Totals
 
 - Cells run: 113 (rule 022: 16; rules 012/015: 7; closure gate: 3; memory gate: 10; applied-status: 2; F51 check 4: 4; docs-only classifier: 16; PreToolUse command classification: 26 commands, each under two skill states = 52 verdicts; tool-name routing: 22; dispatch refusal: 4; branch protection and the PR timeline: 2; consistency baseline on the real tree: 1). Separate: 7 timing runs of the C3/F64 RACE test.
-- Refused-honest cells: 24 (rule 022: 4; rules 012/015: 2; closure NEVER-RUN: 1; memory gate: 4; applied-status: 1; F51 check 4: 3; skill gate on read-only or scratch commands: 6; dispatch refusal: 3). Asked (prompt, not refusal) honest cells: 6 (merge, rebase, checkout of a path from a ref, worktree add, reset --hard, branch -D). [NOT-WORK: fact, no action]
+- Refused-honest cells: 24 (rule 022: 4; rules 012/015: 2; closure NEVER-RUN: 1; memory gate: 4; applied-status: 1; F51 check 4: 3; skill gate on read-only or scratch commands: 6; dispatch refusal: 3). Asked (prompt, not refusal) honest cells: 6 (merge, rebase, checkout of a path from a ref, worktree add, reset --hard, branch -D). [HYPOTHESIS: tally carried from the originating lane's cell run, not recounted in this landing] [NOT-WORK: fact, no action]
 - Disagreeing pairs: 12 (section 4).
 - Exemptions in the tree: 22 exported lists, 122 entries, 9 further lists present and empty; ISO `until` dates exist only in closure-gate NEVER_RUN_DORMANT (18 entries: 17 until 2026-11-30, 1 until 2026-10-22). The other "dated" lists carry `reviewByPhase` prose, which no gate compares with a clock (section 5).
 

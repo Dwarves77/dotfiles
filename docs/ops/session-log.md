@@ -24613,3 +24613,81 @@ Lists only. Written by the DOCS-4 docs pass (lane docs4-pass, branch lane/docs4-
 - `docs/runbooks/audit-catalogue.md`: ATTACKED cells for rows 1, 2, 4 and 5 entered full and rows 7, 8 and 11 entered partial (`~`), per each register's own declaration; counts by the command printed in the catalogue 89/34/44/13 to 93/36/38/13 (filled, partial only, empty, not applicable); ATTACKED 0/4/12/2 to 4/6/6/2; O-005 to O-010 retired, P-032 replaced by P-035, owed-leg entries P-035 to P-041; incident ledger rows I-8 to I-11; section 3c DOCS-3 statements marked superseded with their wording kept.
 - `docs/dispatches/lane-common-contract.md`: the migration rule of the 2026-10-04 lane common terms (SQL file only, NOT APPLIED; no regeneration of migrations.md or touch of APPLIED-MAP.json; fixture INSERTs checked by `_lib/fixture-inserts.mjs`; migration-proof job) in the wiring preflight list.
 - `docs/PROGRAM-BOARD.md` (later 2026-10-08 pointer and thread rows), `docs/INDEX.md` (four audit lines). Detail: `docs/ops/session-log.d/2026-10-08-docs4-pass.md`.
+
+
+## 2026-10-09/10, coordinator: the fix wave, chain proof fires 5 to 9, batch 2
+
+Lists only. Written by lane DOCS-5b (branch coord/docs5b-coordinator-files) from the DOCS-5 staging log (`docs/ops/session-log.d/2026-10-10-docs5.md`, PR 1099) and `git log --reverse ef87c5e6..origin/master` at 855ee072d.
+
+**Merged since the DOCS-4 landing, 55 PRs (gh merge commits on master).**
+- PR 1029, S8-E5, 2026-10-09, 0289daeea
+- PR 1037, SEC-7, 2026-10-09, 70c76c879
+- PR 1047, Migrations 378 and 381 applied, 2026-10-09, bbb4a5d24
+- PR 1025, OBL-2, 2026-10-09, 6b5e0f946
+- PR 1042, GATE-9, 2026-10-09, 3e0637161
+- PR 1045, WIRE-1, 2026-10-09, 023d47588
+- PR 1044, DOCS-4, 2026-10-09, d71e8fad0
+- PR 1048, RULE-RANGE-1, 2026-10-09, 8aa9a2022
+- PR 1051, LOOPID-1, 2026-10-09, 88409b476
+- PR 1050, Migration 376 applied, 2026-10-09, f354b943e
+- PR 1053, QOC-1, 2026-10-09, 54dfef5cf
+- PR 1052, SKILL-SLIM-1, 2026-10-09, 9374baa8d
+- PR 1049, DAUDIT-2, 2026-10-09, 910f35a75
+- PR 1030, S8-E1, 2026-10-09, 452c1fb85
+- PR 1031, S8-E6, 2026-10-09, 9044d95a9
+- PR 1055, FLAG-1, 2026-10-09, e959a317e
+- PR 1019, MIG-CI, 2026-10-09, 65b18aafc
+- PR 1058, Migrations 379 and 380 applied, 2026-10-09, 77eade280
+- PR 1060, DISPO-2, 2026-10-09, e207047a1
+- PR 1057, DAUDIT-3, 2026-10-09, 1ab1eb59a
+- PR 1061, DISPO-3, 2026-10-09, c0054856d
+- PR 1062, Disposition tokens for the two open DAUD, 2026-10-09, 33dc1541c
+- PR 1056, DORMANT-1, 2026-10-09, b98a7632e
+- PR 1063, Ledger export, 2026-10-09, a4185acf5
+- PR 1064, CI-FIX-1, 2026-10-09, 33682011a
+- PR 1066, ENGINE-FIX-1, 2026-10-09, 182435a5c
+- PR 1067, GATE-FIX-1, 2026-10-09, 503cb8a53
+- PR 1065, PROOF-6, 2026-10-09, 4fe43d5c4
+- PR 1059, DFIX-1, 2026-10-09, d64ca4110
+- PR 1068, Disposition tokens, 2026-10-09, d91dd582d
+- PR 1069, Ledger export, 2026-10-09, 9c303db91
+- PR 1072, CHAIN-5, 2026-10-09, eecaa0e9c
+- PR 1074, Tokens, 2026-10-09, cce24a3e6
+- PR 1071, SEC-8, 2026-10-09, b0fbaef2a
+- PR 1073, DFIX-2, 2026-10-09, adf6512dd
+- PR 1070, PROOF-7, 2026-10-09, 106dad83a
+- PR 1075, Migration 382 applied, 2026-10-10, c92463225
+- PR 1076, STACK-1, 2026-10-10, 22c411142
+- PR 1077, Ledger export, 2026-10-10, d50531aa3
+- PR 1080, Tokens, 2026-10-10, 08aa6f17b
+- PR 1081, PROOF-8, 2026-10-10, 0a3c61fc2
+- PR 1079, SMOKE-3, 2026-10-10, 9fbe389d4
+- PR 1083, Tokens, 2026-10-10, 6c00df17d
+- PR 1082, HYDRA-1, 2026-10-10, a47682d16
+- PR 1084, PROOF-9, 2026-10-10, be13dcbc8
+- PR 1085, MIG-HIST-2, 2026-10-10, f448d14e9
+- PR 1086, RULES-X-2, 2026-10-10, 97e543786
+- PR 1087, DEAD-1c, 2026-10-10, ab1fc777f
+- PR 1088, TESTS-1, 2026-10-10, 4236e2d56
+- PR 1089, DORMANT-2, 2026-10-10, 465a6f566
+- PR 1090, Migration 383 applied, 2026-10-10, 76bec7b28
+- PR 1091, Tokens for the tests1 and DEAD-1c rows; , 2026-10-11, 855ee072d
+
+**Batch 2 lanes merged.**
+- PROOF-7 (1070), CHAIN-5 (1072), SEC-8 (1071), DFIX-2 (1073), PROOF-8 (1081), MIG-HIST-2 (1085), PROOF-9 (1084), RULES-X-2 (1086), DEAD-1c (1087), TESTS-1 (1088), DORMANT-2 (1089)
+
+**Batch 2 lanes with no merge commit on master at 855ee072d.**
+- PLAN-2 (fact lane, no PR by design), DAUDIT-4 (PR 1092), SEC-9 (PR 1098), GATE-FIX-2 (PR 1096), EXEMPT-1, DEAD-1d (PR 1093), CIFIX-2 (PR 1097), TESTS-2, SMOKE-4 (PR 1094), DOCS-5 (PR 1099); also open: HARNESS-1 (PR 1095), MASTER-RED-1 (PR 1078), DRIFT-1 (PR 1100)
+
+**Chain proof fires 5 to 9.**
+- Detail: `docs/runbooks/maintenance.d/64-chain-proof.md` "State at 2026-10-10" (fire 5 37876624407, fire 7 38020216226, fire 8 38032421565, fire 9 38058989236).
+
+**The two standing reds of the window.**
+- Production Live smoke: red on the `content-inferences-section` check at `/regulations/g14` on every production deployment from SMOKE-2's commit 1496ed760 (PR 1015, 2026-10-08, content invariants added) until SMOKE-3 (PR 1079, 2026-10-10) made the content invariants conditional on the item class the chooser finds (`docs/ops/session-log.d/2026-10-10-smoke3-conditional-invariants.md`; last pass 95711970a at 2026-10-08T13:42).
+- Chain proof: red at the schema oracle gate in fires 6 to 9 (fire 6 and 7 on the roles and the `RESET ALL;` session line, fixed by PROOF-7 and PROOF-8; fire 8 the oracle gate could not run; fire 9 replay 347 of 347 with 562 differing objects in `replay-schema-diff.json` of run 38058989236, classified by DRIFT-1, PR 1100, open).
+
+**Not done.**
+- `docs/inventories/db-check-constraints.json` regeneration: the generator reads the live catalog over a direct Postgres connection (`SUPABASE_DB_PASSWORD`) and no lane or session without that secret can run it. Command: `gh workflow run maintenance.yml --ref master -f mode=dry -f step=schema-vocabulary-inventory` (the workflow commits the JSON back to the dispatched ref). [WORK: EXEC-4]
+- Staged DOCS-5 code edits with no exact text in the staging log: `.discipline/rendering/audit/spec/bandtile.json` (old stacked label), `fsi-app/src/app/admin/parts/section-index/section-index-fixtures.ts` (bodies for the two new tabs), `.discipline/governance/worktree-isolation.mjs` (home for the narrow branching matcher). [WORK: owed]
+- Staged DOCS-5 doc edits to the rest of the gate-removal prose (invariants.d texts, `.discipline` READMEs, a pinned SKILL.md, src and scripts comments, discipline.yml comments, pre-push step 2c) and PROGRAM-BOARD lines for register items 13, 17, 42 and 43. [WORK: owed]
+- Dispatch of the `schema-vocabulary-inventory` maintenance step (register row g5-read 99) is the db-check-constraints command above. [WORK: EXEC-4]
