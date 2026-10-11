@@ -48,6 +48,11 @@ on:
         required: false
         default: '1'
         type: string
+      walk:
+        description: 'Also run the signed-in audit walk (scripts/verify/audit-walk.mjs): every page route, the five surfaces exercised read-only; uploads the artifact audit-walk (1 day)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -136,6 +141,29 @@ jobs:
           LIVE_SMOKE_CANDIDATES: ${{ runner.temp }}/live-smoke-candidates.json
           LIVE_SMOKE_REPEAT: ${{ github.event.inputs.repeat || '1' }}
         run: node .discipline/rendering/live/live-smoke.mjs
+
+      # Audit walk (lane E1b, 2026-10-11): the signed-in half of the complete audit, which only CI can run because the smoke
+      # account's credentials live only in the repository secrets. Dispatch-only (input walk), read-only (GET navigation,
+      # screenshots, non-GET requests to the app origin aborted), the same sign-in helper as the smoke. Runs even when the smoke
+      # step failed: the walk is evidence, not a verdict. Output directory is uploaded as the artifact audit-walk.
+      - name: Audit walk (signed in, read-only; dispatch input walk)
+        if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && github.event.inputs.walk == 'true' }}
+        working-directory: fsi-app
+        env:
+          LIVE_SMOKE_URL: ${{ github.event.inputs.url }}
+          LIVE_SMOKE_EMAIL: ${{ secrets.LIVE_SMOKE_EMAIL }}
+          LIVE_SMOKE_PASSWORD: ${{ secrets.LIVE_SMOKE_PASSWORD }}
+          AUDIT_WALK_OUT: ${{ runner.temp }}/audit-walk
+        run: node scripts/verify/audit-walk.mjs --out "$AUDIT_WALK_OUT"
+
+      - name: Upload the audit walk
+        if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && github.event.inputs.walk == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-walk
+          path: ${{ runner.temp }}/audit-walk
+          if-no-files-found: ignore
+          retention-days: 1
 
       # The registry's read-only live-data audits (lane REG-1, 2026-10-11; fsi-app/.discipline/registry.mjs rows of kind
       # audit, RUNS-IN post-merge smoke). The data-audit-lane workflow is retired; this step is its read-only successor.
