@@ -1,33 +1,3 @@
-// source-type-taxonomy.mjs — vocabulary + classifier for `sources.source_type` (migration 288).
-//
-// WHY THIS EXISTS. `fsi-app/src/lib/coverage-gaps.ts` carried a STOPGAP: two regex pattern sets
-// (env-body, legislature) matched against a source's `name + url` text blob at READ time, on every
-// cache miss, to answer "is this source an environmental body?" / "is this source a legislature?" for
-// the Map . Coverage gaps card. Per docs/plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md, the durable fix is a
-// structured tag populated once and queried by array membership. This module is that tag's vocabulary
-// and classifier; migration 288 is the column; scripts/sources/backfill-source-type.mjs is the one-shot
-// write pass.
-//
-// SCOPE OF THE CLASSIFIER — STATED HONESTLY, NOT SILENTLY NARROWED. The proposal names 11 vocabulary
-// values (§3); all 11 are registered here AND in migration 288's CHECK constraint, because the CHECK
-// constraint and any future admin/manual assignment need the full vocabulary today even though this
-// module cannot yet DERIVE all 11 from name/url alone. Only 2 of the 11 — `environmental_body` and
-// `legislature` — have a classifier below, and it is the STOPGAP's own two regex sets, PORTED VERBATIM
-// (same patterns, same order, same comments) from coverage-gaps.ts — nothing is lost in the port; this
-// is exactly what that file's read path needs today, so this is the honest floor, not a placeholder for
-// something grander. The proposal's other 9 categories (§6.2) describe URL-host / tier-based heuristics
-// with softer confidence bands that were never built or measured against the live registry; classifying
-// them without that verification would be a speculative fix this repo's quality bar forbids. Extending
-// the classifier later is additive: add a matcher function, flip that value's `classifiable` flag —
-// nothing here needs to change shape to grow.
-//
-// Pure. No DB access, no npm dependency — importable from a DB-less validator or a `node --test` file
-// with zero setup, matching the convention this repo uses for its other pure classifiers (e.g.
-// scripts/lib/institution-key.mjs).
-
-// ── Vocabulary (proposal §3, verbatim definitions condensed to one line each) ──────────────────────────
-// Byte-for-byte, the `value` list below must match migration 288's CHECK constraint array. Guarded by
-// this module's own test (source-type-taxonomy.test.mjs reads the migration file and compares).
 export const SOURCE_TYPES = Object.freeze([
   {
     value: "environmental_body",

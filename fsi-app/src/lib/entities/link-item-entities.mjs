@@ -1,19 +1,3 @@
-// SHARED-WRITER: intelligence_items
-// link-item-entities.mjs: linkItemEntities(sb, item), rule 16(e) (lane W9 part 1, task 1.1,
-// 2026-09-11): "every NEW item is connected at birth" applied to the entity spine (migration 282/283).
-// Before this, ONLY the hand-dispatched scripts/entities/backfill-entities.mjs wrote entity_refs /
-// instrument_entity_id: a permanent backlog, not a chokepoint write. This is the ONE reusable writer
-// mint-item.ts (post-insert, rule 16(e)) and apply-staged-update.ts (the substantive update_item path,
-// when jurisdiction_iso or canonical_instrument_key changed) both call, sharing entity-plan.mjs's four
-// pure planners with the corpus backfill so mint-time and backfill-time can never plan a row differently
-// for the same input.
-//
-// IDEMPOTENT, same posture as the backfill: existing entities/refs are read FIRST (fresh, every call:
-// this module holds no state of its own) and the planners skip anything already present, exactly as
-// scripts/entities/backfill-entities.mjs's own runJurisdiction/runInstrument do. entity_identifiers is
-// NOT pre-read; its upsert relies on the DB's own `ON CONFLICT (entity_id,scheme,value) DO NOTHING`
-// (ignoreDuplicates: true) for idempotency instead, the same posture the Interfaces contract implies
-// ("existing refs/entities are read first") by naming only those two, not identifiers.
 import { planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates } from "./entity-plan.mjs";
 
 const ASSERTED_BY = "src/lib/entities/link-item-entities.mjs";

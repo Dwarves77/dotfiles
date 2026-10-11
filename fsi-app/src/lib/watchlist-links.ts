@@ -1,26 +1,3 @@
-/** How a watchlist row is LABELLED and where it GOES when clicked. One
- *  definition, consumed by the dashboard rail and by the /watchlist page.
- *
- *  CLIENT-SAFE BY CONSTRUCTION. The only import is a type, which TypeScript
- *  erases, so neither consumer drags a server module into the client bundle.
- *
- *  WHY THIS IS ITS OWN MODULE. The maps were previously hand-typed inside
- *  DashboardWatchlist.tsx, which is how both of the defects below survived:
- *  a component-local table has nothing tying it to the app's actual route
- *  tree, so it can name a route that does not exist and no build step
- *  disagrees. Copying that table into a second surface would have doubled the
- *  blast radius of the next drift. It is deliberately NOT folded into
- *  watchlist-order.ts: that module answers "which row is this in the stored
- *  order", this one answers "where does this row go", and they change for
- *  different reasons.
- *
- *  The maps are keyed by the FULL WatchlistItemType union, so a newly
- *  watchable type is a compile error here rather than a silently mislabelled
- *  row. Landing B widened the vocabulary to five values without widening the
- *  maps, which sent every watched research finding to /market#id as a
- *  "Signal".
- */
-
 import type { WatchlistItemType } from "@/lib/data";
 
 export const WATCHLIST_TYPE_LABEL: Record<WatchlistItemType, string> = {

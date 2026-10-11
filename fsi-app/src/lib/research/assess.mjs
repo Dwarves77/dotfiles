@@ -1,79 +1,8 @@
-// assess.mjs -- THE core deliverable of lane W2-R (RESEARCH-ASSESSMENT-MODEL, 2026-10-01). Operator
-// ruling 2026-10-01, verbatim: "Why is research have a design but not a build? Fix this." Research
-// gets its producer first (R14: the producer that computes assessments is the core deliverable; the
-// surface renders what it produces).
-//
-// WHAT THIS IS. A PURE, DETERMINISTIC function that turns an item's EXISTING data (its own recorded
-// facts, its forward events, its citation/bias signals, its source's institutional tier) into the
-// docs/specs/03-research.md shape: a maturity triple (restricted here to the two non-conditional axes
-// the dispatch names: technical TRL 1-11, commercial CRI 1-6; the ADOPTION BARRIER / MRL axes are NOT
-// modeled by this lane -- no data path for the 17-dimension ARL risk vector exists, so this module never
-// fabricates one), a horizon read (band + kind + rule + confidence, or a first-class refusal), and a
-// split credibility read (evidence score, authority score). NO LLM CALL, EVER (lane-common-contract section 0:
-// "$0: no LLM calls"). Every number this module returns traces to a field the caller handed it; nothing
-// is invented (CLAUDE.md rule 2). This module never performs its own network fetch either -- it stays
-// I/O-free; see "AUTHORITY SCORE WIRING" below for how a resolved OpenAlex record reaches it.
-//
-// WHY A SEPARATE PURE MODULE, NOT INLINE IN THE PRODUCER. Same reasoning as taxonomy.mjs and
-// credibility-grade-modifiers.mjs in this same directory: plain ESM, zero dependencies, so `node --test`
-// covers the entire rule ladder without a database, a fetch, or a DOM, and so a future reader (the
-// detail-surface component, a different producer, a unit test) can import the SAME decision logic the
-// producer uses rather than a second hand-copy of the R1-R4 ladder.
-//
-// AUTHORITY SCORE WIRING (lane L3, 2026-10-02, coordinator ruling: W2-R merged, the half-slice
-// prohibition on wiring no longer applies). `assessAuthorityScore` now computes the REAL spec-03
-// section 4 distribution via `scripts/research/authority-score.mjs`'s `scoreSource`/
-// `aggregateAuthorityDistribution` whenever it can resolve ANY source identity for the item:
-//   (a) `input.sourceRecords` -- pre-resolved OpenAlex records the PRODUCER attaches after a real,
-//       network, DOI-keyed lookup (`research-assessment-producer.mjs`'s `resolveOpenAlexSourceRecords`,
-//       using `extractDoiCandidate` below and `scripts/research/openalex-client.mjs`). That network call
-//       does NOT happen here -- this module stays pure/sync; the producer is where I/O already lives.
-//   (b) a forward event naming a recognized roadmap body (IEA/ICCT/IMO/a national plan -- the SAME
-//       `ROADMAP_BODIES` match the R3 horizon rule already uses, reused rather than re-matched), routed
-//       through authority-score.mjs's grey-literature path, zero network.
-// When NEITHER resolves (no DOI found in the item's text, no named roadmap body in its forward events),
-// `assessAuthorityScore` falls back to the ORIGINAL degenerate one-source-from-tier read -- the exact
-// same output shape and values every existing caller (the producer, the two page routes, read-
-// assessments.mjs) already depends on, unchanged for an item with no resolvable identity.
-//
-// INPUT SHAPE (never a raw DB row -- the producer's job is to narrow a `intelligence_items` + joined
-// rows into this shape; this module never touches Supabase).
-//
 // @typedef {{
-//   id: string,
-//   itemType: string,                         // 'research_finding' | 'technology' | 'innovation' | ...
-//   addedDate: string | null,                  // ISO
-//   text: string,                               // title + whatIsIt/whyMatters/fullBrief, concatenated
-//   sourceTier: number | null,                  // base_tier from the institution resolver (1-7, lower = stronger)
-//   citationCount: number | null,
-//   biasTags: Array<{dimension: string, tag: string, confidence: number|null}>,
-//   forwardEvents: Array<{
-//     id: string,
-//     kind: string,                             // forward-events/kind-labels.mjs vocabulary
-//     event_date: string | null,                 // ISO; the named trigger date when R1/R3 fires
-//     obligation_text: string | null,
-//     source_citation: string | null,            // a named institutional roadmap ("IEA", "ICCT", "IMO"), for R3
-//   }>,
-//   sourceRecords: Array<object> | undefined,   // OPTIONAL (lane L3): pre-resolved authority-score.mjs
-//                                                // records (kind 'openalex'|'grey_literature'), attached
-//                                                // by the producer's real OpenAlex-resolution step.
-//                                                // Absent/empty is the honest default -- most items
-//                                                // resolve nothing and fall back to the tier-based read.
-// }} AssessmentInput
-//
-// OUTPUT SHAPE maps 1:1 onto migration 336's research_assessments columns (see that file for the exact
-// CHECK constraints this module's own logic must never violate -- corridor ordering, the horizon-or-
-// refusal XOR, the status-token vocabulary). `statusToken` is CLAUDE.md rule 14's label: CONFIRMED when
-// the read is anchored to a dated, named instrument or a direct corpus fact; HYPOTHESIS when inferred
-// (R4, or a maturity corridor read from forward-event text rather than a structured field) -- labeled as
-// a hypothesis in the row itself, never asserted as settled.
-
 /** @typedef {"NOW"|"NEAR"|"MID"|"FAR"} HorizonBand */
 /** @typedef {"R1"|"R2"|"R3"|"R4"} HorizonRule */
 /** @typedef {"availability"|"economic"|"obligation"} HorizonKind */
 
-// Lane L3 wiring (2026-10-02): the real, multi-component spec-03 section 4 scorer. Reused, not
-// reimplemented -- see "AUTHORITY SCORE WIRING" above.
 import { scoreSource, aggregateAuthorityDistribution } from "../../../scripts/research/authority-score.mjs";
 
 const DAY_MS = 24 * 60 * 60 * 1000;

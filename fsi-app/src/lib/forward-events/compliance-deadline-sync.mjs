@@ -1,35 +1,3 @@
-// SHARED-WRITER: intelligence_items
-// compliance-deadline-sync.mjs — the canonical (and, before this lane, only) writer for
-// intelligence_items.compliance_deadline (DATECHAIN lane, 2026-09-11).
-//
-// THE GAP THIS CLOSES. compliance_deadline had NO production writer anywhere in the codebase — its only
-// writes were incidental: update_item's unrestricted `.update(proposed_changes ?? {})` in
-// apply-staged-update.ts can set it if an LLM-proposed change happens to name that column, but nothing
-// ever computes or intends the value. Meanwhile item_forward_events (migration 274) is the correctly
-// built, source-cited extractor for exactly this kind of date — its own CHECK constraint enumerates
-// 'compliance_deadline' as one of six literal event_kind values, so the table already names which of its
-// rows a caller like this one should trust for this exact field. Nothing read it for that purpose before
-// this module.
-//
-// THE RULE FOR CHOOSING THE DEADLINE (stated in code, not just here): among an item's item_forward_events
-// rows with event_kind = 'compliance_deadline' and event_date on or after "today", pick the row with the
-// EARLIEST event_date (the nearest future obligation-binding deadline is the one a customer needs to see —
-// a later-dated row is real but not what "compliance_deadline" on the item summary means). A tie on
-// event_date is broken by confidence ('high' — claim-sourced — before 'medium' — section-sourced, the same
-// ranking the migration's own grounding-rule constraints establish), then by row id for determinism. Rows
-// of any other event_kind (entry_into_force, review_or_report, phase_step, consultation_close, other) are
-// NEVER candidates — this sync does not guess a kind from other columns.
-//
-// IDEMPOTENT AND NULL-SAFE. Re-running this over an unchanged corpus slice must be a no-op: if the picked
-// date already matches the stored value, nothing is written. And it NEVER overwrites an existing non-null
-// compliance_deadline with null — when no future compliance_deadline event exists for an item, the column
-// is left exactly as it stood (a value already there might be correct and simply have no matching
-// forward-event row yet; erasing it on an empty read would be a regression, not a sync).
-//
-// PURE CORE + ONE DB ROUND TRIP. pickComplianceDeadline is pure (input rows -> chosen date or null,
-// injectable and unit-testable with no client at all). syncComplianceDeadlineForItem does the two reads +
-// at-most-one write against an injected Supabase client — no model, no network beyond the DB itself, $0.
-
 export const COMPLIANCE_DEADLINE_EVENT_KIND = "compliance_deadline";
 
 /**

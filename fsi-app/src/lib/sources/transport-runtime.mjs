@@ -1,22 +1,4 @@
 // @ts-check
-// THE LIVE RUNTIME BINDING of the transport escalation ladder (invariant RD-14). escalateFetch
-// (transport-escalation.mjs) is the PURE per-failure-class DECISION module; THIS is the thin runtime adapter
-// that binds the real transports (or dep-injected fakes in tests) and maps the ladder VERDICT back to the
-// pipeline's FetchResult shape. fetchWithTransport in canonical-pipeline.ts delegates HERE, so the ladder is
-// the LIVE fetch path — not just a tested module. The follow-up to PR #196 (RD-14) that closed the residual
-// "escalateFetch is not yet the runtime fetch path".
-//
-// WHY AN ADAPTER (not calling escalateFetch directly): the ladder verdict carries text/transport/outcome but
-// NOT the truncation metadata (truncated/fullLength/cap) the no-silent-truncation guard needs, and on a NON-
-// content outcome it deliberately discards the error body. The adapter (1) captures each transport's RICH
-// result so the winning transport's truncation metadata survives, and (2) exposes the terminal failure's raw
-// body as `lastFailureText` so the PRIMARY caller can preserve the legacy roadblock-reason signal
-// (detectRoadblock / fetchStatusFromPf) WITHOUT the error body ever being returned as content or stored.
-//
-// PURE + DEP-INJECTED: no real fetch happens here; the transports are injected. Reuses escalateFetch's
-// per-class routing verbatim (API→api, JS-shell/soft-404→render, block/bot-wall→try-both, 404→seek-more,
-// exhaustion→NO_REACHABLE_SOURCE hold) — the adapter adds NO routing logic of its own. GOVERNING:
-// remediation-discipline (Section 4 category 13, RD-14).
 
 import { escalateFetch } from "./transport-escalation.mjs";
 

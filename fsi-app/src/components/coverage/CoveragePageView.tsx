@@ -1,30 +1,3 @@
-/**
- * CoveragePageView: the body of /dashboard/coverage, the generated Coverage surface (lane COV-1, 2026-10-08; spec 00 section 4).
- *
- * WHAT IT IS. What the platform watches and what it does not, as a matrix of mode x geography x data class with a
- * numerator and a denominator in every cell, a version and two dates, a static URL per cell, a CSV export and a
- * "request coverage" action on every gap. Every number is generated from the index (src/lib/coverage/
- * coverage-matrix.mjs); nothing here is hand-written. It is NOT a sixth customer surface (PI-1): it is a generated
- * page reachable from each surface's denominator line and from the portfolio-add flow, and it carries no content
- * category of its own.
- *
- * AGGREGATES ONLY. Counts per cell. No catalogue entry (title, identifier, URL) appears here: the operator ruling of
- * 2026-07-29 keeps those admin-only, and this page does not reopen it.
- *
- * READER'S GOAL: see how much of a surface, place or mode the platform actually covers, before relying on it.
- * PATH: arrive from a surface's denominator line (already on that data class), or open /dashboard/coverage and pick an axis.
- * ONE PRIMARY ACTION per section: the selected-cell panel offers Download CSV, or Request coverage when the cell is
- * a gap (never both as equals). FEEDBACK: both actions acknowledge at once and state the outcome (see their islands).
- *
- * LAYOUT. The geography rows are plain wrapping flex rows, not a table: at 375 px a row's cells wrap under its title
- * instead of forcing the page sideways. This is a look the artboards do not draw (there is no Coverage artboard);
- * it is built from existing parts (Masthead, SectionCard, RailCard, CoverageState) and recorded on the DESIGN
- * CHANGES OWED list for Claude Design (rule 20), never decided silently.
- *
- * Server-renderable: no hooks here. The interactive islands are CoverageState (request, retry) and
- * CoverageExportButton.
- */
-
 import Link from "next/link";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionCard } from "@/components/ui/SectionCard";

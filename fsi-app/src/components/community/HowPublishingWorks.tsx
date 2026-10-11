@@ -1,21 +1,3 @@
-/**
- * HowPublishingWorks, static side-card explaining the two-stage
- * publishing flow inside Community:
- *
- *   1. Draft inside a private group
- *   2. Group admin promotes the post to the public forum
- *
- * Community is social only (ADR-041): nothing posted here is promoted
- * into platform intelligence.
- *
- * Pure presentational. No data dependency. Lives in the right rail of
- * /community/[slug] and on the default /community body to set
- * expectations for what the PROMOTE TO PUBLIC action does.
- *
- * Design intent: matches design_handoff_2026-04 community.html
- * "HOW PUBLISHING WORKS" rail (per VISUAL-RECONCILIATION § 3.8).
- */
-
 import { FileText, ArrowUpRight } from "lucide-react";
 
 export function HowPublishingWorks() {

@@ -1,23 +1,3 @@
-/**
- * The identity lookup's attempt loop, lifted out of AuthProvider.tsx (lane AUTH-IDENTITY, 2026-09-24)
- * so its behaviour is provable with `node --test` + jiti; this repo has no JSX mount harness for a
- * provider (see app-shell-banner.ts's header for that constraint).
- *
- * THE DEFECT [CONFIRMED by code read; the live instance is the operator's 16:51Z sign-in, 2026-09-24]:
- * AuthProvider fetched `/api/auth/identity` exactly once per tab. Any rejection or non-200 went to
- * `seed(null)`, which resolved to the RESOLVED-no-org value, so a single failed request showed "No
- * workspace yet" and hid Admin for the rest of the tab's life.
- *
- * THE BEHAVIOUR NOW:
- *   - A round is up to IDENTITY_ATTEMPTS_PER_ROUND attempts: the first immediately, then after each
- *     delay in IDENTITY_RETRY_DELAYS_MS. A 200 with a bootstrap body ends the round as `resolved`.
- *   - A round that exhausts its attempts ends as `error` (IDENTITY_ERROR_SEED: orgId UNKNOWN), never as
- *     "no workspace".
- *   - `rearm()` starts ONE new round, and only when the last round ended in `error` and nothing is in
- *     flight or scheduled. AuthProvider calls it on window focus, on the tab becoming visible, and from
- *     the error note's Retry action. Those are the only triggers: no polling, no other timers.
- *   - A `resolved` answer is final (shouldApplySeed); rearm() is then a no-op.
- */
 import {
   IDENTITY_ERROR_SEED,
   nextIdentityRetryDelay,

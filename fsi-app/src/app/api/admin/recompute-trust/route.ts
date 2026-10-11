@@ -1,30 +1,3 @@
-// POST /api/admin/recompute-trust
-//
-// Walks every source in the registry and recomputes trust_score_overall
-// using the Bayesian-prior-blend formula in src/lib/trust.ts. Component
-// scores (accuracy, timeliness, reliability, citation) are also updated
-// to reflect current earned signals. An admin action. The scheduled/dispatched runtime of the same trust-
-// score pass is the recompute-trust-scores maintenance step (scripts/maintenance/recompute-trust-scores.mjs,
-// runbook section 66); the former trust-recompute.yml workflow was retired 2026-10-07. Both call the one
-// planTrustScores in src/lib/trust.ts.
-//
-// TIER MOVEMENT (S1-C, 2026-10-04). After the trust-score pass this route moves effective_tier from the
-// evidence, through the one calculator in src/lib/trust.ts (decideEffectiveTier via planTierMovements):
-// citation promotion, evaluatePromotion eligible (one tier better), evaluateDemotion triggered (one tier
-// worse), and tier opinions (3+ in 90 days from 2+ distinct opining sources, one step toward the median).
-// Net movement is clamped to one tier either side of base_tier, an admin tier_override always wins and is
-// never written over, and every applied change writes a source_trust_events row (tier_promotion or
-// tier_demotion, created_by "worker", applied true). This route APPLIES; it no longer only proposes
-// demotions. base_tier is never written here. scripts/maintenance/recompute-tiers.mjs runs the same
-// planner and applier through injected deps.
-//
-// Fail-soft per source inside applyTierMovements: a failed tier write or event insert is counted and named
-// in the response and never aborts the sweep. A thrown plan (a read failure) returns 500 after the
-// trust-score updates already written above it.
-//
-// Auth: x-worker-secret header (same WORKER_SECRET pattern as
-// /api/worker/check-sources). NOT user-facing.
-
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { getServiceSupabase } from "@/lib/supabase-service";

@@ -1,21 +1,8 @@
 // @ts-check
-// URL-equivalence — the SINGLE JS home for both citation-URL transforms, so the drift guard tests the
-// REAL functions (not copies). Two transforms with two jobs:
-//   • stripUrlMarkers(prose)   — WRITE-site: strip markdown-emphasis `*`/backtick glued to URLs inside prose
-//                                (canonical-pipeline section-insert 1a fix). Operates on a whole string.
-//   • canonicalizeCitationUrl(u) — COMPARE-site JS MIRROR of migration 150's SQL canonicalize_citation_url:
-//                                lower+btrim, strip trailing `*`/backtick, strip leading www., strip trailing
-//                                slash, rtrim '.,;:'. Operates on a single URL.
-//
-// TWO-HOME CLASS (3rd instance): URL-equivalence now lives in JS (here) AND SQL (mig 150). url-canon.test.mjs
-// is the established drift guard — it PARSES migration 150's function body and asserts THIS mirror matches its
-// regex steps (the mig-141 authorityFloorFor pattern), plus equivalence-preservation over the real 281-row
-// pollution forms: canonical(stripped(u)) == canonical(u), and every polluted form canonicalizes to the same
-// value as its clean form. CI-red on divergence keeps the two homes in lockstep.
-
 /** WRITE-site: strip trailing markdown-emphasis markers glued to the END of a URL inside a prose string.
  * @param {string | null | undefined} s
  * @returns {string | null | undefined} */
+
 export const stripUrlMarkers = (s) => (s == null ? s : String(s).replace(/(https?:\/\/[^\s)\]}"'<>*`]+)[*`]+/g, "$1"));
 
 /** COMPARE-site: JS mirror of migration 150's SQL `canonicalize_citation_url`. Steps MUST match the SQL,

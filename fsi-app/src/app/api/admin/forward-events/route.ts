@@ -1,26 +1,3 @@
-// GET /api/admin/forward-events
-//
-// Read surface for item_forward_events (migration 274/275, the forward-events harness — see
-// scripts/forward-events/extract-forward-events.mjs). Lists dated, obligation-bound events
-// DATE-ASCENDING (soonest first — "what is due next", the table's own indexing comment) with an
-// intelligence_items JOIN so each row carries enough context to render without a second round trip.
-// No compute happens here — this route only ASSEMBLES what extract-forward-events.mjs already wrote,
-// same posture as admin/themes and admin/intersections (their own file headers name this pattern).
-//
-// Query params:
-//   from       (ISO date, default: TODAY) — event_date >= from. This is an "upcoming obligations"
-//              surface by default; pass from=1900-01-01 (or any date before the corpus) to see history.
-//   kind       comma-separated event_kind filter (entry_into_force,compliance_deadline,review_or_report,
-//              phase_step,consultation_close,other). Omit for all kinds.
-//   precision  comma-separated date_precision filter (day,month,year). Omit for all precisions.
-//   limit      (default 100, max 500) — cap returned rows after the date-ascending sort.
-//
-// Auth: requireAuth + rate limit + platform-admin gate (house pattern, mirrors admin/themes,
-// admin/intersections). Cache-Control: no-store — this is an operator queue read, not a
-// candidate-for-staleness cached surface (unlike admin/attention's 30s positive cache), and the
-// underlying table only ever grows/updates via an operator-run extraction pass, not a request-rate
-// workload that would benefit from caching.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

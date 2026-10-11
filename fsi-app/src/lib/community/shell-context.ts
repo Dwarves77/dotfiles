@@ -1,20 +1,3 @@
-// src/lib/community/shell-context.ts (lane L33, 2026-09-17)
-//
-// ONE home for the context every /community/* page assembles for CommunityShell: the caller's
-// memberships, pending invitations, owned topics, the region list with live counts, and the current
-// user block (profile name, headshot, employer, platform-admin flag). Seven page shells carried this
-// block by hand (profile, directory, discover, moderation, browse, [slug]), the largest
-// clone family in the system health audit (docs/audits/system-health-audit-2026-09-17.md section 2:
-// 96, 89, 89, 86 shared windows between pairs). A page now does:
-//
-//   const supabase = await createSupabaseServerClient();
-//   const { data: { user } } = await supabase.auth.getUser();
-//   if (!user) redirect("/login?redirect=/community/x");
-//   const shell = await loadCommunityShellContext(supabase, user);
-//   return <CommunityShell {...shell} initialRegion="EU">...</CommunityShell>;
-//
-// The reads are the same four parallel reads plus the two profile reads the pages ran; the mapping to
-// the typed arrays is the same. Server-only (a cookie-bound server client is the RLS boundary).
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { readOwnPlatformAdmin } from "@/lib/auth/platform-admin-gate";
 import type { CommunityMembership, CommunityInvitation, CommunityTopicSummary, CommunityGroupSummary } from "@/components/community/types";

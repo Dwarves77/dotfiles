@@ -1,8 +1,3 @@
-// split.mjs - the ONE CSV line/text splitter (RFC4180-ish: quoted fields, escaped quotes, commas).
-// Moved verbatim from the spec09 upload contract (ADR-042 removed that contract's customer-upload
-// caller); importers: the admin sources bulk-import route and scripts/spec09/lib/operator-rows-contract.mjs.
-// Pure functions; no I/O, no fs, no DB, no network (F34).
-
 export function splitCsvLine(line) {
   const result = [];
   let cur = "";

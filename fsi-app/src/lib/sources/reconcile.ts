@@ -1,27 +1,3 @@
-// SHARED-WRITER: monitoring_queue, intelligence_changes
-// src/lib/sources/reconcile.ts
-//
-// Reconcile-loop CONSUMER. Writer for intelligence_changes (recordItemChange /
-// recordSourceChangeTrigger, driven by runReconcilePass below — wired in-process from
-// check-sources/route.ts after every scan batch, AND via the manual-redrive /api/worker/reconcile
-// route; before 2026-09-01 (lane CD) the route had zero callers of any kind and no schedule fired
-// it, so this consumer was dead at the queue end of the chain). source_conflicts remains
-// writer-less: the openSourceConflict helper authored here was never called and was removed
-// 2026-07-11 (see note at end of file).
-//
-// SCOPE / honesty: the DETECTION input (did a source's content change? the old vs new content
-// to diff) is produced by content fetch+hash, which goes through Browserless (the HARD RULE) and
-// is gated on the operator restoring quota. This module is the part that runs ONCE a change is
-// detected: it records the change + (when two sources disagree) opens a conflict. The pure diff/
-// severity logic is unit-tested; recordItemChange is integration-tested against the live table.
-//
-// The provenance-freshness invariant is already enforced elsewhere: updating an item's content
-// fires the set_provenance_status trigger (migration 115), which re-derives status so a changed
-// item re-grounds. This module does not re-implement that — it records the change; the content
-// write (Browserless-gated) drives the re-derivation. Note the #43 flip guard (migration 118)
-// requires the bound reconciler credential for the provenance flip — so the reconcile worker
-// must run as the reconciler, not postgres/service-role.
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { bridgeChangedSourceToStagedUpdates } from "./change-sweep.mjs";
 

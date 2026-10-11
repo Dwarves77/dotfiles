@@ -1,28 +1,3 @@
-// src/lib/sources/primary-fallback.mjs
-//
-// ROADBLOCK → BOUNDED ALTERNATIVE-SOURCE SEARCH → SAME-FLOOR QUALIFICATION.
-// The mechanical form of env-policy's "find replacements when canonical sources break", wired into the
-// canonical fetch path so BOTH generate and reground inherit it.
-//
-// THE CARVED PRINCIPLE (architecture, not a check): this module is DISCOVERY-ONLY. It widens which
-// sources are TRIED; it NEVER resolves a tier, stamps a fact, or decides grounding. Qualification stays
-// 100% in the existing F1 chain — buildResolver (host→canonical tier) + validate_item_provenance
-// criterion-3 per-type floor — UNCHANGED. A found alternative becomes a "primary" ONLY by emergently
-// clearing the unchanged floor; there is no code path here that promotes it. So the F1 regression
-// (primary times out → search returns a law-firm explainer → secondary grounds a reg fact) is
-// structurally foreclosed: the explainer resolves T5/T6 and the floor rejects it, exactly as today.
-//
-// detectRoadblock + targetLangRatio are PURE (CI-unit-tested — the roadblocked-vs-partial line is the
-// gate). fetchPrimaryWithFallback is dep-injected (browserlessFetch + webSearchAlternatives) so it is
-// testable without network. GOVERNING: remediation-discipline (Section 4 — roadblock resilience) +
-// source-credibility-model (qualification) + env-policy (find replacements).
-//
-// TWO-HOMES FOLD (RD-14, 2026-07-06): detectRoadblock shares the transport classifier's error-body home
-// (isErrorBody, entity-gate.mjs) as its final backstop, so the primary-fetch detector and the ladder
-// classifier (transport-escalation.classifyTransportResult, which composes THIS function) can no longer
-// DISAGREE on an error body whose markers sit PAST this detector's ~600ch head window but inside
-// isErrorBody's 2500ch scan — the exact 600-vs-2500 leak that stored the junk. One detection home.
-
 import { isErrorBody } from "./entity-gate.mjs";
 
 // Thresholds (DEFAULTS, tunable). One bar, not two: the stub bar == the pool's existing usability bar.

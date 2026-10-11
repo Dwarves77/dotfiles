@@ -1,21 +1,3 @@
-// coverage-reflection.mjs -- D17 family 13 (defect-fix-plan-2026-09-12, ruling table row 13, lane L11).
-//
-// coverage-gap (U2, analyze-corpus.mjs's own gap detection) and anticipated-coverage (U5) findings are a
-// PRODUCT-SCOPE reflection, not a question to a person -- the coordinator's own ruling (plan row 13,
-// verbatim): "the writer inserts them already resolved with the note 'reflected in the coverage view; no
-// per-row decision pending', the population report keeps counting them, and the open rows are resolved
-// the same way on the first run." This is the D17/enumeration Family 13 shape: "Product-scope reflections,
-// not questions to a person" (docs/audits/quarantine-and-human-flag-writers-2026-09-12.md) -- distinct
-// from the D15/D13-shaped case (a question the system itself could answer but didn't try). No auto-adopt
-// path existed or exists for these findings; they are informational by design, and an OPEN row asking an
-// operator to "confirm whether dedicated coverage... is warranted" is exactly the resting state ADR-030's
-// rider forbids.
-//
-// PURE, extracted out of analyze-corpus.mjs (a $0-gated top-level script that calls process.exit(2) at
-// IMPORT TIME when DB creds are absent, so its own inline logic cannot be unit-tested by importing that
-// file directly) into its own module -- the SAME "thin orchestrator hands off to a pure lib module" shape
-// cluster.mjs / gaps.mjs / anticipate.mjs / signal-confidence.mjs already use in this same directory.
-
 export const RESOLVED_REFLECTION_NOTE = "reflected in the coverage view; no per-row decision pending";
 
 /**

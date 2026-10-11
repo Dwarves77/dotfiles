@@ -1,7 +1,3 @@
-// SONNET_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): GROUND_MODEL's default below was
-// this file's own hand-typed copy of the literal, named as known drift in model-ids.mjs's own header
-// comment. This file carries no other imports and no .test.mjs reaches it directly by import (only by
-// text-content fitness checks), so the "@/" alias is safe here.
 import { SONNET_MODEL } from "@/lib/llm/model-ids.mjs";
 
 /**

@@ -1,29 +1,8 @@
 // @ts-check
-// feed-discovery — LOCATING a feed for a source, distinct from WALKING one once found (feed-walk.mjs's
-// job). Lane SITEMAP, 2026-09-04, operator ruling: "major sites with news on new tech and advancements
-// ... will have RSS feeds and if this person already did the coding and it's on github I want you to
-// mirror of mreflow/control-center's lib/feed-discovery.ts: kept, ported from an external MIT-licensed repo; no internal home to wire to.
-// find it and use that code if it's good." Ported from mreflow/control-center lib/feed-discovery.ts
-// (MIT, (c) 2026 Matt Wolfe) — see THIRD-PARTY-NOTICES.md for the license text. `isFeedDocument` and
-// `discoveredFeedLinks` (+ their private `htmlAttribute`/`absoluteLink` helpers) are ported near-verbatim,
-// converted from TypeScript to a dependency-free, PURE .mjs module (no fetch, no I/O — every caller
-// supplies the text/HTML it already fetched). `FEED_CANDIDATE_PATHS` + `feedCandidateUrls` are new: the
-// operator's own named fallback list ("/feed, /rss, /rss.xml, /atom.xml, /feed.xml, /index.xml"), tried
-// path-scoped first (mirrors control-center's `feedCandidates`' own scoped-then-origin ordering) via
-// `sourceContentPath` (ported in sitemap-walk.mjs, imported here) so a source registered under a deep
-// path (e.g. a specific section of a large site) is not handed the SITE's root feed by mistake.
-//
-// NOT ported here (stays in sitemap-walk.mjs, or is not ported at all — see that file's own header and
-// the lane's final report for the full port-vs-kept accounting): `parseFeed`/`observeUndatedFeedStories`
-// (control-center's LiveStory-shaped feed parser and its undated-item baseline) — this repo's feed
-// entries are RSS/Atom <item>/<entry> blocks parsed by feed-walk.mjs's own `parseFeedEntries` into a
-// FLAT candidate-URL ledger (`portal_link_candidates`, UNIQUE url, upsert-refresh), which already
-// absorbs repeated undated entries as a no-op refresh rather than a repeated "new" signal — the problem
-// `observeUndatedFeedStories` solves for a live-story list has no equivalent failure mode here.
-
 /** Does `text` look like an RSS/Atom/RDF feed document? Checks only the first 1500 chars (the root
  *  element always appears early; a large trailing body is not a signal either way and would only slow
  *  a hot discovery-probe loop). PURE. @param {string} text @returns {boolean} */
+
 export function isFeedDocument(text) {
   return /<(?:rss|feed|(?:[\w-]+:)?RDF)[\s>]/i.test(String(text ?? "").slice(0, 1500));
 }

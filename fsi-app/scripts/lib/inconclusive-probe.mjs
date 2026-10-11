@@ -1,34 +1,3 @@
-// ── THE BUG-CLASS DETECTOR — "non-answer resolved to a definitive answer" ──
-//
-// ONE systemic defect, surfaced 5x: a non-answer (HTTP non-2xx / timeout / rate-limit /
-// classifier-uncertainty / error-body / empty result) resolved to a DEFINITIVE answer
-// (substantive positive OR negative) instead of held INCONCLUSIVE. The four faces:
-//
-//   FORM 1  fetch non-2xx/timeout -> a substantive NEGATIVE (unreachable/dead/fabricated/
-//           reject), with no distinct inconclusive branch. (420 reachability; recovery
-//           429/500; fabrication-by-timeout.)  [delegated to fetch-negative-probe.mjs]
-//   FORM 2  classifier "uncertain / low-confidence / absent" -> a substantive DEFAULT value
-//           instead of an explicit inconclusive verdict. (first-fetch line-191:
-//           unsure -> item_type "regulation".)
-//   FORM 3  an error / empty / bot-block BODY consumed as CONTENT, with no error-body guard.
-//           (Entry-4: CloudFront-403 body minted as an item.)
-//   FORM 4  ORCHESTRATION: a non-idempotent call is auto-retried, OR a rate-limit/transient
-//           (429/5xx/cooldown) is treated as a HARD FAILURE rather than skip/backoff.
-//           (CI: curl --retry on a POST; 429 -> failed run.) This is the CI-orchestration
-//           layer the fetch probe never scanned — the coverage gap that hid instance #5.
-//
-// DISCRIMINATION (the standing discipline): the detector flags MISSING inconclusive-handling,
-// NOT every fetch/classify/call. A site that already handles the inconclusive case explicitly
-// passes clean (negative control). Proven by inconclusive-probe.npmtest.mjs: it flags the 5
-// known shapes AND passes the SSOTs that handle inconclusive correctly (reachability.mjs,
-// entity-gate.mjs entityVerdict/isErrorBody, the fixed spot-check workflow).
-//
-// HONEST DEPTH: forms 2-4 match a token lexicon over a brace/step window. An instance that
-// reaches its definitive answer through an UNNAMED indirection (a helper, a numeric sentinel,
-// a downstream caller) is NOT caught here — stated, never papered over. Flags are CANDIDATES
-// for semantic review, not verdicts. Wire into CI as a standing check; treat new CANDIDATE_*
-// as a review gate, not an auto-fail, until the lexicon is hardened against false positives.
-
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import { SURFACE_CLASSES, discoverSurfaces, emptyCoverage, validateCoverage } from "./surface-registry.mjs";

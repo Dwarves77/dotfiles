@@ -1,18 +1,4 @@
 #!/usr/bin/env node
-// executor-ground.mjs — CC-GROUNDING-EXECUTOR (operator ruling 2026-07-16). $0, no metered spend.
-//
-// The FREE grounding path: the Claude Code executor (subscription) reads the item's STAGED enacted primary
-// (already in agent_run_searches) and produces the claim ledger BY HAND, then submits it through the built
-// groundBrief via the injectedLedger seam. groundBrief runs the ENTIRE system judgment unchanged — the verbatim
-// kept-filter (drops any span not literally in the staged primary), the canonical resolver tier-stamp, the floor
-// pool, slot-forcing, ALL mint gates (S-CONFLATE hard / S-NUMERIC soft / authority-floor / no-generic-source),
-// the non-destructive applyLedgerDiff (old claims preserved in claim_versions), and validate_item_provenance.
-// So the SYSTEM judges the extraction; the executor only supplies it. No acquire lock (no spend), no fetch
-// (pool is staged), no Sonnet.
-//
-// Usage: node scripts/_reground/executor-ground.mjs <itemId> <ledger.json>
-//   ledger.json = array of { section, claim_text, claim_kind, source_span, slot_key } — source_span MUST be a
-//   verbatim substring of the staged primary (the system drops it otherwise; that is the integrity check).
 
 import { createJiti } from "jiti";
 import { resolve, dirname } from "node:path";

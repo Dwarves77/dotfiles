@@ -1,15 +1,3 @@
-// paginate.mjs — the shared paginated PostgREST read (error-swallow case-file instance 9).
-//
-// PostgREST silently caps a range-less `.select()` at 1000 rows. A truncated read that feeds a COUNT, SUM,
-// VERDICT, or DELETE is the read-cap defect class: the ledger baseline read $0.99 of a true $16.21, the
-// clean-slate "affected items" saw 159 of 240, and the spend watch computed "207 of 207" from a 1000-row
-// slice of 19,898. The rule (case-file 9): any read whose result feeds a count/sum/verdict/delete MUST be
-// paginated through this helper, OR be explicitly bounded with an assertBound() that fails closed if the
-// bound was actually hit. No silent truncation at a decision site.
-//
-// Both `.ts` (API routes) and `.mjs` (runners/probes/scripts) import this; it is transport-agnostic — it
-// takes a factory that applies `.range(from, to)` to whatever query builder the caller already has.
-
 /**
  * Read EVERY row of a PostgREST query, one page at a time, until a short page.
  * @template T
@@ -23,6 +11,7 @@
  *   on total rows (throws if exceeded, so an unexpectedly huge read cannot silently balloon a sum/verdict).
  * @returns {Promise<T[]>} every row. THROWS on any page error (fail-closed — never returns a partial result).
  */
+
 export async function fetchAllRows(pageFactory, { pageSize = 1000, cap = Infinity } = {}) {
   const all = [];
   for (let from = 0; ; from += pageSize) {

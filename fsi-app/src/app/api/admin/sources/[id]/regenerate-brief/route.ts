@@ -1,18 +1,3 @@
-// POST /api/admin/sources/[id]/regenerate-brief
-//
-// Manual on-demand brief regeneration for a single source, delegated to
-// the durable generate-brief workflow via /api/agent/run.
-//
-// Wave-α A4 (2026-07-11, CODE-3 F-02): /api/agent/run is ASYNC — it
-// start()s the workflow and returns 202 {runId} immediately. This caller
-// previously assumed the pre-Sprint-4 synchronous contract: it read
-// items_found/citations_written/etc. off the 202 body (always zeros) and
-// read full_brief BEFORE the workflow ran, reporting the pre-regeneration
-// length as the result. It also sent a dead `bypassPause` parameter the
-// agent route never read. Now it defers honestly: it returns the runId
-// and the operator polls agent_runs (or re-opens the source) after the
-// workflow completes.
-
 import { NextRequest, NextResponse } from "next/server";
 
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";

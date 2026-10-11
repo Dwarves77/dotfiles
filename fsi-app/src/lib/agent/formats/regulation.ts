@@ -1,14 +1,3 @@
-// src/lib/agent/formats/regulation.ts
-//
-// Regulatory Fact Document — 15 sections (9 always-present incl. S8 + 6 conditional), per
-// environmental-policy-and-innovation/references/regulatory-fact-document.md (count reconciled 2026-06-05: 14 content sections
-// 1-14 + S15 Sources = 15; the old "14" labels were stale). The canonical pipeline extracts ALL 15 section
-// bodies into intelligence_item_sections (completeness + grounding). The RegulationDetailSurface
-// curates which to render and re-parses content_md into structured components
-// (extract-regulation-sections.ts) at render time — that mockup-locked curation is a DISPLAY concern,
-// separate from this format-generic extraction. Grounding: span (S4 compliance-chain + S13 adjacent
-// research are synthesis, grounded transitively via the claim-ledger discipline).
-
 import { makeFormatSpec } from "@/lib/agent/formats/prose-extractor";
 import type { SectionDef } from "@/lib/agent/format-spec";
 

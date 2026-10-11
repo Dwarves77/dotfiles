@@ -1,11 +1,3 @@
-// propose-series-items.mjs — the six R-D record-grade mint payload drafts (lane PROD-FIX's mechanism),
-// on the SCRIPTS side. Moved out of src/lib/market/refresh-published-price-statistics.mjs by the
-// coordinator on 2026-09-02: it reads scripts/mint/item-type-required-slots.json from the filesystem at
-// module evaluation and pulls record-facts.mjs, and the src module that first carried it is on every
-// page's import graph (series-board-view-model.mjs -> data.ts), so the first request after PR #533
-// deployed threw ENOENT and carosledge.com answered 500 on every route. Scripts are never bundled;
-// src/lib must never read the filesystem at module evaluation. Pure apart from that one JSON read;
-// no DB, no fetch. Consumed by refresh-published-price-statistics.mjs --propose-items and its tests.
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

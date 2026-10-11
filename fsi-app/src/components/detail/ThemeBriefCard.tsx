@@ -1,18 +1,3 @@
-/**
- * ThemeBriefCard: artboard 07's CLUSTER SYNTHESIS rail card, moved out of ResearchFindingDetailSurface.tsx
- * into a shared home (lane S3-B). Its markup is UNCHANGED: the artboard draws exactly the 3px rule cap,
- * a head row, the theme title and one meta line ("85 items · density 0.180 · STALE · MEMBERSHIP CHANGED"),
- * and the rendering audit and layout guard measure those values. The brief's TEXT (meaning, what follows
- * on this page, what to watch, the other members) is the shared "Connected intelligence" section's job
- * (CrossPageSection.tsx), mounted on all four detail pages; this card stays the Research rail's pointer.
- *
- * Lane P3 (2026-10-05): the meta line states the member count ONCE, from the live theme row, and no longer
- * prints the cluster density: it is a working number of the clustering pass, not something a customer reads,
- * and the artboard's "density 0.180" segment is recorded as a DESIGN CHANGE OWED (rule 20: the system need
- * wins over the artboard on content). `density` stays on the view type so callers are unchanged.
- *
- * Renders nothing when the theme has no brief (no title): the section below names that absence in words.
- */
 import { SectionCard } from "@/components/ui/SectionCard";
 
 interface ThemeBriefCardView {

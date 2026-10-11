@@ -1,38 +1,4 @@
 #!/usr/bin/env node
-// generate-theme-brief.mjs -- the single-theme entry to the theme-briefs flow (flywheel U6; reworked by lane
-// S3-C, 2026-10-04). The batch pattern lives in scripts/turns/ (export-themes-for-briefs.mjs lists every theme
-// needing a brief, apply-theme-briefs.mjs validates a committed batch and writes theme_briefs); this script
-// keeps the one-theme dispatch (maintenance.yml step generate-theme-brief) working on the SAME reads, the SAME
-// validator and the SAME writer, never a second copy of any of them. It no longer writes theme_briefs itself:
-// every write goes through writeThemeBriefRow in apply-theme-briefs.mjs, the one writer of the table.
-//
-// $0 and session-executed (migration 266's posture): no LLM call inside this script; a human or an in-session
-// agent authors the brief, this script assembles the input and validates/persists the output.
-//
-//   --theme <id>   prints the BRIEF INPUT BUNDLE for one theme as JSON: the same bundle the export step writes
-//                  (members with summary, grounded claims and forward events; intra-theme edges with their full
-//                  basis; gaps; surfaces; member_hash), built by scripts/turns/theme-briefs/data.mjs. The
-//                  member_hash lets the author's payload prove it was written against THIS membership.
-//   --write <file> persists an authored payload. A .json payload carrying `sections` (the structured form, see
-//                  scripts/turns/theme-briefs/README.md) runs the FULL batch validator and writes sections,
-//                  claims and brief_md. A legacy payload (JSON with brief_md, or Markdown with frontmatter -- see
-//                  parseBriefPayload below) is checked against the theme's LIVE membership (member_hash) and
-//                  written with generated_by 'session-executor', as before. Both refuse on a member_hash that
-//                  no longer matches the live membership (the staleness-is-detected-never-silent posture).
-//
-// THE ONE computeMemberHash SoT: src/lib/connections/brief-staleness.mjs -- "sort member_ids
-// lexicographically, join empty string, md5 hex". This script imports it, never re-implements it (a
-// second implementation would silently diverge from the read path's staleness check).
-//
-// WRITE PATH: check-then-branch through the one writer (apply-theme-briefs.mjs writeThemeBriefRow):
-// guardedInsert when no row exists for the theme, guardedUpdate (which SNAPSHOTS the prior brief) when one does.
-//
-// Usage:
-//   node scripts/connections/generate-theme-brief.mjs --theme <connection_themes-id> [--dry]
-//   node scripts/connections/generate-theme-brief.mjs --write <path-to-authored-payload> [--dry|--execute]
-//     --dry      (default for --write) validate + report, write nothing
-//     --execute  actually upsert the theme_briefs row (explicit opt-in)
-// Exit 0 done · 1 bad args / validation failure · 2 no DB creds (--theme/--write both need a DB read).
 
 import { resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";

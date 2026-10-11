@@ -1,32 +1,3 @@
-// Pure, dependency-free core of the Server-Timing instrumentation (lane PERF-ARCH, 2026-09-04).
-//
-// WHY THIS IS SPLIT FROM server-timing.ts (the exact shape src/lib/detail/load-detail-core.ts
-// established, cited in that file's own header): server-timing.ts's ambient API is backed by
-// React's cache() — the SAME request-scoped memoization src/lib/api/server-bootstrap.ts and
-// src/lib/api/org.ts already use, so unrelated modules within one request (auth, a listing RPC,
-// a detail-page loader) can call recordPhase()/timePhase() and land on ONE shared per-request
-// store with no store threaded through props or arguments. But PERF-6 read the installed React
-// source and proved (docs/audits/perf-load-times-2026-09-03.md §12.4) that cache() only memoizes
-// inside an ACTIVE render/work-unit dispatcher (a real RSC render or a Route Handler's
-// workUnitAsyncStorage) — outside one (plain `node --test`, a script) it is a harmless
-// passthrough that calls the wrapped function FRESH every call. A module whose only API relies on
-// that cross-call memoization therefore cannot prove its own accumulation logic under `node
-// --test`: every call would mint its own empty store, and there would be nothing to assert
-// against. This file is the part that needs no dispatcher at all — every function takes its store
-// as an explicit argument — so it is fully, portably testable (no "react" import, no "next/*"
-// import of any kind, value or type), and server-timing.ts's ambient wrapper is provably just
-// `getStore()` (cache()-backed) plus a direct call into these functions — nothing about the
-// accumulation, formatting, or byte-measurement logic depends on cache() actually memoizing.
-//
-// PHASES THIS LANE'S OWN DIAGNOSIS NAMES (docs/audits/perf-waterfall-2026-09-04.md; the dispatch's
-// own list): coldstart, auth, org, listing_rpc, counts, detail_core, serialize_bytes, total. Named
-// here as documentation only — `recordPhaseOnStore`/`recordBytesOnStore` accept any string, since
-// a bootstrap-route caller (this lane's own wired example, src/app/api/workspace/bootstrap/route.ts)
-// has a different, equally legitimate phase vocabulary (personal_state, list_orders, members,
-// admin_attention). PERF_PHASES below is the named list for callers that DO want the shared
-// vocabulary (a future PERF-10/PERF-11 pass instrumenting the four detail/listing pages, out of
-// this lane's write set — see ADR-027).
-
 export const PERF_PHASES = {
   AUTH: "auth",
   ORG: "org",

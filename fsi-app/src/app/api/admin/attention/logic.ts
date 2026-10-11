@@ -1,11 +1,3 @@
-// Shared admin-attention-counts fetcher, split out of route.ts (BUILDGATE, 2026-09-02, F34's named
-// residual: a route.ts may export only route handlers/config — see list-order/logic.ts's identical
-// precedent). PERF-9 (2026-09-04, item 5, ADR-026 §4): pulled out specifically so
-// /api/workspace/bootstrap/route.ts can reuse the SAME unstable_cache entry (same cache key
-// "admin-attention-counts-v1", same APP_DATA_TAG) instead of standing up a second, independently
-// entry for the identical RPC — one cache, two callers, no duplicate admin_attention_counts() calls
-// under load.
-
 import { unstable_cache } from "next/cache";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { APP_DATA_TAG } from "@/lib/data";

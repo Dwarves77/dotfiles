@@ -1,25 +1,3 @@
-// D3 (b) — Surface registry + coverage block.
-//
-// The disease (findings doc S0): the code audit reported its findings COMPLETE; it
-// never enumerated the worker / cron / build-runner paths and never SAID it hadn't.
-// What it missed (the check-sources cron, the build runners) was worse than what it
-// found, and it was invisible because nothing forced those classes to be accounted.
-//
-// The fix is NOT "look for the cron." It is: enumerate ALL surface CLASSES that
-// executable logic can live in, from a canonical list; an audit ITERATES that list
-// and reports, per class, walked / not_walked. Any class not walked is VISIBLE as
-// not_walked. The cron / build-runner miss becomes "covered, or declared uncovered,"
-// never a silent absence.
-//
-// Paired with a mandatory coverage block: { method, walked[], not_walked[],
-// cannot_see[], assumptions_unverified[] }. An audit with NO coverage block — or one
-// that leaves any class unaccounted — is REJECTED as incomplete (it is not trusted
-// as "clean"; clean-with-a-hole reads identical to clean otherwise).
-//
-// Path classification is done with an in-process glob matcher (not fs.glob) so the
-// SAME predicate that drives discovery is unit-testable on synthetic paths — the
-// classification is behavioral and provable, not an opaque shell-out.
-
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { DRIFT, evalPredicate } from "./drift-check.mjs";

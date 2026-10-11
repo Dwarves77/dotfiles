@@ -1,23 +1,5 @@
 // @ts-check
-// LEDGER DOMINANCE GUARD (operator ruling 2026-07-14, doctrine "re-grounds-never-destroy"). A re-ground's new
-// claim ledger REPLACES the prior one ONLY when it is not WEAKER than the prior on any dominance axis. A worse
-// answer is a DIAGNOSTIC, not a replacement — a regressing re-ground retains the prior ledger, records the
-// regression as a finding, and leaves the item state unchanged. This is the ONE HOME for "is this re-ground a
-// regression?" (supersedes the count-only thinning-guard; no shadow — a single predicate, one place).
-//
-// WHY THE COUNT-ONLY GUARD WAS BLIND (Brazil Lei 12.305, 55 FACT -> 2 GAP, the red fixture): two defects.
-//   (a) SEQUENCING — the section step's blanket delete CASCADE-wiped section_claim_provenance (section_row_id
-//       FK ON DELETE CASCADE) BEFORE groundBrief could snapshot the prior ledger, so priorCount read 0 and the
-//       guard had nothing to protect. (Cured at the write site: sectionBrief now reconciles by section_key, so a
-//       non-verified item's ledger survives into groundBrief's snapshot — see canonical-pipeline.sectionBrief.)
-//   (b) WEAK RULE — the guard compared TOTAL count only, so a 55 FACT -> 55 GAP re-ground (facts destroyed,
-//       count preserved) would slip through. The dominance rule below adds the FACT and FLOOR-QUALIFYING axes.
-//
-// THE THREE DOMINANCE AXES (operator-named): FACT count, FLOOR-QUALIFYING count, VERIFIED-eligibility. Pure
-// predicates here so the rule is red-then-green goldened; the caller supplies the summaries + the would-verify
-// booleans (grounding computes them from the prior snapshot and the freshly-built ledger).
 
-// Don't guard tiny prior grounding (a 3 -> 1 fact drop is noise, not a regression); only guard real grounding.
 export const FACT_FLOOR = 4;
 // Back-compat alias for the legacy name (the count axis is the old thinning threshold).
 export const THINNING_FLOOR = FACT_FLOOR;

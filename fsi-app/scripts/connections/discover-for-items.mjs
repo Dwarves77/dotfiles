@@ -1,40 +1,4 @@
 #!/usr/bin/env node
-// discover-for-items.mjs — closes the harness-to-flywheel leak: items minted via coordinator SQL
-// bypass mint-item.ts's inline discovery hook (mint-item.ts's own writeDiscoveredEdges call, see
-// src/lib/intake/mint-item.ts) and land with ZERO connection edges. This script runs the SAME
-// discovery logic mint-time uses, on demand, for a specified set of EXISTING items — no forked
-// scoring logic (reuses src/lib/connections/discover.mjs unmodified, exactly like backfill-edges.mjs
-// does for the full-corpus pass) and writes edges through the SAME writer mint-time and the full
-// backfill both use (src/lib/connections/write-edges.mjs), with the SAME origin value the discovery
-// path already writes ('provenance_discovery' — write-edges.mjs's own file header names it "THE
-// writer for origin='provenance_discovery' edges").
-//
-// WHY A SEPARATE SCRIPT, NOT A backfill-edges.mjs FLAG: backfill-edges.mjs scores every item against
-// the WHOLE verified corpus (O(n) candidate loads per item) because it is a cold-start/repair pass
-// over everything. This script scopes to a NAMED set of items (--ids or --since) precisely because
-// the leak it closes is small and targeted (8 live items with zero edges, per the dispatch) — running
-// the full corpus pass to fix 8 rows would be correct but wasteful. Both scripts share the same
-// scoring (discover.mjs) and the same writer (write-edges.mjs); only the SELECTION of which items to
-// (re)score differs.
-//
-// R1 retrofit applied at birth: write-edges.mjs's `snapshot` option is wired in from the start (this
-// is a NEW script, not a retrofit target), so a refreshed row's prior state is captured the same way
-// backfill-edges.mjs's own retrofit captures it.
-//
-// Usage:
-//   node scripts/connections/discover-for-items.mjs --ids <uuid,uuid,...> [--dry|--execute]
-//   node scripts/connections/discover-for-items.mjs --since <ISO-date-or-datetime> [--dry|--execute]
-//   [--limit N] [--threshold T]
-//     --ids      comma-separated intelligence_items.id list — score exactly these items
-//     --since    intelligence_items.created_at >= this timestamp — score items inserted at/after it
-//                (created_at, NOT added_date: created_at is the ROW-INSERT timestamp, the field a
-//                coordinator-SQL mint that bypassed the hook actually shows up under; added_date is
-//                an editorial date and can predate or postdate the insert)
-//     --dry      compute + report, write nothing (DEFAULT)
-//     --execute  actually write edges (explicit opt-in, mirrors the dispatch's --dry-default contract)
-//     --limit N    max edges per item (default 12, matches backfill-edges.mjs's default)
-//     --threshold  min connection score (default 0.3, matches backfill-edges.mjs's default)
-// Exit 0 done · 1 bad args · 2 no DB creds (cannot run here).
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

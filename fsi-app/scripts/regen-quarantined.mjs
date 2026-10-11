@@ -1,27 +1,3 @@
-/** TIER-2 SNAPSHOT-FIRST RESTITUTION resolver (RD-4 research-or-erase; snapshot-first rebuild PR-2, item 4).
- *  Drive quarantined items toward VERIFIED via the ONE verify-item entry (RD-24) — NEVER a direct paid
- *  re-ground, NEVER a delete. Per item, verify-item reads the item's stored snapshot + its existing claims and
- *  cheap-verifies ($0, no fetch, no model). Outcomes:
- *    verified_cheap — the item's FACT spans are still present in the stored snapshot. With --apply this re-runs
- *                     the full provenance gate ($0 SQL RPC); the set_provenance_status trigger flips the item to
- *                     verified IFF it now passes (cheap-verify alone never flips — it does not re-check floors/slots).
- *    stale_flag     — the source demonstrably changed since capture (freshness probe). Reported; the CP2 queue
- *                     write + paid re-acquire are the LOCKED Phase-3 path — this resolver never fetches/flips it.
- *    needs_acquire  — no usable snapshot / cheap-verify cannot confirm. Requires a PAID re-ground, which is the
- *                     master-switched path (GROUNDING_ACQUIRE_ENABLED, default OFF). Reported here, never run.
- *
- *  This resolver moves $0: it calls verify-item with act:false (pure decision — no writes, no lock throw) and,
- *  under --apply, only the $0 validate_item_provenance RPC. The paid re-ground of needs_acquire items is a
- *  SEPARATE, operator-gated Phase-3 execution (flip the lock + a sanctioned run) — it does NOT happen here.
- *  HOLD_TYPES (research/technology/tool/innovation) stay excluded pending the Q2 calibration spec.
- *  GOVERNING: remediation-discipline (RD-4) + source-credibility-model + env-policy integrity rule.
- *  DRY-RUN default; --apply [--limit=N] [--only=].
- *
- *  REFACTOR (lane ONESHOTS, 2026-09-06, F25 expiry-52 wiring): the drive loop is now an exported, injectable
- *  `runResolver(opts, deps)` so scripts/maintenance/regen-quarantined.mjs (the maintenance.yml dispatch
- *  wrapper) and regen-quarantined.test.mjs (a fake `sb`/`readAll`/`verifyItem`, no DB) can both drive it
- *  without a second copy of the decision loop. Behavior unchanged.
- */
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readClient, readAll } from "./lib/db.mjs";

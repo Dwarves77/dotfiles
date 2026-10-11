@@ -1,15 +1,3 @@
-// D3 Component A — outcome-assertion primitives.
-//
-// Each primitive asserts a CATEGORY, so the session failures it re-detects are
-// INSTANCES that trip the category, NOT hardcoded signatures (design section 1(a)):
-//   assertReadBack  — "operation reported success but persisted state differs"
-//   fetchOk         — "non-2xx must not be read as success/absence"
-//   observeFired    — "a gate's EFFECT, not its installation"
-//   findRawSourceFetch — "diagnostics must call the canonical impl, not a raw fetch"
-//
-// VERDICT.INCONCLUSIVE and .UNCONFIRMABLE are DISTINCT from PASS by construction —
-// nothing here collapses an undetermined result into a pass.
-
 export const VERDICT = Object.freeze({
   PASS: "PASS",
   FAIL: "FAIL",

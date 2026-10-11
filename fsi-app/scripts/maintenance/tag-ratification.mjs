@@ -1,22 +1,3 @@
-// SHARED-WRITER: intelligence_items, integrity_flags
-// tag-ratification.mjs - MAINT dispatch step: decides every open flywheel-tag proposal by rule
-// (operator ruling 2026-09-03, see apply-tags.mjs's header for the full reasoning). There is one
-// behaviour and no `arg`: the legacy operator path (ratify:tags marker, comma-separated id list) was
-// deleted by lane G6-GATES, 2026-10-05, because nothing in the data machine waits on a typed token or a
-// human resolution. A stray `arg` is ignored.
-//
-// UPSTREAM: ALL THE LOGIC ALREADY EXISTS IN apply-tags.mjs. scripts/connections/propose-tags.mjs
-// reflects derive-tags.mjs candidates as integrity_flags rows (TAG_NAMESPACE, "flywheel-tag:");
-// apply-tags.mjs carries the auto-adoption path (evaluateAutoAdoption/autoAdoptTags: status='open',
-// every proposal decided). This step does not rebuild it, it is the dispatch runtime for it.
-//
-// WHAT IT DOES. Dry: lists every open TAG_NAMESPACE flag, runs each through autoAdoptTags in dry mode
-// and reports adopt/decline counts with a 20-row sample per outcome, plus the zero-proposal re-derive
-// buckets. Apply: runs each through autoAdoptTags({execute:true}), which writes the adopted subset
-// (merge-only), and resolves the flag. Eligibility is derive-tags.mjs's own deterministic evidence.
-// IDEMPOTENT: an already-resolved flag is skipped by evaluateAutoAdoption's status==='open'
-// requirement. Connection discovery is not re-run here (orchestration only); the note in each summary
-// carries the documented fallback command.
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {

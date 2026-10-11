@@ -1,30 +1,3 @@
-// methods/superseded-notices.ts — reads the old->new pairs a RecalculationNotice renders (docs/specs/
-// 08-flywheel-design.md §2.2 Part 3: a stale value's recompute writes a NEW derived_values row pointing
-// `supersedes` at the OLD one, which the drain has already marked `admissibility='stale'`). Lane DP-SURF,
-// system-completion train, 2026-09-02.
-//
-// WHY THIS LIVES HERE, NOT IN THE ROUTE. F31 (.discipline/fitness/functions/F31-derived-values-gate.mjs)
-// fails CI on any raw `.from("derived_values")` read outside `src/lib/propagation/` — the WHOLE directory
-// tree is the sanctioned zone, `derived_values_admissible` (the view) is the only thing safe to read
-// anywhere else. A superseded (stale) OLD row is EXCLUDED by that view by design (migration 285:
-// `WHERE ... admissibility <> 'stale'`), so a notice — which is precisely "here is the stale figure a
-// reader may have already seen, and here is what replaced it" — cannot be built from the view alone; it
-// needs a raw read of the table itself, which this lane's write set restricts to `methods/*.mjs|ts`. This
-// file is that raw read's one legal, F31-sanctioned home: `src/app/api/notices/route.ts` (outside the
-// gate) calls this function rather than querying `derived_values` itself.
-//
-// PLAIN RELATIVE IMPORTS, NO `@/` ALIAS, NO NPM PACKAGE AT MODULE SCOPE — same discipline as every other
-// file in this directory (types.ts's header). `sb` is always a parameter.
-//
-// THREE ROUND TRIPS, DELIBERATELY SEPARATE (not a single hand-written join): (1) NEW rows — the
-// superseding side, entity_id IN (watched entities) AND computed_at >= since; (2) their OLD (superseded)
-// counterparts, looked up by value_id IN (those NEW rows' own `supersedes` column); (3) a best-effort
-// triggering-event lookup, keyed off the OLD row's `invalidated_by_event` (set by invalidate_dependents()
-// at the moment THAT row was marked stale — the NEW row that later superseded it carries no such pointer
-// of its own; the fact "why did this go stale" lives on the row that WENT stale). A hand-written PostgREST
-// join across three tables in one query is not meaningfully cheaper here (this is a notices list, not a
-// hot path) and keeps every step independently readable and independently fakeable in a test.
-
 interface NoticesQueryBuilder {
   select(cols: string): NoticesQueryBuilder;
   in(col: string, values: unknown[]): NoticesQueryBuilder;

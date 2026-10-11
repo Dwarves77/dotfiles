@@ -1,25 +1,3 @@
-// src/lib/detail/fact-paragraphs.ts
-//
-// Parses a stored `intelligence_item_sections.content_md` string (or any
-// full_brief section body) into an ordered list of blocks, classifying each
-// paragraph per the pipeline's own claim-labeling contract
-// (src/lib/agent/system-prompt.ts §"Claim-level provenance — the source
-// invariant"):
-//
-//   FACT     — plain prose ending in an inline citation:
-//              "*Source: [Title], [Issuing Body], [Date]. [URL].*"
-//   ANALYSIS — opens with one of the three closed-set label tokens:
-//              "*Analytical inference:*" / "*Industry interpretation:*" /
-//              "*Operational implication:*"
-//   LEGAL    — opens with "*Legal Confirmation Required:*"
-//
-// Any paragraph matching none of these renders as plain connective prose —
-// not every sentence in a section is a claim, and this parser never forces
-// one to be. This is a PURE, render-time reparse of already-written text
-// (CLAUDE.md rule: docs/dispatches — "parse at render time from the stored
-// text, do not change the pipeline output"); it never writes back to the
-// database and never changes what the pipeline emits.
-
 import { stripClaimLedgerBlocks } from "../agent/claim-ledger-block.ts";
 
 type FactParagraphKind = "fact" | "inference" | "counsel" | "prose";

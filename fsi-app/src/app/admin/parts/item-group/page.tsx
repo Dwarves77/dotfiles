@@ -1,15 +1,3 @@
-/**
- * /admin/parts/item-group: the ItemGroup sign-off page (lane w10-factcard-d, 2026-09-21, build
- * item 5's "Add /admin/parts/item-group to the index").
- *
- * NO DATABASE READ. Every group on this page comes from src/lib/detail/fact-card-fixtures.ts's
- * PANEL_21C_GROUPS (the same panel-21c fixture /admin/parts/fact-card renders) plus one extra
- * overflow demo group built from KIND_FIXTURES so the "N more facts" disclosure (build item 3,
- * reusing MoreBelowDisclosure, closed by default per F43) has something to show past 4 cards.
- *
- * F49 (parts-not-pages): this page imports ItemGroup/FactCard and renders fixtures through them;
- * no group or card literal shell style is retyped here.
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { PageMasthead } from "@/components/shell/PageMasthead";
 import { SectionCard } from "@/components/ui/SectionCard";

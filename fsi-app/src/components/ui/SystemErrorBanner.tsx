@@ -1,18 +1,3 @@
-/**
- * SystemErrorBanner — surfaced when a data fetcher falls back to empty
- * (Sprint 3 SF-2 Phase 1, 2026-05-27).
- *
- * Conditional render only. Pass `message` non-empty to show; pass
- * `undefined` to render nothing. The wrapper at `lib/data.ts` returns
- * its sentinel via `data._error` — the page server component spreads
- * that into this prop.
- *
- * Copy is operator-locked recoverable framing: "Data temporarily
- * unavailable. Refresh to retry." The seed-fallback dispatch records
- * a platform integrity_flag with dedupe (one open flag per route per
- * hour); customer-side action is to refresh.
- */
-
 interface SystemErrorBannerProps {
   message?: string;
   /**

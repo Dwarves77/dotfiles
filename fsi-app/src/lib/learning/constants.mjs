@@ -1,10 +1,3 @@
-// constants.mjs, the learning loop's own named constants, ADR-036 fork 1 (docs/decisions/
-// ADR-036-learning-loop-forks.md), mirroring src/lib/entities/decisions.mjs's "one home, many
-// consumers" discipline for ADR-024's constants. Lane W2-G, wave2b, 2026-09-29.
-//
-// PLAIN ESM, ZERO DEPENDENCIES, importable from a script, a fitness function, or a component with no
-// npm install and no bundler, same constraint decisions.mjs states for itself.
-
 /**
  * ADR-044 decision 1 (supersedes ADR-036 decision 1): a question is answered from holdings first. A
  * workflow exports open questions with the held source text of the item and its connected items, a
@@ -16,6 +9,7 @@
  * a new named value here rather than a silently flipped flag.
  * @type {"holdings-session-batch"}
  */
+
 export const QUESTION_ACQUISITION = "holdings-session-batch";
 
 /**

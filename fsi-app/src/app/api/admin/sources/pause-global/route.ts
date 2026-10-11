@@ -1,17 +1,3 @@
-// /api/admin/sources/pause-global — the global scrape-SCHEDULE control (admin-only).
-//
-// POST body (either/both keys):
-//   - { cadence: 'off'|'weekly'|'monthly', start_date?: 'YYYY-MM-DD' }  -> set the global scrape schedule
-//   - { paused: boolean }                                              -> set the independent EMERGENCY STOP
-//   - { judgement_drain: 'off'|'on' }                                  -> set the judgement drain kill switch
-//     (migration 354, lane G6-DRAIN; its own sanctioned writer, the admin_set_judgement_drain RPC)
-// GET -> the current schedule + emergency state + computed next-scrape date.
-//
-// The global scrape schedule on the system_state singleton is the SINGLE source of truth for WHEN the
-// whole system scrapes (per-source update_frequency cadence retired). cadence='off' = nothing scrapes
-// (the hold). global_processing_paused is the independent emergency stop — it hard-halts without erasing
-// the saved cadence/start_date (so a panic-stop preserves the plan). isGloballyPaused() = off OR emergency.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

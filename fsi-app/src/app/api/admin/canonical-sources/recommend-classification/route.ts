@@ -1,18 +1,3 @@
-// POST /api/admin/canonical-sources/recommend-classification
-//
-// For a given canonical_source_candidate (whose URL is not already in the
-// sources registry), return an AI-recommended classification for the
-// reviewer's approve flow. Cached on the candidate row so subsequent
-// reviews don't re-call the model.
-//
-// Mirrors /api/admin/sources/recommend-classification but pulls in the
-// parent intelligence_item's domain / jurisdictions / topic_tags as
-// additional grounding context for the classification — those signals
-// give Haiku much more to work with than name+URL alone.
-//
-// Uses Haiku — taxonomy mapping against a fixed schema, not regulatory
-// analysis. Sonnet would be overkill.
-
 import { NextRequest, NextResponse } from "next/server";
 
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";

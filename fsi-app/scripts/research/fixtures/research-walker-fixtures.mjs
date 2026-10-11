@@ -1,16 +1,3 @@
-// research-walker-fixtures.mjs -- lane L7 (2026-10-02). Committed fixtures for research-walker.mjs's
-// default (no --live) CLI run: zero network, zero DB credential, matching the posture
-// research-assessment-fixtures.mjs already established for its own producer (read in full before this
-// file was written).
-//
-// FIXTURE_GREY_LIT_SOURCES: the 3 research-role sources spec 03 section 8 and the L7 brief name by
-// example (IEA, ICCT, a named university transport institute) -- real institutions, real hosts, so the
-// institution-class resolution in host-authority.ts (rule 18: tier from the class table, never
-// hand-typed) exercises its REAL classification rules against a REAL host, not an invented one.
-//   - iea.org    -> GOV_INTERGOV in host-authority.ts -> codified tier 2
-//   - theicct.org -> ANALYSIS class in host-authority.ts -> codified tier 6
-//   - tti.tamu.edu (Texas A&M Transportation Institute, a real university transport institute) ->
-//     ACADEMIC_TLD (.edu) -> codified tier 4
 export const FIXTURE_GREY_LIT_SOURCES = Object.freeze([
   { name: "International Energy Agency", url: "https://www.iea.org/reports/example-transport-outlook" },
   { name: "International Council on Clean Transportation", url: "https://theicct.org/publication/example-freight-study" },

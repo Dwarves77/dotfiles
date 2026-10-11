@@ -1,15 +1,3 @@
-// GET /api/community/groups/[id]/invite-candidates?q=<text>
-//
-// Search the profiles table for users matching `q`, excluding users
-// already in the group and users with a pending invitation. Used by the
-// Invite member modal to populate the candidate list.
-//
-// Admin-only (the POST .../invite route is admin-only; gating the search
-// the same way keeps the surface coherent).
-//
-// Auth:    cookie session via requireCommunityAuth.
-// Limits:  60 req/min/user via checkRateLimit.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

@@ -1,20 +1,3 @@
-// GET /api/admin/coverage
-//
-// Returns a coverage-matrix snapshot for the admin UI: every row is a
-// (jurisdiction × item_type) cell with item count, source count, freshness,
-// and a derived cell_state classification. The accompanying jurisdictions
-// array rolls each jurisdiction up with its tier, country group, and an
-// overall_state for stat-strip rendering.
-//
-// Query parameters:
-//   tier=1|2|3   — filter to a single tier
-//   country=US   — filter to all rows whose extracted country segment matches
-//
-// Auth: requireAuth + admin role gate (mirrors integrity-flags route).
-// Rate-limited.
-//
-// Powered by the coverage_matrix() RPC introduced in migration 039.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

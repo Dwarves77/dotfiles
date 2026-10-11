@@ -1,17 +1,3 @@
-/**
- * PeerOrgDirectoryTable — the peer-org directory (spec 05 §5 component 3: "peer-org directory,
- * aggregate, pseudonymous"). Renders COUNTS ONLY, grouped by org type, region, and sector — never a
- * row per person, never a name, never a company. Fed by directory/page.tsx's server-side aggregation
- * over `profiles.affiliation_type` / `profiles.region` / `profiles.sector_overrides` /
- * `profiles.verifier_status` (the legacy schema's closest real fields to the spec's orgType/region/
- * sector/verified projection — [INFERRED], documented in this lane's report: no `organizations.type`
- * column exists, so "role" from the spec's identity shape is intentionally NOT reproduced here —
- * `profiles.job_title` is free text a member entered themselves and is close enough to a name-bearing
- * field that this directory does not read it at all).
- *
- * Pure presentational: takes pre-aggregated rows, renders nothing when there is nothing to show.
- */
-
 export interface OrgTypeRegionRow {
   orgType: string;
   region: string;

@@ -1,29 +1,4 @@
 #!/usr/bin/env node
-// export-needs-for-search.mjs: the READ-ONLY export half of the needs-search batch pattern (lane G5-SEARCH,
-// 2026-10-07, buildout plan Stage 5 last clause and "How model judgement runs").
-//
-// Lists every open source need of the four kinds and writes ONE bundle file per run to --out-dir (never into the
-// repo) for a session lane to find URLs from:
-//   term-need:*               an adopted vocabulary term with no authoritative holding (G5-NEED)
-//   holdings-need:*           a question the held source text cannot answer (L4-B)
-//   flywheel-gap:*            a coverage gap in a theme (the corpus analysis)
-//   lineage-gap:absent-parent an instrument an item names as a parent that is not held
-// Per need: need_id (the flag id), kind, subject_ref, the need in words, its context, the age (created_at), the
-// output the found URL feeds, and what satisfies it (an authoritative URL at or above the type floor; how it is
-// rated). The reading shares question-answers/data.mjs (the need reader) and the lineage planner; this file adds
-// only the listing and the skip rules.
-//
-// A need is skipped when: its flag carries nothing a search can use (counted as residue); a lineage flag whose every
-// named parent is now held; or an earlier apply already served the same need (same need key) and the generator
-// raised it again under a new flag id while the found document is still working through the pipeline.
-//
-// FREE and READ-ONLY: no model call, no network, no write to the database. It writes the bundle file and its
-// harness-run artifact (scripts/turns/needs-search/artifact.mjs). Exits 2 without database credentials (rule 15).
-// --fixture <corpus.json> runs the whole step over an in-memory corpus with no database and writes no artifact.
-//
-// Usage:
-//   node scripts/turns/export-needs-for-search.mjs --out-dir <dir> [--limit N] [--fixture <corpus.json>]
-// Exit 0 done, 1 bad args, 2 no database credentials.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";

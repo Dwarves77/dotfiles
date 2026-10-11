@@ -1,19 +1,3 @@
-// routing.mjs — Phase 2: source-aware item routing (docs/plans/source-classification-framework-
-// 2026-05-10.md, "Axis 5: Expected Output / 5a. Source-aware item routing", and the "Source-aware item
-// routing summary" pseudocode at the end of that document). REC-2-plans.md §9 confirms this algorithm
-// was UNBUILT ("grep for axis5|axis_5|source_role.*routing returns nothing") — this module is that
-// build. Also implements 5b (drift detection) and 5c (anomaly flagging), the two primitives the
-// framework defines alongside routing.
-//
-// Deliberately scoped: this module does NOT re-implement "the five item rules drafted separately"
-// (i.e. it does not decide whether an item's TEXT passes the Regulatory/Research/Market Intel/
-// Operations rule — that rule-testing lives wherever item classification already happens, e.g. the
-// domain-routing case expressions in migrations 084/101 and mint-time classification). Per the
-// framework's own pseudocode, routeItemBySourceAxis5 takes AS INPUT the set of categories whose rule
-// already passed for a given item, and does ONLY step 3 onward: order by descending source-expected
-// probability, tie-break, out-of-scope fallback, and anomaly check. That is the part the framework
-// names as net-new ("Order item categories by descending expected probability for S").
-
 import { AXIS5_CATEGORIES, AXIS5_OUT_OF_SCOPE } from "./vocab.mjs";
 import { surfaceOf } from "../surface-of.mjs";
 

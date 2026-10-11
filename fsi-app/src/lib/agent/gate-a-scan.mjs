@@ -1,18 +1,3 @@
-// gate-a-scan.mjs — THE Gate-A scanner: the single implementation. Gate A finds figure/date tokens in
-// full_brief prose that no FACT claim covers; validate_item_provenance criterion 7 reads the row this
-// scanner writes (item_gate_a_state) and never re-scans. Consumers: write-item.ts (buildGateARow),
-// canonical-pipeline.ts, record-facts.mjs, apply-mint-batch.mjs / run-mint-batch.mjs / heal-provenance.mjs
-// through buildGateARow, and the mint kit's local pre-flight validate-mint-payload.mjs through
-// scripts/mint/lib/gate-a-scan.mjs, which since 2026-09-04 is a re-export of this file, not a copy.
-//
-// SINGLE SOURCE (2026-09-04, coordinator, after lane GATE-A-TOKENS): until this date this file and
-// scripts/mint/lib/gate-a-scan.mjs were two hand-mirrored copies ("keep in sync" by convention) and the
-// lane's harvest fix landed in the kit copy only, leaving the live path unchanged. That is the duplication
-// CLAUDE.md forbids; the kit file is now `export * from` this one, and F28 lists THIS file among the mint
-// family's governing files so a change here moves the harness hash. The one difference the copy carried
-// (a one-shot crypto.hash() spelling of md5 to stay clear of rule 015's textual raw-write scan of scripts/)
-// is not needed here: src/ is outside that scan, and createHash is the form every Node the app runs on has.
-//
 import crypto from "node:crypto";
 import { containsToken, norm } from "./gate-a-match.mjs";
 

@@ -1,23 +1,3 @@
-// schema.mjs: the needs-search batch contract and its pre-write validator (lane G5-SEARCH, 2026-10-07, buildout
-// plan Stage 5 last clause and "How model judgement runs").
-//
-// PURE and free of any database, network or model call. A source need (an open term-need, holdings-need,
-// flywheel-gap or lineage-gap flag) is exported as a session batch request; a session lane finds the authoritative
-// URL for each need and commits `needs-search-NNN.json`; this module is the enforcement the apply step
-// (scripts/turns/apply-need-urls.mjs) runs before any write. The README beside this file is the same contract in
-// prose; needs-search.test.mjs is the executable spec.
-//
-// Same family shape as scripts/turns/question-answers/: a committed batch, a pure validator, whole-entry refusals.
-// A refused entry never blocks the valid ones (no human gate: the decision is made by rule).
-//
-// THE RATING RULE (CLAUDE.md rule 18, source-credibility-model): a batch names a SOURCE, never a tier. The tier is
-// read from the institution class table (src/lib/sources/host-authority.ts) by HOST ALONE. The author's
-// `institution` text is never passed to the rating, so a name that sounds like an association cannot rate a host
-// into a better class. A host the table cannot place is refused unless the entry carries a `host_verdict` in the
-// existing host-verdicts entry format (scripts/maintenance/host-verdicts/, validated by that module's own
-// validator, the class a key of HOST_CLASS_TIER). A host the committed host-verdicts batches already place counts
-// too. An aggregator or hosting-platform host is never rated, a verdict included.
-
 import { createHash } from "node:crypto";
 import { TERM_NEED_NAMESPACE, HOLDINGS_NEED_NAMESPACE, GAP_NAMESPACE } from "../../../src/lib/connections/flag-namespaces.mjs";
 import { LINEAGE_GAP_CREATED_BY } from "../../../src/lib/entities/lineage-backfill.mjs";

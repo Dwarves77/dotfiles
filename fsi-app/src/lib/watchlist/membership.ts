@@ -1,39 +1,3 @@
-// Watchlist membership — ONE place for "which of these items does this viewer already have
-// watched" queries, used two ways:
-//
-//   1. SERVER (buildWatchMembership + fetchWatchMembership): one batched read for a whole page's
-//      worth of item ids of a single item_type (personal + team), so a server component can seed
-//      every <WatchButton> on the page with props instead of each instance firing its own GET
-//      /api/watchlist on mount. market/page.tsx uses this for MarketSeriesBoard's per-row watch
-//      buttons (docs/audits/perf-load-times-2026-09-03.md item 2: "GET /api/watchlist six times
-//      within 3ms on every visit" — six populated market_series rows, six WatchButton instances,
-//      previously six independent client fetches for a page that already runs server-side).
-//
-//   2. CLIENT (getClientWatchMembership): a module-level promise cache, ONE per item_type, shared
-//      by every mounted WatchButton instance that was NOT given server-resolved initial state (the
-//      four detail-page surfaces — RegulationDetailSurface, MarketSignalDetailSurface,
-//      OperationsDetailSurface, ResearchFindingDetailSurface — each mount exactly one WatchButton
-//      per page load, fed by src/app/{regulations,market,operations,research}/[slug]/page.tsx,
-//      which is outside this lane's write set, so those detail pages cannot be made to thread
-//      server props the way market/page.tsx now does; see this lane's report for the write-set
-//      note). Even at one instance per page this replaces WatchButton's old single-item GET with
-//      the same list-mode GET server-side already serves for case 1, so any surface that later
-//      grows more than one WatchButton of the same item_type (a list-mode ledger row, say) gets
-//      request-count safety for free — N mounted instances of the same item_type on one page
-//      always resolve from ONE network request, never N.
-//
-// Both halves return the SAME per-item shape (WatchMembershipEntry) so a caller — server or
-// client — gets an identical {watched, teamWatched, teamAvailable} triple regardless of which
-// path produced it, and WatchButton.tsx's prop contract does not need to know which path fed it.
-//
-// The server half takes its Supabase reads via injected deps (this repo's standing DRY-by-default
-// pattern for anything touching the database — see scripts/mint/apply-mint-batch.mjs), so
-// buildWatchMembership's actual decision logic (dedupe ids, resolve personal vs team scope, honest
-// teamAvailable=false when no org) is provable with `node --test` and no database. The client half
-// takes its fetch implementation and auth-header builder as parameters for the identical reason —
-// pure/testable without a browser or a real network call.
-
-/** Per-item watch state, the same shape WatchButton.tsx's initial-state props expect. */
 export interface WatchMembershipEntry {
   watched: boolean;
   teamWatched: boolean;

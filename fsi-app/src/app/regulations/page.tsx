@@ -1,31 +1,3 @@
-/**
- * Regulations index (`/regulations`) — server component.
- *
- * UI system handoff 2026-09-06, artboard 02 "Regulations list". Composes
- * <RegulationsLedger> (masthead + band tiles + facets + band-grouped rows +
- * rail — see that component's own header for the full assembly).
- *
- * PAGE SCOPE (UI fix round 2026-09-08, item D2). Artboard 02 defines the WHOLE page, and everything
- * that used to sit below its last card has moved or gone:
- *   - <UpcomingObligationsStrip variant="list"> — REMOVED. The rail card "Obligations · next 30 days"
- *     (ListSurfaceRailCards.tsx, mounted by RegulationsLedger) is the design for that content, so the
- *     horizontal card strip was a second rendering of the same thing.
- *   - <ObligationRegister variant="list"> — MOVED to its own page, /regulations/register, reachable
- *     from the rail card's own "Calendar →" link.
- * <EudrCustodyPanel> was removed by ADR-042 (it held a customer's own consignment filings).
- *
- * REWRITTEN this lane (UILISTS, 2026-09-06): the old <EditorialMasthead> is
- * gone — RegulationsLedger's own <Masthead> (src/components/ui/Masthead.tsx,
- * the UI-system part with the VOL/date line + CommandBar) replaces it, so
- * this page no longer renders two mastheads or duplicates the masthead sub-
- * line copy the old page.tsx built by hand. The old PERF-12 keyset-cursor
- * mechanism (initialNextCursor/initialHasMore/cursorAfter/encodeListingCursor)
- * is replaced by the LIST_FIRST_PAGE_SIZE(60)-then-after-paint-remainder
- * pattern shared with Operations/Market/Research/Watchlist — see
- * RegulationsLedger.tsx's own header for why, and DEVIATION-LOG.md for the
- * considered reversal of PERF-12's own choice.
- */
-
 import { Suspense } from "react";
 import { describeFallbackTrigger } from "@/lib/supabase-server";
 import { getPublicListingsOnly, getPublicSurfaceCounts } from "@/lib/data";

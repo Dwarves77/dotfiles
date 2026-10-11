@@ -1,10 +1,3 @@
-// Pure decision logic + constants for /api/watchlist, split out of route.ts (BUILDGATE,
-// 2026-09-02, F34's named residual / build-graph proof). Next 16's route-type validator rejects
-// a route.ts that exports anything besides route handlers/config fields, so these move to this
-// sibling module and route.ts imports them. Behaviour is unchanged; only the file they live in
-// moved. route.npmtest.mjs now imports these directly from here (and, for TEAM_ONLY_TYPES /
-// isTeamOnlyScopeViolation, from src/lib/watchlist-scope.ts where they already lived).
-
 import { NextResponse } from "next/server";
 
 // ITEM_TYPES is exported purely for direct unit test of the real validation, the same

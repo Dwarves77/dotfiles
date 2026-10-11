@@ -1,14 +1,3 @@
-// Private-per-workspace notes on an intelligence item (lane S8-A, 2026-10-07; migration 358 item_notes).
-// Handlers for /api/workspace/items/[id]/notes. Contract and the cross-org rule: see item-collab-shared.mjs.
-//
-// RULES (the same as migration 358's RLS and guard trigger, enforced here in code because the routes use the
-// service-role client):
-//   read    any member of the caller's org (a viewer reads), the caller's own org only
-//   add     owner, admin or member, as themselves
-//   edit    the author only, never an admin, never a deleted note
-//   delete  the author's own note, or any note for an owner or admin, by soft delete (deleted_at); the row is kept
-// A note is workspace commentary. Nothing here feeds analysis, another page or the flywheel.
-
 import { NOTE_MAX_LENGTH, canWrite, isOrgAdmin, loadRoster, nameIndex, ok, fail } from "./item-collab-shared.mjs";
 
 const NOTE_COLUMNS = "id, author_user_id, body, created_at, edited_at";

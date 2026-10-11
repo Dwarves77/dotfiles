@@ -1,30 +1,4 @@
 #!/usr/bin/env node
-// seed-derived-values.mjs: the initial closure for the carbon-intensity method (docs/specs/08-flywheel-design.md
-// section 2.2 Part 2: a value has to exist ONCE, from some caller, before drain.ts's recompute pass (which
-// only ever SUPERSEDES an existing row) has anything to work from). Lane DP-SURF, system-completion train,
-// 2026-09-02. The second seed path this script once carried (a wage-versus-automation derived value per
-// region) was retired by ADR-043 (operator ruling 2026-10-03); regional wage and energy facts stay as
-// sourced evidence and are no longer combined into a verdict.
-//
-// ONE SEED PATH: carbon_intensity_tkm@1.0.0, one derived_values row per EMBEDDABLE emission_factors row (the
-// source_licence.mjs gate: mayEmbedAsSeed(source_key)) that carbon-intensity.mjs can actually compute from
-// (quantity_basis in SUPPORTED_BASES; today just "tonne_km", every other basis REFUSES with a named reason,
-// counted, never guessed). entity_id is NULL (emission_factors.corridor_id is free text, not an entity spine
-// kind; migration 284's own header note on why the outbox itself carries no entity_id for this table
-// either). Written via registerDerivedValue (register-derivation.ts): derived_values ONLY, no paired
-// estimated_values row (carbon-intensity is neither statutory nor an estimate; see
-// methods/carbon-intensity.ts's header).
-//
-// --dry counts everything this run WOULD write and writes nothing (no registerDerivedValue call).
-// --apply performs the writes. Exactly one of --dry/--apply is required.
-//
-// PLAIN reads before any write: this script never mutates emission_factors, a read-only source table; its only
-// destination is derived_values through the RPC, same "sources are read-only inputs" posture drain.ts holds.
-//
-// Usage:
-//   node scripts/propagation/seed-derived-values.mjs --dry
-//   node scripts/propagation/seed-derived-values.mjs --apply
-// Exit 0 done · 1 bad args · 2 no DB creds (cannot run here) · 3 one or more writes failed (apply only).
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { resolve } from "node:path";

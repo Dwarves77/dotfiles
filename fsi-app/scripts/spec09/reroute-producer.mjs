@@ -1,33 +1,5 @@
 #!/usr/bin/env node
-// reroute-producer.mjs — spec 09 §1.7, reroute_events (migration 296). $0 SOURCING STATUS: GAP, a
-// DIFFERENT shape from the other producers in this directory — see scripts/spec09/SOURCES.md. The Suez/
-// Cape Red Sea diversion is well-documented public fact, but this table requires TWO DISTINCT
-// `entities.kind='corridor'` rows (baseline + reroute — the exact fix spec 09 §0 exists to make
-// representable), and only ONE corridor entity exists in the spine today (lane CORR's wave-2 seed,
-// `CNSHA-NLRTM:ocean`) [CONFIRMED, live SQL, 2026-09-05]. This producer READS the live corridor entity
-// count (deps.readAll, never invents one) and reports the honest gap rather than fabricating a second
-// corridor id — minting one is entities/entity_kind territory (COMMUNITY-A/CORR's write set, not this
-// lane's; lane CORRIDORS-STATUTORY is seeding a second corridor concurrently).
-//
-// ROWS-FILE EXTENSION (lane SPEC09-A, 2026-09-05, plan §W5.1). Once >=2 corridors exist, WHICH pair is a
-// real reroute event, and its cause/fuel_burn_multiplier/dates, is a sourced, dated public-fact judgement
-// this producer does not make on its own (see evaluateCorridorReadiness's own doc comment, unchanged) —
-// it is supplied by an operator/browser-lane-reviewed `--rows-file` (JSON), the same shape
-// scripts/propagation/write-statutory.mjs established for "the first writer of a table with no live feed
-// yet". See scripts/spec09/lib/rows-file.mjs for the shared rows-file/citation/source-registration
-// plumbing every one of these rows-file rows goes through: EVERY row requires a `citation` block
-// (url/title/retrieved_at/quote — rule 18, never refuse a sourced figure but never publish an unsourced
-// one either), the citation's host is rated through the institution class table (SC-13,
-// classTierForHost — never a hand-typed tier) and registered via `sources`, and both corridors named in
-// the row must already exist as live `entities.kind='corridor'` rows (matched by exact canonical_name) —
-// this producer never mints one. `reroute_events` has no `source_id` column (migration 296's own header:
-// no entity_kind fits "a source row"), so each row's citation is carried in ITS OWN guarded-write `cite`
-// (one guardedInsertMany call per row, not one batched call, so each row's snapshot carries its own
-// distinct citation) rather than a DB column.
-//
-// DRY BY DEFAULT. deps-injected (readAll/guardedInsertMany/registerSource) so this runs with zero DB
-// access under `node --test` — corridorRows()/evaluateCorridorReadiness()/buildReadyRow() below are pure,
-// unit-tested directly against fixtures, independent of the DB-reading wrapper around them.
+
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "../maintenance/lib/cli.mjs";

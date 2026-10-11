@@ -1,18 +1,3 @@
-// suppressed-render.mjs , a suppressed claim is hidden from every customer render of it (lane G7-CORR, 2026-10-06).
-//
-// An admin `suppress` correction on a fact (migration 356) never deletes the claim and never touches stored text.
-// The claim reaches a customer in three shapes: its rating chip (fetchClaimTierMap), the claim's own sentence inside
-// the section's content_md (the section render and the fact card model both parse that text), and inside the item's
-// full_brief (the GfmSection / action body / assistant context). This module is the ONE read-time home for the last
-// two: a pure function that removes a suppressed claim's claim_text from the section it belongs to (and from the
-// full brief), plus the loader that finds the suppressed claims of an item.
-//
-// Matching (lane DFIX-2): the claim_text is found as the same words in the same order, tolerant of whitespace runs and
-// markdown-escaped brackets (see claimTextPattern), so a record-grade "[slot] ... c" line is found whether the section
-// wraps it, doubles a space or escapes the brackets. Honest limit, recorded in the result and never hidden: a
-// claim_text that still is not found (different words) is reported in `report[].section_found === false`; nothing
-// else is guessed or fuzzily matched.
-
 import { fetchAllByIdChunks } from "../db/paginate.mjs";
 import { readAllCorrections, readItemCorrections, suppressedClaimMatcher } from "./item-corrections.mjs";
 

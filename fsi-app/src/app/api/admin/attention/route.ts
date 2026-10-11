@@ -1,30 +1,3 @@
-// GET /api/admin/attention
-//
-// Returns aggregated admin-attention counts across all needs-attention
-// categories (provisional sources, staged updates, materialization failures,
-// integrity flags, source attribution mismatches, auto-approved awaiting
-// spot-check, coverage gaps). Wraps the `admin_attention_counts()` RPC
-// added in migration 036 (W2.E).
-//
-// Auth: requireAuth + isPlatformAdmin. 401 for unauthenticated, 403 for
-// authenticated non-admins — non-admin users should never see the red dot,
-// so the API answer matches the UI gate.
-//
-// Cache layering:
-//   - HTTP-level (Cache-Control headers, browser cache):
-//       200 → private max-age=30; 401/403 → private max-age=60; 5xx no-store.
-//       Absorbs duplicate fetches inside the same browser session.
-//   - Server-level (unstable_cache, perf day-2 — 2026-05-08):
-//       Wraps the supabase RPC. Cache key includes the calling admin user
-//       id so the entry is workspace-scoped (one admin's mutation does not
-//       evict another's snapshot, future-proofs if the RPC becomes
-//       workspace-scoped). 30s TTL matches the HTTP positive-cache window.
-//       Tagged with APP_DATA_TAG so any mutation route that already calls
-//       revalidateTag(APP_DATA_TAG) (staged-update approval, workspace
-//       overrides, etc.) flushes attention counts atomically — no separate
-//       tag plumbing needed.
-//   - 401/403 responses: see above. Admin status is sticky for the session.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

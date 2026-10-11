@@ -1,23 +1,3 @@
-// resource-lookup.ts — flywheel U9 (D1) shared helper. Extracted from the pattern originally inline in
-// regulations/[slug]/page.tsx (customer read gate on related-item titles) so Market/Operations/Research
-// don't each re-implement the same ~40 lines when wiring ItemConnectionsCard (one home, not four).
-//
-// Customer read gate: only verified items may surface titles in a connections list. A quarantined
-// connection/supersession target falls back to its raw id (buildConnectionRows/buildSupersessionRows in
-// connection-view-model.mjs tolerate a missing lookup entry) rather than leaking an unverified title.
-//
-// PERF lane (2026-09-03): buildResourceLookup was already the shared home for the related-items title
-// query, but regulations/[slug]/page.tsx had never been migrated onto it — it carried its own byte-for-
-// byte copy (same query shape, same provenance gate) inline, which is exactly the hand-mirroring pattern
-// docs/audits/perf-load-times-2026-09-03.md §6 names as how the sequential-fan-out shape spread unnoticed.
-// Fixed in the same pass as the fan-out itself (src/lib/detail/load-detail.ts): regulations now calls this
-// function too. Signature changed from `(relatedIds)` to `(supabase, relatedIds)` — the four detail pages'
-// item-scoped bundles (load-detail.ts's ItemScopedCtx) already hold ONE service-role client per render
-// (THE canonical one, supabase-service.ts's getServiceSupabase, memoized) instead of each helper opening
-// its own; all 3 prior call sites (market/operations/research) are updated in the same commit. One more
-// one-line helper added below for the SAME reason, resolveItemUuid (legacy_id-or-uuid → uuid) was
-// hand-copied 2-3 times across the four detail pages (owner lookup, note lookup, price board).
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type ResourceLookup = Record<string, { id: string; title: string; priority: string }>;

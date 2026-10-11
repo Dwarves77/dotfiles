@@ -1,20 +1,3 @@
-// aggregate-safeguards.mjs — the JS mirror of migration 287's SQL antitrust/anonymisation helpers (docs/
-// specs/08-flywheel-design.md §5.2(b)-(d), plus the dominance cap and forward-looking refusal). Lane
-// DP-ENGINE, system-completion train, 2026-09-02, second commit ("nothing deferred").
-//
-// WHY A MIRROR RATHER THAN ONE SHARED IMPLEMENTATION. `publish_aggregate()` (migration 287) is what
-// actually gates and logs a live request — it owns the audit trail (`aggregate_query_log`) and MUST run
-// inside Postgres, since the freeze/overlap/complement checks all consult that log's history. This file
-// exists so the SAME arithmetic (bucket rounding, width scaling, dominance share, complement-set
-// detection, freeze-window membership) is unit-testable in CI without a database — a caller assembling a
-// UI preview, or a test proving the SQL and the JS agree, does not need Postgres running to exercise the
-// logic. The two must AGREE — aggregate-safeguards.test.mjs proves it on the SAME literal fixtures
-// migration 287's own self-check DO block asserts against (see that migration's header, "second commit"
-// section, for the grammar and rule definitions this file transcribes, not re-derives).
-//
-// PURE. No database, no I/O, no Date.now() read internally — every function takes its inputs explicitly
-// (including "now", where relevant), same discipline effective-confidence.mjs states for itself.
-
 /**
  * Mirrors migration 287's `bucket_width_multiplier(n, k_min)`: GREATEST(1, CEIL(2*k_min/n)). 2 at
  * n = k_min (double-width buckets at the floor), falling to 1 (no widening) at n = 2*k_min and staying
@@ -25,6 +8,7 @@
  * @param {number} kMin - the field's k-anonymity floor
  * @returns {number} multiplier, always >= 1
  */
+
 export function bucketWidthMultiplier(n, kMin) {
   if (typeof n !== "number" || !Number.isFinite(n)) {
     throw new TypeError(`bucketWidthMultiplier: n must be a finite number (got ${JSON.stringify(n)})`);

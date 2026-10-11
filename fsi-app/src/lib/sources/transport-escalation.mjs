@@ -1,33 +1,3 @@
-// TRANSPORT ESCALATION LADDER + WRITE-SIDE CAPTURE VERDICT (dispatch 2026-07-06, invariant RD-14).
-//
-// THE CLASS FIX (complements RD-11 hold gate + RD-13 read-side error-body gate): the capture layer used to
-// STORE failed fetches (Cloudflare/Radware bot walls, 403/Access-Denied, federalregister/eCFR "Request Access"
-// blocks, 404s, EUR-Lex nav shells, JS shells) as "source content"; grounding then copied error/nav text as
-// verbatim FACTs (the fabricate-via-error-page moat breach). RD-13 gates READ-side consumption. THIS module is
-// the WRITE-side complement + the per-failure-class escalation LADDER:
-//
-//   (a) canonical-URL cache first (fetch-hold.mjs owns the cache; injected via `cacheGet`).
-//   (b) block / bot-wall on one transport → try the OTHER transport, in EITHER direction (fires on the 403
-//       class, not only cdn_block).
-//   (c) JS-shell / soft-404 (a 200 whose body is a client-render placeholder, isErrorBody-style) → the
-//       Browserless render path (which executes JS), regardless of the host's default order.
-//   (d) API-transport for API hosts — federalregister.gov + eCFR expose OFFICIAL JSON APIs; route to the API,
-//       NEVER the HTML page (the HTML returns "Request Access" to scrapers). host → transport selection.
-//   (e) a genuine 404/410 (or soft-404) after the ladder → emit a SEEK-MORE task (alternate-URL discovery),
-//       NEVER a stored error body.
-//   (f) ladder exhausted on blocks/walls → record the verdict + the item HOLDS with a named reason
-//       NO_REACHABLE_SOURCE, event-bound (re-collect at hold-lift). NEVER a stored error body.
-//
-// THE DOCTRINE (skill remediation-discipline, category 13): transport failure is never terminal and never
-// stored; quarantine is the honest state only for genuine ungroundability after mechanical exhaustion, named
-// and event-bound, never a fetch-failure artifact.
-//
-// PURE + DEP-INJECTED: classifyTransportResult / selectTransportOrder / apiEndpointFor / captureForStorage are
-// pure; escalateFetch takes the transports as injected deps (cacheGet, apiFetch, directFetch, browserlessRender,
-// seekMore) so NO real fetch happens in tests. Reuses the single-home detectors: isErrorBody (entity-gate.mjs),
-// detectRoadblock (primary-fallback.mjs), partitionErrorBodies (entity-gate.mjs). GOVERNING: remediation-
-// discipline (category 13, RD-14) + source-credibility-model (the moat).
-
 import { isErrorBody } from "./entity-gate.mjs";
 import { looksLikeFurniture } from "./holdings-audit.mjs";
 import { detectRoadblock } from "./primary-fallback.mjs";

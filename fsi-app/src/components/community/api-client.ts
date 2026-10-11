@@ -1,21 +1,3 @@
-/**
- * api-client.ts — typed fetch wrappers for COMMUNITY-A's guard-enforced Community API contract
- * (docs/plans/wave3-lanes-2026-09-03.md, "Interface contract with COMMUNITY-B"). COMMUNITY-A owns
- * `src/lib/community/**` and `src/app/api/community/**`; this lane (COMMUNITY-B, "the surface")
- * consumes that contract only through the shapes below, never by importing A's server modules.
- *
- * Every function is a pure fetch wrapper: no module-scope side effects (F34 — no filesystem/network
- * call at module scope under src/**), safe to import from a client OR server component. Each accepts
- * an optional `fetchImpl` so tests can inject a stub instead of touching the network — the `fixtures`
- * export below is the canned data those stubs return, and it doubles as the shape reference for the
- * REAL-component UX smoke spec `.discipline/rendering/smoke/community-smoke.mjs` (mounts PostList
- * and Post against fixture data shaped from this same contract).
- *
- * A's routes did not exist in this worktree at write time (sibling lane, separate worktree) — these
- * wrappers are built strictly from the contract text in the wave3 plan, never from reading A's code.
- * Where the contract was silent, the gap is named at the call site with [INFERRED].
- */
-
 import { validateEntityIds } from "../../lib/community/entity-binding.mjs";
 
 // ── POST /api/community/posts ────────────────────────────────────────────────────────────────

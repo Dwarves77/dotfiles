@@ -1,22 +1,3 @@
-/**
- * SeriesFreshness: the freshness panel summary strip and the per-series freshness badge of spec 02 section 6
- * item 11, extracted from MarketSeriesBoard.tsx (lane MKT-1, 2026-10-08) so every Market page that shows
- * a market_series figure mounts the SAME two parts instead of retyping them (reuse before construction).
- *
- * THE MARKUP IS MOVED, NOT CHANGED. Both exports below are the exact JSX MarketSeriesBoard rendered inline
- * before this lane (the panel at the top of the board, the badge under each populated series row), with
- * the tone and copy tables that went with them. MarketSeriesBoard now imports them; /market/series
- * renders byte-for-byte what it rendered before. Two additive, defaulted props exist for the second
- * mount (`style` on the panel, `showAsOf` on the badge); omitted, they change nothing.
- *
- * NO NEW ARITHMETIC. The state itself is derived upstream by deriveSeriesFreshness and
- * summarizeBoardFreshness (src/lib/market/series-freshness.mjs, over envelope.mjs's stalenessOf); this
- * file only draws a finished state. Spec 02 section 9's named defect (a "Next release" date promised by a
- * scheduler that does not exist) is why the badge draws a DERIVED STATE and never a predicted date.
- *
- * Server component, no client state, no fetch.
- */
-
 import type { CSSProperties } from "react";
 import { FRESHNESS } from "@/lib/contracts/vocabularies.mjs";
 import { producerFor } from "@/lib/market/series-registry.mjs";

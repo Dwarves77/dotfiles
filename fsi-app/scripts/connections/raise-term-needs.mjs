@@ -1,38 +1,5 @@
 #!/usr/bin/env node
-// SHARED-WRITER: integrity_flags
-// raise-term-needs.mjs (lane G5-NEED, 2026-10-07, buildout plan Stage 5 last clause): raises and closes the
-// `term-need:` source search targets by rule. Dry by default; `--mode apply` writes integrity_flags through the
-// guarded path of scripts/lib/db.mjs (rule 015). The planning is src/lib/connections/term-needs.mjs (pure);
-// the dedup-before-insert / resolve-if-stale decision is propose-tags.mjs's planReflect, imported, not copied.
-//
-// WHAT IT READS
-//   - vocabulary_terms and vocabulary_mentions (migration 355, written by term-recurrence.mjs): the adopted
-//     terms and the items that mention them (F14: this runtime reads what the collector writes);
-//   - intelligence_items (type, provenance, origin, primary source) and sources (base_tier, tier_override) of
-//     the mentioning items: the authoritative-holding test, `authorityFloorFor` through term-needs.mjs;
-//   - integrity_flags `lineage-gap:absent-parent` and the held corpus: planLineageGapTargets (the same planner
-//     scripts/maintenance/lineage-gap-targets.mjs uses) turns open absent-parent flags into identifiers;
-//   - integrity_flags `term-need:*` that are open: what to keep, what to close.
-//
-// WHAT IT WRITES (only integrity_flags, namespace term-need:). An adopted term with no authoritative holding
-// gets ONE open need (subject_ref the term id), by rule, need text from kind and label. A lineage identifier
-// that is not a CELEX id gets one need of kind standard (subject_ref `lineage:<identifier>`). A CELEX
-// identifier gets no flag: it is an explicit target for the EUR-Lex register walker
-// (run-source-sweep.mjs --targets-file), counted here and listed in the summary. An open need no longer
-// reproduced (the holding exists, the term retired, the parent now held) is resolved by rule. No human step.
-//
-// READ BY: scripts/research/research-walker.mjs `--holdings-needs` (the one need reader,
-// question-answers/data.mjs loadOpenNeedTargets with includeTermNeeds), whose artifact counts record how many
-// needs were read, searched and returned candidates.
-//
-// RULE 17. A step in downstream-chain right after term-recurrence (its mode is the chain's RUN_MODE, which the
-// chained-dry-guard resolves to dry while scrape_cadence is off); emit-downstream-chain-artifact.mjs reads this
-// step's counts into metrics.term_needs.
-//
-// TOLERANCE BEFORE MIGRATION 355 IS APPLIED. A dry run reports `tables_absent` and plans lineage needs only;
-// an apply refuses (exit 1).
-//
-// Usage: node scripts/connections/raise-term-needs.mjs [--mode dry|apply] [--out <dir>]
+
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "../maintenance/lib/cli.mjs";

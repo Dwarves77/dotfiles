@@ -1,27 +1,3 @@
-/**
- * /admin/parts/rail-card: the RailCard sign-off page (lane W10-RailCard, 2026-09-22).
- *
- * Renders the real `RailCard` part (`src/components/ui/RailCard.tsx`) in each of its four head
- * variants (plain title, `headLink`, `headRight`, `titleHref`+`titleCount`) against the frozen
- * real records already captured by lane W10-ListRow (`list-row-fixture.ts`, project
- * kwrsbpiseruzbfwjpvsp, frozen 2026-09-22 via read-only SELECT). No new database read: this page
- * reuses that existing frozen fixture (retrieval-before-generation, CLAUDE.md "Retrieval before
- * generation", the answer already existed in the repo) rather than staging a second frozen-record
- * file for the same underlying rows. No invented title, jurisdiction or tier text.
- *
- * The Legend variant is ALSO the ruling-5 proof: "legend rail card: one live ImpactMeter frozen at
- * N = 8 next to the text, no diagram." `LegendRailCard` (`list-surface/ListSurfaceRailCards.tsx`)
- * is mounted here unmodified, and it renders `<ImpactMeter total={8} />` beside the Impact/Timeline/
- * Source-tier text, confirmed by reading that component's own source (no diagram element exists in
- * it).
- *
- * F49 (parts-not-pages): this page imports RailCard/LegendRailCard/StatBlock and renders the
- * fixture through them; no rail-card shell literal (SectionCard padding, the 10.5px/800/.12em
- * uppercase header) is retyped here.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check
- * applies; see this lane's final report).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { PageMasthead } from "@/components/shell/PageMasthead";
 import { SectionCard } from "@/components/ui/SectionCard";

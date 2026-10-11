@@ -1,27 +1,3 @@
-// TABLE_PRIMARY_KEY -- the committed map every base table's real primary key column(s) (composite keys
-// as an array, in ordinal position order). Generated from a live query (lane MAINTENANCE-HARNESS,
-// 2026-09-28, coordinator ruling after PR #819's CI failure and #812's own GATE-A-RESCAN precedent):
-//
-//   select tc.table_name, array_agg(kcu.column_name order by kcu.ordinal_position) as pk_columns
-//   from information_schema.table_constraints tc
-//   join information_schema.key_column_usage kcu
-//     on tc.constraint_name = kcu.constraint_name and tc.table_schema = kcu.table_schema
-//   where tc.constraint_type = 'PRIMARY KEY' and tc.table_schema = 'public'
-//   group by tc.table_name order by tc.table_name;
-//
-// WHY THIS EXISTS. scripts/lib/db.mjs's readAll() used to default `orderBy` to the literal string
-// "id" regardless of the table -- three confirmed live incidents from that one wrong assumption:
-// entity_refs (2026-09-12, migration has no "id" column at all, composite PK), item_gate_a_state
-// (2026-09-26, PR #812, PK is intelligence_item_id), harness_runs (2026-09-28, PR #819, PK is run_id).
-// readAll() now looks up this map and REQUIRES an explicit `orderBy` for any table not listed here
-// (a view, or a table created after this snapshot) -- it never silently falls back to "id" again.
-//
-// STALENESS. This is a snapshot, not a live read (readAll() must stay $0/no-DB-round-trip for its own
-// call). scripts/verify/pagination-order-key-audit.test.mjs's own companion check
-// (`table-primary-keys-freshness.test.mjs`) re-derives this exact query's shape against the committed
-// duplicate-table-schema-snapshot.json's table list and fails loud if a table appears there that is
-// absent here, so a new migration's table is caught before a readAll() call site on it can silently
-// misorder. Regenerate by re-running the query above and replacing this object.
 export const TABLE_PRIMARY_KEY = Object.freeze({
   admin_action_cooldowns: 'action_key',
   agent_run_searches: 'id',

@@ -1,11 +1,3 @@
-// Pure decision for the per-source accessibility assessment (the #4 fix), extracted so the
-// composition is fixture-testable WITHOUT touching prod. Given the reachability OUTCOME + the
-// source's current counters, returns what the route should record and whether the row is
-// evict-ELIGIBLE. The d3 guard still decides the ACTUAL eviction (a DB call kept in the route);
-// this only says whether the guard may be consulted.
-//
-// THE BUG-CLASS INVARIANT: a non-answer (INCONCLUSIVE) is NOT accessible but is NEVER
-// evict-eligible — only a definitive DEAD (404/410) with a 0 accessible-streak is. No DB, no Date.
 import { REACH } from "./reachability.mjs";
 
 /**

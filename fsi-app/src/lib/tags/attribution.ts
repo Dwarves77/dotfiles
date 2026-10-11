@@ -1,17 +1,3 @@
-/**
- * Workspace tag attribution (lane s8b-tag-attribution, 2026-10-07, migration 313 created_by/created_at / plan Stage 8).
- *
- * A workspace tag shows who applied it and when. Inside a workspace the members see each other's
- * names (the Community pseudonymity rules do not apply here), so the name is the profile's own
- * name. The pair is stored on the item_workspace_tags join row as created_by / created_at
- * (migration 313): the tag write route stamps created_by from the session, never from the request
- * body, and created_at is the column default. This module holds the pure shaping and wording so
- * the route (server) and the chip and list (client) read one definition and cannot drift.
- *
- * Pure: no imports, no I/O, safe for the browser bundle and the no-database tests.
- */
-
-/** One tag application on one item, as the GET route returns it and the components read it. */
 export interface TagApplication {
   tagId: string;
   /** The applying member's user id; null when that account no longer exists (created_by is

@@ -1,22 +1,4 @@
 // @ts-check
-// FREE-PASS RE-ATTRIBUTION DECISION (pure core) — economy-of-information doctrine, operator ruling 2026-07-13
-// + the free-pass re-attribution CONSTRAINT (2026-07-13). The $0 pass may re-attribute a failing FACT span to
-// a stored capture ONLY when ALL THREE hold — anything short is NOT free-flippable and exits to the facts-only
-// manifest, even if the string matches (a matched span in a non-authoritative page is the fake-cert the moat
-// exists for):
-//
-//   (1) VERBATIM + TIER (reuses floor-attribution.mjs): the span is verbatim-present in the candidate's stored
-//       capture, the span is >= MIN_REATTRIB_SPAN, and re-attribution only fires when the current attribution
-//       is BELOW the floor / unresolved (a span already at floor keeps its honest attribution).
-//   (2) PRIMARY-INSTRUMENT CLASS (reuses officialness.mjs): officialnessOf(...).path === 'a' — the capture is
-//       the enacted/official instrument body past the nav at a floor-qualifying tier, NOT portal / consultation
-//       / summary furniture (path 'b' is never a floor re-home target).
-//   (3) ERROR-BODY PARTITION (reuses entity-gate.mjs): the capture is NOT an error body (bot wall / 403 / 404 /
-//       nav shell) — no re-attribution into any capture the gate excluded or would exclude.
-//
-// PURE (no I/O, no fetch, no model, no clock) so the property is red-then-green under node --test. The SC-13
-// codified host tier and the item authority floor are INJECTED by the runner (a pure .mjs must not import a
-// relative .ts — officialness.mjs §caveat); this core is a pure function of its inputs.
 
 import { MIN_REATTRIB_SPAN, floorSources } from "../../src/lib/agent/floor-attribution.mjs";
 import { officialnessOf } from "../../src/lib/sources/officialness.mjs";

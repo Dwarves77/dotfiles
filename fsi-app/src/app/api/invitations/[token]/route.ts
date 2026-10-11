@@ -1,16 +1,3 @@
-// src/app/api/invitations/[token]/route.ts
-//
-// GET /api/invitations/[token] — lookup an invitation by its bearer token.
-// Returns the org name, the proposed role, the email it was sent to, and
-// the lazy-computed status (pending/accepted/declined/revoked/expired).
-//
-// Authentication: the token IS the credential. We require the caller be
-// an authenticated user (so we can avoid leaking metadata to anonymous
-// scrapers) but we don't require they be the invitee — the accept/decline
-// endpoints enforce email match.
-//
-// Workstream B (Multi-Tenant Foundation) — 2026-05-15.
-
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

@@ -1,13 +1,3 @@
-// Shared per-row field derivations for the UI system dashboard
-// (src/components/dashboard/DashboardBrief.tsx). Extracted so the same
-// jurisdiction-code / due-date logic isn't hand-copied. (2026-10-01, lane
-// R12-13: DashboardTopPriority.tsx, the only other module that carried a
-// near-identical `jurTag`/`deadlineLabel` pair, has been deleted: it had no
-// import site anywhere in src/ and was dead code built for a dashboard
-// redesign superseded by the operator's 2026-05-24 "stays as-is" ruling. The
-// consolidation follow-up this comment used to flag is closed by that
-// deletion, not by a merge.)
-
 import type { Resource } from "@/types/resource";
 
 // Widened from `Resource` to the two optional fields each function actually reads (CMDSEARCH lane,

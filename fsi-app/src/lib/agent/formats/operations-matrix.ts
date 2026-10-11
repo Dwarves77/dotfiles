@@ -1,31 +1,3 @@
-/**
- * operations-matrix.ts — matrix eligibility gate for Operations Profile S3/S4.
- *
- * Per analysis-construction-spec references/formats-regulatory-operations-market.md §5:
- *   S1/S2 are single-region span facts that always render.
- *   S3 (Cost Comparison Against Alternatives) and S4 (Cross-Regional Strategic
- *   Implications) are MATRIX-gated:
- *     - The same dimension must be sourced across >=2 regions, AND
- *     - The item's OWN jurisdiction must be one of those sourced regions.
- *
- * The gate is a COVERAGE QUERY over the existing region_dimension_coverage
- * table (migration 109) which exists and is the authoritative coverage SSOT.
- * We do NOT count globally — that was the identified prior bug. The check is:
- *   "given this item's jurisdictions, does ANY dimension have >=2 sourced
- *    regions where one of those regions is this item's own jurisdiction?"
- *
- * Read-only helper (no DB writes). Called server-side by the Operations page
- * component. Returns a MatrixEligibility record per Operations dimension.
- *
- * Dimensions are the 7-value vocabulary from migrations 106/109/378:
- *   regulatory_feasibility | regional_resources | labor_markets |
- *   materials_sourcing | infrastructure | operational_cost | grid_intensity
- *
- * S3 eligibility: any dimension reaches >=2 sourced regions AND item's
- *   jurisdiction is one of those regions.
- * S4 eligibility: S3 is eligible (S4 is transitive over S3).
- */
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ── Vocabulary ─────────────────────────────────────────────────────────────

@@ -1,21 +1,9 @@
 // @ts-check
-// SLOT-FORCING (item 5b, operator ruling 2026-07-04). A grounding-side step that closes required-slot and
-// unlabeled-binding-assertion gaps WITHOUT fabricating. For each required slot (or binding-verb section) that
-// the extractor left with no slot_key-tagged FACT/GAP claim, it either tags a genuinely-grounded FACT or
-// emits the mandated honest GAP.
-//
-// GENUINE-SUPPORT BINDING (the load-bearing rule): a FACT is emitted ONLY where the grounding JUDGE confirms
-// the span supports the assertion. Word-overlap NOMINATES candidates; it NEVER decides. A judge-failed
-// assertion routes to the 4c label path (relabel to grounded ANALYSIS in prose) or an honest GAP — a FACT is
-// NEVER emitted to clear a criterion. Pure decision logic here (the judge is INJECTED — a live spend-client
-// call in production, a mock in the selftest), so the never-fabricate property is red-then-green unit-tested.
-
 /** @typedef {{ span: string, url: string }} Nomination  — a word-overlap candidate, NOT a decision. */
 /** @typedef {{ supports: boolean, why?: string }} JudgeVerdict — the grounding judge's per-assertion call. */
 /** @typedef {{ url: string, text: string, tier?: number|null }} PoolSource — a fetched pool source + its tier. */
 /** @typedef {{ kind: "FACT"|"GAP"|"RELABEL", slot_key: string, source_span?: string, source_url?: string, reason: string }} SlotClaim */
 
-// A meaningful nomination span must be a real clause, not a coincidental fragment (mirrors floor-attribution).
 export const MIN_NOMINATION_SPAN = 24;
 // An atomic FACT span is a single clause, not an unsplit block; skip clauses beyond this (a delimiter was
 // missing) so nominations stay clause-sized and the judge sees one assertion at a time.

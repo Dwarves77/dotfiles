@@ -1,30 +1,3 @@
-// The six shared vocabularies. ONE definition, every surface.
-//
-// WHY THIS FILE EXISTS (surface spec 00 §3, 2026-08-12). Professional multi-module intelligence
-// products use ONE vocabulary across modules; modules differ only in which values they emit. Per-module
-// vocabularies are the single most common cause of a five-module product feeling like five products —
-// and this repo already had the diagnosis: the 2026-08-11 cross-surface re-verification found counts and
-// rows classified by two different populations on every surface, ~17 UI fields bound to producers that
-// do not exist, and a severity vocabulary on Operations derived from regulations. Those are all one
-// disease: a value's meaning was decided at the render site instead of once, centrally.
-//
-// SIBLING, NOT A DUPLICATE: src/lib/surface-of.mjs answers "which surface owns this item". This module
-// answers "what does this value MEAN, on every surface". Same architectural role (single home, two
-// consumers, drift-guarded), different question. surface-of.mjs is the precedent this file follows
-// deliberately, down to the plain-ESM constraint.
-//
-// PLAIN ESM, ZERO DEPENDENCIES. Imported by `node --test` proofs with no tsc and no bundler, and by
-// client components. Do not add imports of .ts modules here.
-//
-// ADOPT, DO NOT INVENT. Four of the six are lifted from published standards rather than designed:
-//   - obs_status  → SDMX CL_OBS_STATUS (the UN/Eurostat/ECB/IMF statistical standard)
-//   - confidence  → NATO/Admiralty 6x6 for asserted claims; ecoinvent/Weidema pedigree for modelled values
-//   - relation    → a closed set modelled on W3C PROV qualified relations
-//   - freshness   → derived from the as-of triple, not asserted
-// Inventing a bespoke scale here would cost us the one thing these buy: the customer's LCA, assurance
-// and procurement people already speak them.
-
-/** Freeze an object and every own object value, one level deep. */
 function deepFreeze(obj) {
   for (const v of Object.values(obj)) {
     if (v && typeof v === "object") Object.freeze(v);

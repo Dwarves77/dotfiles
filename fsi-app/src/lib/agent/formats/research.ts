@@ -1,23 +1,3 @@
-// src/lib/agent/formats/research.ts
-//
-// Research Summary — 6 sections, per analysis-construction-spec/references/formats-research-technology.md §7. This is the PROVEN format
-// (the canonical pipeline's research path); the section list here is identical to the original
-// extract-research-sections.ts. Grounding: span (S1/S6 are FACT-span; S2/S3/S4/S5 are synthesis,
-// grounded transitively — covered by GAP or labeled ANALYSIS claims in the ledger, not verbatim spans).
-//
-// Heading accuracy note (reconciled against system-prompt.ts lines 213-220 and analysis-construction-spec/references/formats-research-technology.md §7):
-//   S1 "What the Research Found"         — system-prompt short form (SKILL appends "— OR What the Research
-//                                          Is Investigating"); the extractor normalises "Section 1 —" prefix
-//                                          so both the short form and the SKILL form resolve to this key.
-//   S5 "What the Finding Does Not Resolve" — system-prompt short form (SKILL appends "+ forward timing");
-//                                           resolves cleanly via the same prefix-strip.
-//   All other headings match exactly between skill, system-prompt, and extractor.
-//
-// Conditionality:
-//   S4 (Client Conversation Talking Points) is conditional — when the finding is in-progress or
-//   limited in scope, the agent may legitimately omit it (integrity rule); absent rows yield no section.
-//   S2 and S3 are non-conditional but may produce only ANALYSIS / GAP claims (transitive grounding).
-
 import { makeFormatSpec } from "@/lib/agent/formats/prose-extractor";
 import type { SectionDef } from "@/lib/agent/format-spec";
 

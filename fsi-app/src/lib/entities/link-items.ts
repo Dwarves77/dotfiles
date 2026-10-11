@@ -1,9 +1,3 @@
-// SHARED-WRITER: item_cross_references, integrity_flags
-// linkStep executor (phase-intake-gate piece 3): turn the deterministic entity plan into DB writes that
-// FEED the existing cross-reference graph — the reconnect that makes autonomous intake populate
-// item_cross_references instead of leaving it to admin curation. Pure planning lives in entity-resolve.mjs;
-// this only executes the plan. MOAT BOUNDARY: it writes ONLY item_cross_references + integrity_flags
-// (asserted at runtime AND unit-proven with a failing mode) — never section_claim_provenance.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { planLinkWrites, assertMoatBoundary } from "@/lib/entities/entity-resolve.mjs";

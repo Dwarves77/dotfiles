@@ -1,13 +1,3 @@
-/**
- * milestone-timeline-classify — the pure passed/next/ahead classifier
- * MilestoneTimeline.tsx (dot rendering) and DetailShell.tsx's mobile
- * vertical timeline stack both call, so the two views can never disagree
- * about which entry is "next" (CLAUDE.md rule 13, no duplication). Split
- * out of MilestoneTimeline.tsx into a plain .ts file (no JSX) so it can be
- * imported directly by its own npmtest.mjs via jiti — same convention as
- * TagPopover's tagPopoverKeyboard.ts and AppShell's app-shell-banner.ts.
- */
-
 import type { TimelineEntry } from "@/types/resource";
 
 export type TimelineDotState = "passed" | "next" | "ahead";

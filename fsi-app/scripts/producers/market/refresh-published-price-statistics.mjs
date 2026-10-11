@@ -1,25 +1,4 @@
 #!/usr/bin/env node
-// refresh-published-price-statistics.mjs — WO-16 step 4. The WO-16.2 ruling (option a, held —
-// docs/plans/connection-redesign-and-build-scope-2026-08-29.md §4): FEED published_price_statistics
-// from market_series with a small, separate refresher. PriceBoard and its query
-// (fsi-app/src/app/market/[slug]/page.tsx:149-168, fsi-app/src/components/pages/
-// MarketSignalDetailSurface.tsx PriceBoard) are UNCHANGED by this WO — verified by reading both files
-// this session; neither needs a code change because this script writes into the SAME table shape they
-// already read.
-//
-// SHAPE: read market_series (src/lib/market/refresh-published-price-statistics.mjs deriveDisplayRows,
-// pure) -> guarded upsert into published_price_statistics (scripts/lib/db.mjs — readAll/guardedInsert/
-// guardedUpdate). DRY-BY-DEFAULT (WO-16 executor brief step 4): --apply required to write. No kill-switch
-// env var of its own — SERIES_ITEM_MAP (the series -> item attachment, src/lib/market/
-// series-item-map.mjs) carries every oil-bulletin series but every entry is UNRATIFIED (`item_id: null`,
-// pending ruling R-D — see that JSON file's own header), so this script currently plans and writes ZERO
-// rows regardless of --apply; the unratified map IS the switch until an operator ratifies an entry.
-//
-// Usage:
-//   node scripts/producers/market/refresh-published-price-statistics.mjs                 # dry (default)
-//   node scripts/producers/market/refresh-published-price-statistics.mjs --apply         # write (plans 0 rows today)
-//   node scripts/producers/market/refresh-published-price-statistics.mjs --propose-items # print the 6 R-D mint payloads, no write
-// Exit 0 done (including "nothing to do, map has no ratified entries") · 1 no DB creds on --apply.
 
 import { resolve } from "node:path";
 import { buildProposedItemPayloads } from "./propose-series-items.mjs";

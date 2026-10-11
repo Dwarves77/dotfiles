@@ -1,15 +1,3 @@
-// logic.ts for GET /api/dashboard/coverage/matrix (lane COV-1, 2026-10-08). Route files export only handlers (F34), so the
-// handler body lives here and takes its collaborators as arguments: the route test drives it with stubs.
-//
-// WHAT THE ROUTE SERVES. The generated Coverage matrix, three ways, all from the one loader:
-//   ?format=csv              the export, a CSV with provenance as columns (Blob download convention client side)
-//   ?summary=1               totals and the per-data-class numerators and denominators only (the portfolio-add line)
-//   (default)                the whole matrix as JSON
-// Axes ride as ?mode=&data_class=&geography= and only shape the CSV rows.
-//
-// AGGREGATES ONLY: counts per cell. No catalogue entry (title, identifier, URL) is reachable here (operator ruling
-// 2026-07-29 keeps those admin-only). Authenticated like every route; the caller is rate-limited by the guard.
-
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserRoute, isRefusal, type UserRouteDeps } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

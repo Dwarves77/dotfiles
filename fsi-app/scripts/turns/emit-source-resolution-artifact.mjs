@@ -1,26 +1,4 @@
 #!/usr/bin/env node
-// emit-source-resolution-artifact.mjs -- the source-resolution family's harness-run artifact writer (lane
-// S1-E, 2026-10-05). .github/workflows/source-resolution.yml calls this after its three maintenance steps
-// (resolve-provisional-sources, recompute-tiers, then recompute-trust-scores, lane TRUST-RET 2026-10-07),
-// `if: always()`, so a firing that stopped part way
-// still leaves a record. "Emission is CODE", the same posture emit-downstream-chain-artifact.mjs holds.
-//
-// It runs no step itself. It reads back what the three `./.github/actions/maintenance-step` calls already
-// wrote (each one's `$SR_OUT_ROOT/<step>/summary.json`) and records, per step, the counts the step already
-// prints: sources resolved, promoted, rejected, worklisted and verdict-placed for resolve-provisional-
-// sources; sources scanned and tier movements planned (dry) or applied (apply) for recompute-tiers;
-// sources scored, held and written for recompute-trust-scores.
-// A count the step did not print is recorded as null, never as a made-up zero.
-//
-// REUSE. The summary reader (readStepSummary) is the one in emit-downstream-chain-artifact.mjs, the run-id,
-// harness-version and loop-id resolution is resolveHarnessRunContext (scripts/lib/loop-run-id.mjs), and the
-// envelope is buildRunArtifactEnvelope (scripts/lib/run-artifact.mjs); nothing is copied. The trigger
-// (workflow_run_forced_dry when the chained dry guard forced the run dry) and config.github_run_id are
-// stamped by writeRunArtifact from the runner environment.
-//
-// Configuration comes from environment variables (SR_*) set by the workflow's own record step:
-//   SR_MODE, SR_STARTED_AT, SR_OUT_ROOT, SR_UPSTREAM_NAME, SR_UPSTREAM_RUN_ID.
-// Exit 0 on a successful write; a schema-invalid artifact throws (non-zero), a real condition to see.
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

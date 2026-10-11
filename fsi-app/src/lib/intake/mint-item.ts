@@ -1,29 +1,3 @@
-// SHARED-WRITER: intelligence_items, item_cross_references, integrity_flags
-// mintIntelligenceItem — THE shared mint chokepoint (phase-intake-gate, contract v2.2).
-//
-// The mint callers go through applyStagedUpdate (new_item) and NEITHER performs its own INSERT:
-//   staged_updates materialize (human/legacy approve → applyStagedUpdate)  — scan + community-promote
-//   runIntakeCycle             (machine cycle → applyStagedUpdate)          — no-human-finish-of-intake
-//
-// SEED-PARITY (D5) DISSOLVED 2026-07-12: the old Path A (the drain-first-fetch worker +
-// seedStubIntelligenceItem — the source-monitoring intake that minted directly and had neither congruence
-// nor dedup, producing all 38 pre-gate polluters) was RETIRED (Option-A-with-migration ruling). Its
-// pending_first_fetch population is re-homed to the cadence-flip wiring unit (check-sources → runIntakeCycle),
-// so ONE seed constructor remains — the seed assembled at applyStagedUpdate → mint. Placement constraint
-// (dispatch §1, binding): gate DECISIONS run HERE, not in first-fetch-classify; classify layers only
-// PRECOMPUTE the inputs (verdict, item_type, source-role, relevance).
-//
-// MOAT BOUNDARY: this writes intelligence_items (the mint — the ONE sanctioned INSERT site, enforced by
-// the single-mint-chokepoint fitness function), item_cross_references (link edges), integrity_flags
-// (surfacing). Contract rule 16 (2026-09-01, "the forward-participation clause")  --  item_forward_events
-// (dated obligations extracted from this item's already-grounded content)  --  is written by
-// src/lib/intake/mint-enrichment.ts's runMintEnrichment (lane M3, 2026-09-19: extracted so the batch
-// mint path shares the identical write, see that module's own SHARED-WRITER header), called unconditionally
-// post-insert below; this file itself no longer contains that write site. It NEVER writes
-// section_claim_provenance  --  extraction/links never ground reg facts; it only READS that table (and
-// intelligence_item_sections) to feed the forward-events extractor via that shared module.
-// Also writes item_timelines (task 6.1c, rule 16(f), 2026-09-12): a title-derived timeline row for a
-// record item minted with no timeline row of its own, so no new item is born undated (ADR-030).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { congruence, sourceRole } from "@/lib/entities/source-role.mjs";
 import { matchExistingSubject } from "@/lib/entities/entity-resolve.mjs";

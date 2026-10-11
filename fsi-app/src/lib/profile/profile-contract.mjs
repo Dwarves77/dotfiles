@@ -1,33 +1,3 @@
-// profile-contract.mjs, the profile dimension vocabulary for role and organisation size
-// (workstream 7, ADR-034 decision points 1-2, lane W2-E). PURE, no DB, no LLM.
-//
-// ADR-034 decision point 1: "The core's user is any organisation affected by regulation and market
-// change, profiled by ROLE (e.g. shipper, importer of record, exporter, forwarder, carrier,
-// warehouse operator, lender/borrower of goods, public body). One organisation may hold several
-// roles." This module is the vocabulary + validator for that dimension, and for decision point 2
-// ("Organisation size is a profile dimension. Thresholds (headcount, revenue, shipment volume) gate
-// applicability").
-//
-// Storage: stored under `workspace_settings.profile` jsonb (migration 251, additive, no DDL needed ,
-// see PROFILE_JSON_KEYS below) as NEW keys, deliberately separate from the EXISTING `profile.roles`
-// key. That existing key is free text ("freight forwarder", "importer", "exporter", seeded by
-// migration 251) consumed by src/lib/workspace/relevance.mjs as a read-time RELEVANCE LENS
-// (highlighting, never a gate, see that file's header comment) and pinned by
-// src/lib/workspace/profile.npmtest.mjs. This module's `org_roles` is a CONTROLLED VOCABULARY
-// consumed by src/lib/applicability/compute-applicability.mjs as an APPLICABILITY GATE
-// (applies / does not apply / needs profile input). Reusing the existing free-text key for a
-// controlled-vocabulary gate would either break the pinned relevance contract or silently coerce
-// prose into vocabulary tokens; two keys under the same jsonb column is additive and keeps both
-// consumers honest about what they read.
-//
-// Bands, not free numbers (ADR-034 decision point 2: "Thresholds ... gate applicability"): headcount,
-// revenue and shipment-volume are each a small NAMED band vocabulary, never a raw number typed by the
-// reader or compared arithmetically against an obligation's threshold. An obligation names a band
-// (e.g. "applies at 'medium' headcount or above"), never a number, so the comparison is always
-// band-rank vs band-rank, no unit-conversion, no currency, no "as of" date to get wrong.
-
-/** Role vocabulary (ADR-034 decision point 1). One organisation may hold several roles at once ,
- *  org_roles is always an ARRAY, never a single value. */
 export const ORG_ROLES = Object.freeze([
   { id: "shipper", label: "Shipper" },
   { id: "importer_of_record", label: "Importer of record" },

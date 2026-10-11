@@ -1,30 +1,5 @@
 // @ts-check
-// ANALYSIS-LABEL VOCABULARY — THE ONE constant module (Wave-α C2, correction-plan Track C row C2;
-// CODE-1 F-01 criterion-4 half). Every home that EMITS, DETECTS, or FILTERS analysis labels imports
-// from here: the synthesis system prompt (system-prompt.ts) and the grounding LEDGER prompt + the
-// kept-claims filter (canonical-pipeline.ts). (The 4c relabel module, relabel-unlabeled.mjs, was a
-// third importer through 2026-09-05; deleted lane ONESHOTS 2026-09-06, F25 expiry-52 disposition —
-// operator ruling supersedes the 2026-07-18 dormant-systems "keep-and-integrate" verdict for the 4c
-// pair, see F25-module-liveness.mjs's own removal note for scripts/apply-4c-plan.mjs.)
-// Pure .mjs so it imports into BOTH the TS pipeline and the node --test drift guard.
-//
-// THE 4TH-LABEL RULING (2026-07-11, decided from live-corpus data — recorded per the C2 dispatch):
-//   "Per the workspace's reading:" was authorized by the system prompt + ledger prompt but never by
-//   the kept-filter/4c module. Live corpus count (read-only SELECT, project kwrsbpiseruzbfwjpvsp):
-//     section_claim_provenance claims carrying it ......... 0
-//     intelligence_item_sections rows carrying it ......... 4 (3 items)
-//     intelligence_items.full_brief carrying it ........... 4 (2 verified, 2 quarantined)
-//   The corpus is ~clean of it → RULING: STOP-EMITTING. The token is REMOVED from the emit-side
-//   vocabulary (system prompt + ledger prompt); the canonical emit set is the THREE labels below.
-//   NOTE (recorded deviation from the register's premise): the LIVE validate_item_provenance
-//   (migration 143 c_label_re, confirmed via pg_get_functiondef) ALREADY tolerates the legacy 4th
-//   token — CODE-1 F-01's "the validator recognizes 3" was stale. That tolerance is left in place
-//   deliberately (no migration): it protects the 2 verified legacy briefs from a retroactive
-//   quarantine, and nothing emits the token anymore. LEGACY_ANALYSIS_LABEL below names it so the
-//   drift test can assert it stays OUT of every emit-side home.
 
-/** The canonical ANALYSIS label tokens as EMITTED in brief prose (display form, with the
- *  asterisk-emphasis + colon the validator's c_label_re matches). Closed set — 3 labels. */
 export const ANALYSIS_LABEL_TOKENS = Object.freeze([
   "*Analytical inference:*",
   "*Industry interpretation:*",

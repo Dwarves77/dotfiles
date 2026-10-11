@@ -1,6 +1,3 @@
-// oem-payload.mjs — spec 09 §1.1's two outputs that "justify the whole [oem_tech_roadmaps] table": the
-// payload-penalty delta and the TCO diesel-parity crossover. Pure functions; no I/O, no fs (F34).
-
 import { labelled, missing } from "./label.mjs";
 
 /**

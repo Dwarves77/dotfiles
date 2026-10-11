@@ -1,33 +1,4 @@
 #!/usr/bin/env node
-/**
- * measure-bundles.mjs — per-route client bundle inventory.
- *
- * Reads `.next/server/app/<route>/page_client-reference-manifest.js` for
- * every tracked route, sums chunk sizes from `.next/static/chunks/`, and
- * prints a tabular report with two columns:
- *
- *   - "Entry" — the synchronous initial bundle for the route, equivalent
- *     to Next's "First Load JS" metric. Loaded before the browser can
- *     hydrate the page.
- *   - "All client" — entry chunks plus every other client module the
- *     page tree references (including chunks loaded async via `next/dynamic`
- *     or React.lazy). Approximates total client bytes shipped over the
- *     lifetime of the route.
- *
- * Usage:
- *   npm run build              # produce .next/
- *   npm run perf:bundles       # run this script
- *
- * For a richer GUI breakdown of what's INSIDE each chunk (which deps,
- * which source files), run `npm run analyze` instead — that opens
- * @next/bundle-analyzer's HTML reports.
- *
- * This script complements the analyzer: it gives a grep-able diff-ready
- * snapshot for tracking First Load JS over time. Capture before/after
- * for any perf change with `npm run perf:bundles > docs/perf-snapshot.txt`.
- *
- * See docs/PERF-PLAYBOOK.md for the measurement-first workflow.
- */
 
 import { readFileSync, statSync, existsSync } from "node:fs";
 import { resolve } from "node:path";

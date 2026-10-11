@@ -1,31 +1,3 @@
-// SHARED-WRITER: item_forward_events
-// flywheel-steps.mjs - the two per-item flywheel steps (rule 16(a) discovery, rule 16(b) forward-event
-// extraction) whose real logic is non-trivial enough to duplicate by accident: extracted verbatim from
-// apply-staged-update.ts's own participateInFlywheel (task 3.4, brief-chain build plan Part 3,
-// 2026-09-11) so a SECOND caller (scripts/turns/apply-record-briefs.mjs, the brief-apply driver) can run
-// the identical discovery re-read, the identical migration-307-era dedupe key, the identical stale-events
-// detection, and the identical 23505 unique-violation handling without a second, independently-maintained
-// copy of any of them - the same "one reusable writer" discipline task 1.1's link-item-entities.mjs
-// already established for the entities step (see that module's own header).
-//
-// PURE extraction, no behavior change: apply-staged-update.ts's participateInFlywheel now calls these two
-// functions instead of inlining their bodies; every existing assertion in
-// apply-staged-update-forward-participation.npmtest.mjs (13 pre-existing + 3 rule-16(e) tests) still
-// exercises the identical code path and still passes unchanged.
-//
-// WHAT STAYS OUT of this shared layer, deliberately: neither function calls recordFlywheelDefect and
-// neither pushes onto a caller's own `flags` array. Those are caller-specific bookkeeping - apply-staged-
-// update.ts's own `flags` string convention (`context: "update"`), or apply-record-briefs.mjs's own
-// per-item outcome vocabulary (`context: "brief-apply"`) - kept out of this module so the two callers can
-// label the same underlying fact differently without duplicating the fact itself. Both functions THROW on
-// a real failure (never return an {ok:false} shape) - the exact posture apply-staged-update.ts's own
-// try/catch blocks already relied on before this extraction, preserved so the caller's catch clause needs
-// no change beyond the call site itself.
-//
-// compliance_deadline sync (rule 16(b)/17, DATECHAIN 2026-09-11) is NOT wrapped here: it is already a
-// single call to syncComplianceDeadlineForItem(supabase, itemId) with nothing else around it, so both
-// callers import that function directly - wrapping a one-line passthrough would add a name without
-// removing any duplication.
 import { runConnectionDiscovery, CONNECTION_SIGNATURE_COLUMNS } from "../connections/run-discovery.mjs";
 import { readAndExtractForwardEvents } from "../forward-events/read-and-extract.mjs";
 import { createHash } from "node:crypto";

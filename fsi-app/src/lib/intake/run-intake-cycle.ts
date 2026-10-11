@@ -1,28 +1,3 @@
-// SHARED-WRITER: agent_run_searches, staged_updates
-// runIntakeCycle — the run-ONE-cycle-and-STOP intake orchestration (Disposition Unit 0c-2).
-//
-// no-human-finish-of-intake (RD-20 / ADR-012 rider): the machine gates ARE the approval. One invocation
-// runs a full cycle over a SMALL candidate set and STOPS — no loop, no re-arm, no schedule side-effect:
-//
-//   per candidate:
-//     STAGE   → insert a staged_updates row (transit-only, RD-20 'pending')
-//     MINT    → applyStagedUpdate (entity-gate triage → mint chokepoint: congruence 1a/1b + subject dedup
-//               + the ONE INSERT). NO human approve. A machine REJECT marks the staged row rejected-with-
-//               reason (transit → terminal); a mint marks it materialized (status=approved + materialized_at).
-//     GROUND  → the ONE grounding contract: generateBriefWorkflow(itemId, false, "manual-intake-run") —
-//               the SAME workflow /api/agent/run runs (D4 ruling). Awaited DIRECTLY (not via start()), the
-//               established off-DevKit synchronous pattern (_happy-path-proof / _loop-proof / _ground-flagships
-//               all `await generateBriefWorkflow(...)`), so the cycle inherits the FULL contract — PREFLIGHT
-//               (daily-cap, global-pause, data-audit-block), tiered re-ground, research-or-erase, and the
-//               fail-closed cross-item AUDIT GATE — and returns the real verdict synchronously, no raw-lib
-//               chain that would skip those gates. The F16 "manual-intake-run" SIGNED caller threads through
-//               so the fetch passes an engaged hold while the scheduled worker stays blocked.
-//     VALIDATE→ the workflow's ground step runs validate_item_provenance (per-type authority FLOORS + required
-//               SLOTS + LABELS); the set_provenance_status trigger flips a valid item to 'verified' — no human
-//               tick. The workflow returns status='verified' only after the audit gate passes.
-//
-// Returns the full disposition trail (discovered / staged / minted / rejected+reason / verified). The admin
-// surface renders it as VISIBILITY — there are no approve affordances anywhere in the flow.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyStagedUpdate } from "./apply-staged-update";
 import { generateBriefWorkflow } from "@/workflows/generate-brief";

@@ -1,11 +1,3 @@
-// GET /api/admin/b2-progress
-//
-// Read-only stats endpoint for the Phase B.2 regeneration. Surfaces how
-// many intelligence_items are at the current SKILL.md contract version
-// vs older versions vs never regenerated, broken down by format_type
-// and priority. Lets the admin UI show real-time progress without
-// custom queries.
-
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";

@@ -1,28 +1,3 @@
-// entity-plan.mjs: the four pure entity-spine planners (jurisdiction + instrument), MOVED here (lane
-// W9 part 1, task 1.1, 2026-09-11) from scripts/entities/backfill-entities.mjs:91-157, which is now a
-// thin re-export. WHY MOVED, NOT COPIED: mint-item.ts's rule-16(e) participation (linkItemEntities,
-// src/lib/entities/link-item-entities.mjs) and the corpus backfill script both need to plan the SAME
-// entities/identifiers/refs from the SAME inputs (jurisdiction_iso, canonical_instrument_key): one
-// planner serving two writers is the only way the two can never drift on shape (the same "one shared
-// module, many callers" posture flywheel-defect.ts and run-discovery.mjs already establish for rule 16's
-// other participants). See docs/specs/08-flywheel-design.md section 1.1/section 1.2 for the spine's own design and
-// migration 282/283 for the schema these functions plan rows against.
-//
-// PURE, no DB, no I/O. Every function takes already-read state (existingEntityIds /
-// existingIdentifierKeys / existingRefKeys, all plain Sets) and returns plain arrays/Maps a caller
-// writes through its OWN guarded or unguarded path; this module never touches a Supabase client.
-//
-// ASSERTED_BY IS A PARAMETER, NOT A CONSTANT (the one real change from the pre-move code, beyond the
-// file move itself). The pre-move functions closed over backfill-entities.mjs's own module-level
-// ASSERTED_BY, which was correct when this module had exactly one caller but would have mis-attributed
-// every mint-time write to "scripts/entities/backfill-entities.mjs" once link-item-entities.mjs called
-// the SAME functions: provenance on the alias must name who/what actually asserted it (spec section 1.3 rule
-// 2; entity_identifiers.asserted_by / entity_refs.asserted_by are both NOT NULL for exactly this
-// reason). Each planner now takes `assertedBy` as its last parameter, defaulting to this module's own
-// path so an existing call site that omits it (as backfill-entities.test.mjs's direct planner-level
-// tests do) keeps working; every real writer (backfill-entities.mjs, link-item-entities.mjs) passes its
-// own identity explicitly.
-
 import { entityId } from "./entity-id.mjs";
 import { identifierRow, VALIDATORS } from "./crosswalk.mjs";
 

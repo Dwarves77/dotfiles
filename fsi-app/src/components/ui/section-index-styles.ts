@@ -1,14 +1,3 @@
-/**
- * section-index-styles: the shared style-object core behind a sticky S1 . S2 . S3 section index
- * bar. F45 duplicate-code (lane W10-ActionCard-a, 2026-09-21): `DetailShell.tsx`'s existing
- * `SectionIndex` and the new `src/components/ui/SectionIndex.tsx` (this lane's fixed part, review
- * items 4 and 6) draw the SAME outer chrome (the sticky nav row, the bordered pill-group strip, the
- * per-tab link's base look) and differ only in the ONE property review item 4 changes (the old
- * component clamps each tab to a fixed `maxWidth` with an ellipsis; the new one never truncates and
- * lets the strip itself scroll). Extracting that shared 90% into pure, no-JSX style functions lets
- * both components spread the base and layer their own one differing property, instead of each
- * retyping the whole object.
- */
 import type { CSSProperties } from "react";
 
 export function sectionIndexNavStyle(): CSSProperties {

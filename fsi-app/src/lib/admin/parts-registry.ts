@@ -1,26 +1,3 @@
-// parts-registry.ts: the /admin/parts index registry loader (lane W10-ListRow-2, 2026-09-23,
-// remediation-discipline category 48 / F51 check 1 -- "a registry is a directory, one entry one file").
-//
-// WHY THIS EXISTS. src/app/admin/parts/page.tsx used to hold a hand-written `PARTS: PartEntry[]` array
-// literal, one entry per part lane, appended at the END of the array. Two part lanes open at the same
-// time both append to that same array -- an unavoidable merge conflict on that one shared line, which is
-// exactly what stopped the W10-ListRow push (lane CommandBar-parts appended its own entry the same
-// evening; the rebase re-conflicted on this file, F51 check 5 refused the range). The class fix mirrors
-// the pattern this build already proved for harness families (scripts/harness-runs/family-registry.mjs)
-// and loop hops (.discipline/governance/loop-manifest.mjs's loadLoopHops): the registry is a DIRECTORY,
-// one file per entry, so two lanes registering two different parts add two different files and can never
-// collide on one shared line. Adding a part folder with its own part.json is a NEW file for git, never an
-// edit to an existing one -- an add/add conflict is impossible by construction.
-//
-// SHAPE of part.json (one per part folder under src/app/admin/parts/<slug>/):
-//   { "slug": "<folder name>", "name": "<display name>", "summary": "<one or two sentences>" }
-// No unknown keys. A descriptor that fails validation throws a NAMED error (never silently skipped),
-// the same fail-closed posture as family-registry.mjs's validateFamilyDescriptor/loadFamilies.
-//
-// No I/O on import: loadPartEntries() is a function the page.tsx server component calls per-request
-// (Next.js server components already re-run per request; there is no build-time caching concern here,
-// this is a handful of small JSON files), never a top-level read.
-
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

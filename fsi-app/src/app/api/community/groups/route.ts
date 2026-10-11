@@ -1,30 +1,3 @@
-// POST /api/community/groups
-//
-// Create a member-owned VERTICAL group — a community space that cuts across
-// regions by cargo vertical (fine art, live events, automotive…), the §7
-// "vertical groups … form when members create them" backend. Body:
-//   { name, vertical, description? }
-//
-// Vertical groups are created cross-regional (region = 'GLOBAL') and public
-// (the platform exists to break freight information-isolation — caros-ledge-
-// platform-intent §COMMUNITY). `vertical` must be a canonical sector id from
-// ALL_SECTORS (constants.ts) — validated here at the application layer, matching
-// the free-text posture of the vertical column (migration 155, no CHECK).
-//
-// RLS + auth boundary:
-//   * The group row is inserted through the caller's RLS-aware client, so the
-//     migration-028 policy (owner_user_id = auth.uid()) is the auth boundary —
-//     a caller can only create a group they own.
-//   * The owner's bootstrap membership row (role 'admin') is inserted with a
-//     service-role client AFTER the group insert succeeds, because the members
-//     INSERT policy is admin-only by design (migration 029) and no admin exists
-//     at creation time. This is the same validate-then-materialize shape the
-//     signoff-decide and post-promote routes use — a downstream effect of an
-//     already-authorized action, not a second authorization path. If the
-//     membership bootstrap fails, the orphan group is deleted (best-effort).
-//
-// Auth: cookie session via requireCommunityAuth. Rate limit: standard 60/min.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

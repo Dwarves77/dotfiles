@@ -1,26 +1,3 @@
-// GET /api/admin/intersections
-//
-// Returns canonical item PAIRS from the persisted connection graph (item_cross_references) — the
-// flywheel U3 supersession. The detect_intersections RPC (migration 023) that previously scored
-// pairs in SQL from raw tags was the SECOND scoring home; it is retired (migration 265 drops it).
-// discover.mjs is the ONE scoring home, its output is persisted with grounded basis by
-// write-edges.mjs / mint-item.ts, and this route only ASSEMBLES what is stored — no compute-at-read,
-// same posture as admin/themes.
-//
-// Intersections (lane S3-A): a pair whose edge carries the "intersection" basis entry (written by
-// analyze-corpus via write-edges.mjs from intersections.mjs) comes back with `intersection`: shared
-// scenarios, shared objects, strength, tier and cross_surface (derived from item_type + domain).
-//
-// Directionality (ADR-018): storage keeps both directed rows; this reader canonicalizes to one
-// undirected pair (pair-view.mjs), merging basis and taking max score.
-//
-// Query params:
-//   minScore (default 0.3, the discovery threshold) — filter scored pairs below this; pairs carried
-//     only by curated edges (manual / entity_extraction) are always included
-//   limit    (default 100, max 500) — cap returned pairs after ranking (score desc)
-//
-// Auth: requireAuth + rate limit + platform-admin gate (house pattern, mirrors admin/themes).
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

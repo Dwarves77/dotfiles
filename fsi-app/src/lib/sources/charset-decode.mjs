@@ -1,20 +1,5 @@
 // @ts-check
-// CHARSET-AWARE DECODE (operator ruling 2026-07-14, the non-EN extraction fix). The direct-HTTP transport
-// decoded EVERY response as UTF-8 (`new TextDecoder("utf-8")`), which CORRUPTS a non-UTF-8 page: a Latin-1
-// (ISO-8859-1 / windows-1252) government site — planalto.gov.br, many EU/LatAm gazettes — carries accented
-// bytes (0xE9 = é, 0xE7 = ç, ...) that are invalid UTF-8, so every accent decoded to the replacement char
-// U+FFFD ("Pol�tica Nacional de Res�duos S�lidos"). That mojibake is PERMANENT (the original byte is lost), so
-// the grounder can never copy a matchable original-language span — the fact drops to a GAP and a re-ground
-// DESTROYS the ledger (Brazil Lei 12.305: 55 FACT -> 2 GAP). The extraction never failed on the model; the
-// BYTES were wrong before the model saw them (a working-artifact defect, not a reference one).
-//
-// The fix: resolve the response charset from the HTTP Content-Type header, else the HTML <meta charset> /
-// <meta http-equiv="Content-Type">, else default UTF-8; decode with THAT charset. Pure + red-then-green
-// goldened (the Brazil byte sequence decodes to correct Portuguese with iso-8859-1, mojibake with utf-8).
 
-// TextDecoder label aliases we normalize to a decoder Node/browsers accept. "iso-8859-1" is treated as
-// windows-1252 by the WHATWG encoding standard (the web reality), which is what browsers do — so a page that
-// declares iso-8859-1 but uses the cp1252 0x80–0x9F range (curly quotes, dashes) still decodes correctly.
 const CHARSET_ALIASES = new Map([
   ["utf-8", "utf-8"], ["utf8", "utf-8"], ["us-ascii", "utf-8"], ["ascii", "utf-8"],
   ["iso-8859-1", "windows-1252"], ["iso8859-1", "windows-1252"], ["latin1", "windows-1252"],

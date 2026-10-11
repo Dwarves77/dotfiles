@@ -1,15 +1,3 @@
-// src/lib/agent/formats/market.ts
-//
-// Market Signal Brief — 8 sections, per analysis-construction-spec/references/formats-regulatory-operations-market.md §6. Grounding =
-// 'corroboration': S1 signal STRENGTH is proven by the count of INDEPENDENT corroborators, read from
-// the EXISTING source-growth convergence (aggregateConvergence / growSourcesFromBrief: independent_citers,
-// confirmation_count, syndication-collapsed). A thin adapter over that, NOT a new counting engine
-// (Rule 3). No-Vacuum: S3 conversion trigger is frequently a specific regulation — emit + render the link.
-//
-// BUILD AGENT OWNS: required-slots migration for market_signal+initiative, the corroboration adapter,
-// and the section-aware MarketSignalDetailSurface. Verify the section headings below against the skill +
-// the live system-prompt emission before scaling.
-
 import { makeFormatSpec } from "@/lib/agent/formats/prose-extractor";
 import type { SectionDef } from "@/lib/agent/format-spec";
 

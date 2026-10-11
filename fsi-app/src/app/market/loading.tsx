@@ -1,8 +1,3 @@
-// Route-level loading boundary for /market (perf lane, 2026-09-03,
-// docs/audits/perf-load-times-2026-09-03.md §6 "loading.tsx per route" item).
-// Shape mirrors MarketIntelLedger's own section order (masthead, severity
-// tiles, band strip, row grid) — reuses the SAME cl-mi-tiles / cl-row
-// classes the real ledger renders, so layout does not jump.
 import { skeletonBox as box, SkeletonPage } from "@/components/ui/skeleton-page";
 
 export default function Loading() {

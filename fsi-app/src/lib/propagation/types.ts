@@ -1,23 +1,3 @@
-// types.ts — the propagation engine's shared type vocabulary (docs/specs/08-flywheel-design.md §3.1,
-// §3.3, §4 Layer 2). Lane DP-ENGINE, system-completion train, 2026-09-02.
-//
-// PLAIN RELATIVE IMPORTS ONLY, NO `@/` ALIAS — deliberately, so this file (and every other .ts file in
-// this directory) is importable DIRECTLY by Node's native type-stripping (Node 22.7+/24, no jiti, no
-// bundler; `.discipline/run-test-suite.sh`'s own header note: "Node 24 type-stripping makes relative .ts
-// imports portable too"), the same reason `src/lib/agent/canonical-pipeline.ts` needs jiti (it imports
-// through the `@/` alias, which only Next.js's bundler resolves) and this module does not. This is a
-// deliberate simplification versus the governing plan's own literal wording ("jiti-loads drain.ts") —
-// jiti is unnecessary when nothing in this directory uses the alias or imports an npm package at module
-// scope; every DB client (`sb`) is passed in as a parameter, never imported. See drain.ts's header for the
-// same note applied to the drain driver.
-//
-// LAYER 2 OF SPEC §4's FOUR-LAYER STATUTORY/ESTIMATE ISOLATION LIVES HERE: `Contractable` /
-// `NonContractable` / `StatutoryInput` make mixing a compile error, not a runtime check. Migration 286's
-// `assert_statutory_purity()` trigger is Layer 3, the DB-level backstop for a caller that bypasses this
-// type barrier (a raw INSERT, or plain JS with no type-checker).
-
-/** The nine derivation classes (src/lib/contracts/envelope.mjs DERIVATION), split by whether a value of
- *  that class may be put in a contract or a regulatory filing (`isContractable()`, same module). */
 export type Contractable = "statutory_fixed" | "statutory_formula" | "observed" | "transacted_index" | "assessed" | "calculated";
 export type NonContractable = "interpolated" | "modelled" | "estimated";
 export type Derivation = Contractable | NonContractable;

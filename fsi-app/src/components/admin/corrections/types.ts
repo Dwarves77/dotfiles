@@ -1,7 +1,3 @@
-// Shapes the admin corrections screen reads (lane G7-UI, 2026-10-06). The correction row mirrors the list route's
-// response in src/lib/corrections/admin-api/logic.mjs; the item targets are what the item screen's server load
-// hands the panel (load-item-targets.ts).
-
 export type TargetKind = "fact" | "tag" | "connection" | "section_text" | "full_brief";
 export type CorrectionOp = "suppress" | "add" | "remove" | "replace";
 

@@ -1,32 +1,3 @@
-// trigger-questions.mjs, S1, learning-loop-design-2026-09-25.md section 6 ("S - trigger_question
-// generator"), ADR-044 decision 1 (QUESTION_ACQUISITION = "holdings-session-batch", superseding ADR-036
-// decision 1). Lane W2-G, wave2b, 2026-09-29; change-side wiring added by lane L4-A, 2026-10-05.
-//
-// WHAT THIS IS. Pure, deterministic, $0: template expansion over (event_type x surface x the four
-// product questions), written as `integrity_flags` rows under flag-namespaces.mjs's QUESTION_NAMESPACE
-// ("question:"). No LLM call, no network, no DB access in the generator itself, same "PURE, no DB, no
-// LLM" posture flag-namespaces.mjs's own header states for the SoT it defines. Mirrors
-// scripts/connections/propose-tags.mjs's producer shape (a pure `deriveX` computing what SHOULD exist,
-// a thin MAINT-step `main({mode,arg}, deps)` doing the dedup-before-insert I/O), reused, not
-// reinvented, per the lane-common-contract's "prior art" rule.
-//
-// TWO TRIGGERS, ONE GENERATOR. (1) Mint time: this module is wired as the next step in
-// run-population-flywheel.mjs's own tandem sequence (section 3: "added as the next step in that same
-// sequence, not a new standalone runner"), which scopes itself to the batch of items a dispatch minted
-// or substantively touched, so that trigger is MINTED_OR_TOUCHED (a generator-local sentinel).
-// (2) Change time (lane L4-A, 2026-10-05): run-propagation-drain.mjs calls this generator, through
-// questions-on-change.mjs, for the verified items linked to an entity whose value changed, with one of
-// constants.mjs's TRIGGER_EVENT_TYPES as the eventType and a `change` description (what changed, on which
-// entity) built from the outbox row. Both paths write through the same flag row builder and the same
-// dedup rule (no duplicate while an open row exists for the same subject_ref and created_by).
-//
-// EXAMPLES ARE NOT SCOPE (CLAUDE.md rule 19): the four QUESTION_BUILDERS below are written against the
-// PRODUCT_QUESTIONS axis in the abstract (what changed / does it reach my portfolio / what must I do /
-// act now or wait) and read only generic item fields (title, item_type, jurisdiction_iso), never a
-// hardcoded vertical, corridor, or regulation family. The two worked walk-throughs in the design doc
-// (a bonded-warehouse humidity amendment; a war-risk insurance premium spike) are illustrations the
-// coverage test below deliberately does NOT special-case.
-
 import { QUESTION_NAMESPACE, createdBy, buildSubjectRef, isInNamespace } from "../connections/flag-namespaces.mjs";
 import { PRODUCT_QUESTIONS } from "./constants.mjs";
 import {

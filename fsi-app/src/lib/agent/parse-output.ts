@@ -1,15 +1,3 @@
-// Parses the agent's output under the SKILL.md 2026-04-28 contract.
-//
-// The agent emits a markdown brief, optionally followed by a "New Sources
-// Identified" markdown table, followed by a mandatory YAML frontmatter
-// block fenced with --- delimiters at the very end. This module extracts
-// the YAML, strips it from the markdown body, validates the schema, and
-// returns both pieces.
-//
-// Inline YAML parser — the frontmatter shape is fixed (7 scalar keys plus
-// one array). A custom parser avoids adding a new runtime dependency for
-// what is a deterministic, documented payload.
-
 import { DB_THEME_VALUE_LIST } from "./metadata-vocab.ts";
 import { stripClaimLedgerBlocks } from "./claim-ledger-block.ts";
 // G5-TERMS (2026-10-06): the ONE validator for the optional `mentioned_terms` array (kind vocabulary, caps).

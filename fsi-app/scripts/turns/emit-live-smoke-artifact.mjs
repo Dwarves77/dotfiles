@@ -1,17 +1,4 @@
 #!/usr/bin/env node
-// emit-live-smoke-artifact.mjs -- the live-smoke family's harness-run artifact writer (lane GATES-2, 2026-10-05).
-// .github/workflows/live-smoke.yml calls this after the runner, `if: always()`, so a firing that stopped before it
-// produced a report still leaves a record. "Emission is CODE", the same posture emit-source-resolution-artifact.mjs
-// holds. It runs nothing itself: it reads the JSON report fsi-app/.discipline/rendering/live/live-smoke.mjs wrote
-// (path in LS_REPORT) and records pages visited, failure and warning counts, a count per invariant and one defect
-// per failing invariant. A missing or unreadable report is recorded as such, never as a clean run.
-//
-// REUSE: the envelope is buildRunArtifactEnvelope and the write is writeRunArtifact (scripts/lib/run-artifact.mjs);
-// the run id and harness version come from resolveHarnessRunContext (scripts/lib/loop-run-id.mjs). The trigger and
-// config.github_run_id are stamped by writeRunArtifact from the runner environment.
-//
-// Configuration (set by the workflow): LS_REPORT (path to the JSON report), LS_STARTED_AT, LS_URL (the target origin).
-// The report holds only the target origin, page paths, invariant names and truncated offending text; no credential.
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

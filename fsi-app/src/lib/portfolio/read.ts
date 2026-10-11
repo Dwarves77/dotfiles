@@ -1,20 +1,3 @@
-// Portfolio server read (lane S8-D, 2026-10-07; spec 00 section 5; migration 362). Builds the two view models
-// the /dashboard/portfolio pages render, from rows the service in portfolio-core.mjs reads and from the
-// already-held items and entities those rows point at. Nothing here writes, and nothing it computes is
-// stored: the roll-ups are derived per request from held data only.
-//
-// REUSE, not construction. Item rows are read by the dashboard's own bounded by-id read
-// (fetchBriefResourcesByIds, exported for this lane), enriched with source tier and bias chips by
-// enrichRowSourceChips, and come out of the one row derivation every list uses (toListRowFields in
-// src/lib/list-row-fields.ts, with its scoreResource fallback), the due date from dueInfo, the surface from
-// canonicalSurfaceForItem (the same answer the row's own link uses), the corridor label from the
-// corridor-scope reader's parser and unlocode-names. The service client is injected so a test can fake it; the pages pass the service-role
-// client and the org they resolved from the session cookie, and every read below is filtered by that org
-// or reads platform data the customer read gate already governs (verified, not archived).
-//
-// BOUNDED (F38/F39): member reads are capped at 500 by the service; item and entity lookups are chunked
-// `.in()` reads over at most those 500 ids.
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Resource } from "@/types/resource";
 import { toListRowFields } from "@/lib/list-row-fields";

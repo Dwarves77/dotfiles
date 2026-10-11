@@ -3,7 +3,6 @@
   "registered": "2026-10-04",
   "registered_by": "lane S3-C",
   "governing_files": [
-    "../.github/workflows/theme-briefs.yml",
     "scripts/turns/export-themes-for-briefs.mjs",
     "scripts/turns/apply-theme-briefs.mjs",
     "scripts/turns/theme-briefs/schema.mjs",

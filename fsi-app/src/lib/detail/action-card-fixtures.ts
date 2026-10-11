@@ -1,14 +1,3 @@
-/**
- * action-card-fixtures: static data for the `/admin/parts/action-card` sign-off page (lane
- * W10-ActionCard-a, 2026-09-21, brief step 6). Hand-built, not a query: the ActionCard part takes
- * plain data (no database read, no fetch inside the part).
- *
- * The default fixture is the review's own worked example, verbatim: 7 milestones, 3 passed, next
- * "Transition deadline" 2026-09-29; meta "4 sources . T1 primary . regenerated Sep 18". The other
- * fixtures are the brief's named edge cases: no tags, an absent EXPOSURE cell, 9 milestones
- * (collapse), 1 milestone, all passed.
- */
-
 import type { TimelineEntry } from "@/types/resource";
 import { band } from "@/lib/urgency/bands";
 

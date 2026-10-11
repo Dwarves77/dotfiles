@@ -1,35 +1,3 @@
-/**
- * /admin/parts/masthead: the Masthead sign-off page (lane W10-Masthead, 2026-09-22).
- *
- * Renders the real `Masthead` part (`src/components/ui/Masthead.tsx`) against the same frozen real
- * record the SectionHeader fixture uses (`record-grade-fixture.ts`, intelligence_items.id =
- * f8268063-0e07-4562-82da-a1373d6dd797, EC 391/2009, EUR-Lex, frozen 2026-09-22 via a read-only
- * SELECT against `intelligence_item_sections`, project kwrsbpiseruzbfwjpvsp), no invented title
- * text, no second SELECT (operator ruling: "fixtures read from a frozen real record, never
- * invented strings"; reuse before construction: the same frozen fixture module every other W10
- * parts page already reads).
- *
- * Three states, matched to the real size/context calls live on the product's own routes:
- *   - size="list" (34px title): the shape every list surface (dashboard, regulations, market,
- *     research, operations, community, admin/factors) renders through.
- *   - size="detail" (28px title): the shape every detail surface (regulation/[slug],
- *     market/[slug], research/[slug], operations/[slug]) renders through, title set to the frozen
- *     record's own full instrument title (unabridged, per the operator's "no analysis text is ever
- *     cut to fit a layout" ruling, proves the Anton title wraps rather than truncating on a long
- *     legal name).
- *   - the AUTH-FRAME variant (amendment 1, ruling 1, 2026-09-22): the shape rendered inside
- *     AuthFrame's right panel on /login, /signup and every onboarding step, size="detail",
- *     narrower column (380px, matching AuthFrame's own form width), the page's own real text
- *     ("Sign in"), no command bar (the artboard draws none there).
- *
- * The record id and its own date fact are shown in the header line above each state, per the
- * operator's fixture convention (id and date visible, not just consumed).
- *
- * F49 (parts-not-pages): this page imports Masthead and renders fixtures through it; no masthead
- * literal style is retyped here.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionCard } from "@/components/ui/SectionCard";

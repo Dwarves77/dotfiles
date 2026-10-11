@@ -1,27 +1,3 @@
-// resolve.mjs, lane ALIAS-1 (2026-10-08), spec 00 section 1.3, migration 377.
-//
-// WHAT THIS IS. The reader side of the composite/atomic hierarchy and the alias table:
-//   - resolveEntityByAlias(text, deps): free text ("Maersk", "MAEU", "A.P. Moller - Maersk A/S") to ONE entity
-//     through entity_aliases, with the level it stands at and who asserted the alias. A name that matches no
-//     alias, or matches aliases of more than one entity, resolves to null: it is never guessed (spec 00
-//     section 8 assertion 1, "zero free-text entity references"; the same fail-safe posture as
-//     entity-resolve.mjs, which resolves mentions to ITEMS, not text to ENTITIES).
-//   - an alias of a merged entity resolves to the survivor (merged_into is followed, bounded), so a merge never
-//     breaks an inbound name (spec 00 section 8 assertion 6).
-//   - entityLevelLabel(entity): the words a screen prints to state which level of the hierarchy it shows
-//     (spec 00 section 1.3 rule 1, "every screen states which level it shows").
-//   - ancestorChain / wouldCreateCycle: pure mirrors of the entity_relations cycle rule, so a writer can
-//     decline an edge before the trigger refuses it and the coherence test can check a snapshot.
-//
-// DATA ACCESS IS INJECTED. Every reader takes a `deps` object (the repo's convention: tests pass fakes, the
-// runners pass Supabase-backed readers built below). entity_aliases is INSERT-only; its ONE writer is
-// writeEntityAliases below (DFIX-1, 2026-10-08: ON CONFLICT DO NOTHING on the full primary key, so a party
-// repeating its own assertion is a skip and not an error). entity_relations is written by the population lane
-// through the guarded path.
-//
-// PLAIN ESM; node: builtins and relative imports only (the no-npm discipline glob imports this through
-// scripts/verify/surface-acceptance.mjs's test).
-
 import { fetchAllRows, fetchAllByIdChunks } from "../db/paginate.mjs";
 
 // The closed vocabularies of migration 377. resolve.test.mjs and 377_entity_hierarchy_and_aliases.test.mjs

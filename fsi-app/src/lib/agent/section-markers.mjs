@@ -1,21 +1,3 @@
-// section-markers.mjs (lane GATES-2, 2026-10-05): the ONE definition of "an internal marker that must never
-// reach a customer or a stored section body". Pure, dependency-free, node builtins only.
-//
-// WHY. The agent emits a Claim Provenance Ledger between sentinels (parse-output.ts) and the parser strips
-// it before the body is stored. When the closing sentinel is missing or malformed the strip silently does
-// not happen, the ledger rides into `full_brief`, and a customer reads raw JSON on a Market item
-// (production, 2026-10-05). No check saw it: the write path trusted the parser, and the rendering guard
-// mounts fixtures, never stored data. This module is the shared definition three callers use, so the
-// write path, the stored-data audit and the live smoke gate can never disagree about what a marker is:
-//   1. src/lib/agent/canonical-pipeline.ts writeSynthesizedBrief  refuses to persist a body carrying one;
-//   2. scripts/verify/section-marker-audit.mjs                    counts stored bodies that already carry one;
-//   3. .discipline/rendering/live/live-assertions.mjs              fails a live page whose text carries one.
-
-/**
- * The Claim Provenance Ledger sentinels: the ONE definition. claim-ledger-block.ts (the strip) builds its patterns
- * from these, and the marker list below names the ledger with the same string, so the strip and the refusal can never
- * disagree about what a ledger block is. The agent emits `<<<CLAIM_PROVENANCE_LEDGER ... CLAIM_PROVENANCE_LEDGER>>>`.
- */
 export const LEDGER_NAME = "CLAIM_PROVENANCE_LEDGER";
 export const LEDGER_OPEN = `<<<${LEDGER_NAME}`;
 export const LEDGER_CLOSE = `${LEDGER_NAME}>>>`;

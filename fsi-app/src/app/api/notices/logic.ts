@@ -1,9 +1,3 @@
-// Pure helpers for GET /api/notices, split out of route.ts (BUILDGATE, 2026-09-02, F34's named
-// residual / build-graph proof). Next 16's route-type validator rejects a route.ts that exports
-// anything besides route handlers/config fields, so these move to this sibling module and
-// route.ts imports them. Behaviour is unchanged; only the file they live in moved.
-// route.npmtest.mjs now imports this module directly instead of route.ts.
-
 import type { SupersededNotice } from "@/lib/propagation/methods/superseded-notices.ts";
 
 const DEFAULT_WINDOW_DAYS = 30;

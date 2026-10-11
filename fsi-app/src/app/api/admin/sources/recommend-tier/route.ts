@@ -1,12 +1,3 @@
-// POST /api/admin/sources/recommend-tier — Sprint 4 task 1.15 (UNVERIFIED-PENDING-RUNTIME)
-//
-// Returns a Haiku source-tier RECOMMENDATION (kind:'recommendation', not fact)
-// for the Phase 1.5 source-tier audit. Invoking this spends a small amount of
-// Haiku budget per source; it is NOT run as a batch in Block 1 — the operator
-// triggers it per source from the tier-audit card during Phase 1.5.
-//
-// Body: { source_id: string }
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

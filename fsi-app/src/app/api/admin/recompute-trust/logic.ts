@@ -1,13 +1,3 @@
-// Pure response shaping for POST /api/admin/recompute-trust, split out of route.ts (BUILDGATE,
-// 2026-09-02, F34's named residual / build-graph proof). Next 16's route-type validator rejects a
-// route.ts that exports anything besides route handlers/config fields, so the pure function lives in
-// this sibling module and route.ts imports it. route.npmtest.mjs imports this module directly.
-//
-// S1-C (2026-10-04): this module used to hold demotionOutcomeFor, the propose-only demotion recorder
-// (applied: false, never a tier write). The route now applies tier movement through the one calculator in
-// src/lib/trust.ts (planTierMovements / applyTierMovements), so the proposal recorder is gone and this
-// module shapes the route's tier_movement response block from the plan and the apply result.
-
 import { notUnderTierOverride } from "@/lib/sources/tier-override-guard.mjs";
 import type { TierMovementApplyResult, TierMovementPlan, TierMovementWriters } from "@/lib/trust";
 

@@ -1,13 +1,3 @@
-// src/lib/agent/formats/technology.ts
-//
-// Technology Profile — 8 sections, per analysis-construction-spec/references/formats-research-technology.md §8. Grounding = 'span'
-// (S2/S4/S6/S7 are synthesis, grounded transitively via the claim-ledger). No-Vacuum: S7 procurement
-// window is frequently driven by a regulatory deadline or market shift — link it.
-//
-// BUILD AGENT OWNS: required-slots migration for technology+innovation+tool, and a NET-NEW
-// section-aware TechnologyDetailSurface (none exists today) with routing for these item_types.
-// Verify the headings below against the skill + live system-prompt emission before scaling.
-
 import { makeFormatSpec } from "@/lib/agent/formats/prose-extractor";
 import type { SectionDef } from "@/lib/agent/format-spec";
 

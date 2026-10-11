@@ -1,14 +1,3 @@
-// rate-source-by-class.mjs, the shared "resolve, then rate, a candidate's source through the
-// institution class table" step (CLAUDE.md rule 18: "get the source. then rate the source... tier from
-// the institution class table, never hand-typed"). Extracted (lane ETS-PROXY, 2026-09-28, F45
-// duplicate-code gate) from state-cost-facts-producer.mjs and carrier-ets-surcharge-producer.mjs, which
-// each carried an identical resolveSource() shape differing only in field names, never a second, drifting
-// copy of the same rating step. Callers map their own candidate's field names to {url, name} and get back
-// the SAME ok/tier/refusal contract both producers already relied on.
-//
-// PLAIN ESM. No I/O of its own beyond the injected `registerSourceFn` (a real DB write in "apply" mode
-// only; "dry"/anything else previews with a deterministic `preview:<host>` id, never touching the DB).
-
 import { hostOf } from "../../src/lib/sources/institution.ts";
 import { classTierForHostWithVerdicts } from "../../src/lib/sources/host-authority.ts";
 import { loadHostVerdicts } from "../maintenance/host-verdicts/load-host-verdicts.mjs";

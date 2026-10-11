@@ -1,14 +1,3 @@
-// Coverage-index identity verification (B1). A catalogued census entry is a POINTER to a primary
-// instrument (a URL + often a structured identifier). "Identity-verified" means the pointer is
-// well-formed and resolves to a real primary source — NOT that the instrument has a grounded brief
-// (that is the separate provenance gate). This module owns the DETERMINISTIC half: URL shape + the
-// instrument-identifier scheme/shape. The live-resolve half (does the URL return 200 on a registered
-// host) is the runner's job (identity-resolve pass), because it needs network + the sources registry.
-//
-// No guessing, no fallback that INVENTS validity: an unrecognized identifier is scheme:'generic'
-// with shapeValid:false (worklist), never silently treated as valid. Pure + deterministic.
-
-/** Parse a URL string → {ok, https, host}. ok requires a parseable absolute http(s) URL. */
 export function parseInstrumentUrl(url) {
   const s = String(url || "").trim();
   if (!s) return { ok: false, https: false, host: null };

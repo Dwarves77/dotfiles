@@ -1,24 +1,3 @@
-// ══════════════════════════════════════════════════════════════
-// Jurisdiction ISO helpers
-// ══════════════════════════════════════════════════════════════
-//
-// Pure utilities for the jurisdiction_iso column introduced in
-// migration 033. Accepts:
-//   - ISO 3166-1 alpha-2 country codes ("US", "GB", "SG", "JP")
-//   - ISO 3166-2 sub-national codes ("US-CA", "GB-SCT", "CN-31")
-//   - Free-text supranational / IGO codes ("EU", "GLOBAL",
-//     "IMO", "ICAO")
-//
-// The legacy `jurisdictions` column (lower-case free text like
-// "us", "eu", "singapore") coexists for the 60-day dual-write
-// window. Use `legacyToIso()` at write sites to populate the
-// new column from the old one.
-// ══════════════════════════════════════════════════════════════
-
-// ── Free-text codes the platform treats as jurisdictions ──
-// These are not ISO codes but the system handles them as
-// first-class entries (supranational bodies, IGOs, "all").
-
 export const KNOWN_FREE_TEXT_JURISDICTIONS = [
   "EU",
   "GLOBAL",

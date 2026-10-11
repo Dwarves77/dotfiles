@@ -1,20 +1,3 @@
-// decisions.mjs — the four §8 open questions from docs/specs/08-flywheel-design.md, closed by ADR-024
-// (operator ruling 2026-09-02: "if you decide that it needs to be done, we do it" — coordinator-set,
-// each named as a constant the operator can override by editing the value below and citing the change).
-//
-// WHY THIS FILE EXISTS NOW, BEFORE THE ENGINE THAT CONSUMES MOST OF IT. Lane DP-SPINE (this file) lands
-// before Lane DP-ENGINE (spec §2-§5) in the system-completion train. DP-ENGINE's `admissible-for.ts`
-// needs FLOOR the moment it exists; DP-ENGINE's `drain.ts` needs DRAIN_MODE; DP-SURF's `EstimatedFigure`
-// needs ESTIMATE_DISPLAY. Rather than each later lane inventing its own copy of a decision this ADR
-// already settled, the constant is defined ONCE here and imported downstream — the same "one home, many
-// consumers" discipline `src/lib/contracts/vocabularies.mjs` documents for the six shared vocabularies.
-//
-// PLAIN ESM, ZERO DEPENDENCIES — importable from a fitness function, a script, or a Next.js component
-// with no npm install and no bundler, matching vocabularies.mjs's own constraint.
-//
-// See docs/decisions/ADR-024-decision-propagation.md for the full reasoning (including the half-life
-// arithmetic behind FLOOR and the corridor-identity design) behind every constant below.
-
 /**
  * ADR-024 decision 1 (spec §8.1): drain granularity is BATCH TO A QUIESCENT POINT, not per-event.
  * Reader notice is the product; five notices for one causal event is noise, not five insights.
@@ -22,6 +5,7 @@
  * Only two values are meaningful; the type is documented here rather than widened speculatively.
  * @type {"batch"}
  */
+
 export const DRAIN_MODE = "batch";
 
 /**

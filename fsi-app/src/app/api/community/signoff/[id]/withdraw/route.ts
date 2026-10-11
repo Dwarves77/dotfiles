@@ -1,21 +1,3 @@
-// POST /api/community/signoff/[id]/withdraw
-//
-// The requester withdraws their own OPEN (pending) sign-off request
-// (community-schema-mapping.md §3.1). Sets status = 'withdrawn', which frees
-// the partial unique index so a fresh request can later be opened on the post.
-//
-// Authorization: migration 153 shipped only signoff_decide (an active-verifier
-// UPDATE policy) — there is NO RLS path for a plain requester to update their
-// own row, so withdraw is authorized by the ADDITIVE policy in migration 154
-// (signoff_withdraw_own): requested_by = auth.uid() AND status = 'pending' AND
-// the new status is 'withdrawn'. We do NOT re-implement authorization in app
-// code; the caller's RLS-aware client is the auth boundary. Until migration 154
-// is applied, this UPDATE matches 0 rows and returns a 404 (the request is
-// invisible-for-write to the requester), so the route is safe pre-apply.
-//
-// Auth: cookie session via requireCommunityAuth.
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

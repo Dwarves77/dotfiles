@@ -1,24 +1,3 @@
-// crosswalk.mjs — the entity_identifiers scheme vocabulary and per-scheme value validators
-// (docs/specs/08-flywheel-design.md §1.1: "Crosswalk to published identifier standards. ADOPT, never
-// invent"). Mirrors the shape of src/lib/contracts/vocabularies.mjs (one frozen vocabulary, validators
-// beside it, plain ESM, zero dependencies) but for identifier SCHEMES rather than the six shared value
-// vocabularies — a deliberately separate module because a scheme validator is a FORMAT/CHECK-DIGIT rule
-// (how the outside world already validates its own identifier), not a platform-invented enum.
-//
-// WHAT "VALIDATE" MEANS HERE, HONESTLY, PER SCHEME. Three named with a published check-digit algorithm
-// (LEI: ISO 17442 mod-97-10, IMO_SHIP: the 7-digit weighted check digit, ORCID: ISO 7064 mod-11-2) get
-// the REAL checksum, verified in crosswalk.test.mjs against real published identifiers (a Deutsche Bank
-// LEI, IMO 9074729, ORCID 0000-0002-1825-0097) — a syntactically-shaped but wrong identifier is REJECTED,
-// not merely a malformed one. ISO6346 (container check digit) gets the same treatment. Every other
-// scheme gets a FORMAT regex only (documented per-scheme below) — either no public check-digit algorithm
-// exists (UN/LOCODE, IATA, ICAO, NUTS, EORI, SCAC), or implementing one correctly without a live registry
-// to verify against would be asserting more confidence than this lane can back (ROR: format-only,
-// [UNCONFIRMED] whether this lane's regex matches the current ROR ID spec precisely — flagged rather than
-// silently guessed). IMO_COMPANY reuses the IMO_SHIP check-digit algorithm on the stated understanding
-// (IMO's own public documentation) that company/registered-owner numbers are generated the same way as
-// ship numbers; this is [UNCONFIRMED] against a primary IMO source in this sandbox (no egress) and is
-// named as such rather than asserted as verified.
-
 import { assertEntityId } from "./entity-id.mjs";
 
 // The closed scheme vocabulary (spec §1.1's comment list, HOST added — the organisation-by-website

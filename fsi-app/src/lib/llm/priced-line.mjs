@@ -1,15 +1,4 @@
 // @ts-check
-// OPERATOR-PRICED-LINE GATE (operator final spend rulings 2026-07-13). The sole spend authorization in the
-// refactored spend-control logic. Two rulings are mechanized here:
-//   • OPERATOR-SETS-COST — nothing runs without an operator-set cost. The machine NEVER proposes/defaults/
-//     anchors a price; there is no default cost and no default tolerance. Spend authority is solely the
-//     operator's per-line `operatorCostUsd`.
-//   • DATA-EXISTENCE-BEFORE-ACQUISITION — the paid path refuses without an inventory-miss citation: a
-//     non-empty string naming what was checked in holdings AND the specific miss.
-// This module carries NO standing dollar figure and NO ceiling. It is the deliberate replacement for the
-// retired machine limits (monthly ceiling, per-item circuit breaker, standing SPEND_CEILING) which used to
-// halt on fixed constants. Pure, env-free — so both rulings are red-then-green node --test.
-
 /**
  * @typedef {{ operatorCostUsd: number, inventoryMiss: string, toleranceUsd?: number }} PricedLine
  * operatorCostUsd — the operator's per-line price. The ONLY spend authority. Must be an operator-set positive
@@ -18,7 +7,6 @@
  * toleranceUsd    — OPTIONAL operator-set slack above the price before the halt fires. NO default (absent = 0).
  */
 
-/** Named error for a refused priced line. Distinct from spend-guard's SpendError so callers can discriminate. */
 export class PricedLineError extends Error {
   /** @param {string} msg */
   constructor(msg) { super(msg); this.name = "PricedLineError"; }

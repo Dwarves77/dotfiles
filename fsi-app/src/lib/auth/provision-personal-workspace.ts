@@ -1,33 +1,3 @@
-/**
- * PROFILE PROVISIONING (lane AUTH-2, 2026-10-06; replaces the 2026-05-28 AUTO-PROVISION-ORG-ON-SIGNUP).
- *
- * This file now holds `ensureProfile`, not a personal-workspace creator. Its original name is kept by
- * coordinator ruling (2026-10-06): renaming it would move two governance files outside the AUTH-2 write
- * set (.discipline/governance/exemptions.mjs and the generated coverage-report.json).
- *
- * What it does now: `ensureProfile(userId, email)` creates the caller's `profiles` row when it is
- * missing and does nothing else. It never creates an organisation, a workspace_settings row or a
- * membership. A signed-in user with no membership is routed to onboarding (/workspace/new), where
- * they accept an invitation or create an organisation with a name, sector, size and region.
- * The silent "Personal - <email>" workspace of 2026-05-28 is retired: it gave every user an
- * organisation they never described, so the sector profile the specs seed at workspace creation was
- * always empty.
- *
- * Why a profile row at all: org_memberships.user_id has a foreign key to profiles.id (migration 075),
- * and create_org_for_self() (migration 076) inserts the owner membership without creating a profile.
- * A user with no profile therefore cannot create an organisation and cannot accept an invitation.
- *
- * One mechanism, three entry points, all idempotent:
- *   - /auth/callback after a successful code exchange (confirmation completed in the same browser);
- *   - the server bootstrap (server-bootstrap.ts resolveServerBootstrapWithHeal), the first time any
- *     signed-in session, by any sign-in path, meets the app without a profile;
- *   - POST /api/orgs, as a guard before the organisation RPC.
- *
- * Existing rows are never written: an existing profile is returned untouched, so platform-admin and
- * every other column stay exactly as they are. Failure is never silent: it is logged and counted in
- * error_events (route "auth/ensure-profile").
- */
-
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export interface EnsureProfileResult {

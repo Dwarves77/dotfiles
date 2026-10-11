@@ -1,12 +1,3 @@
-// SINGLE SOURCE for entity detection (phase-intake-gate). Two durable regex families (identifiers, never
-// drift) + one LIVING dictionary of named standards/frameworks (drifts — pinned by a vocab-drift-guard test,
-// the Step-3 pattern). Detection is WIDER than wiring: identifiers + dict-named + standard-SHAPED are all
-// NOTICED; only identifier-exact and dict-named-exact are wire-eligible; a standard-shaped mention unknown to
-// the dictionary is still noticed → surfaced, never dropped (fails safe). Topical words (batteries, emissions)
-// are structurally NOT detected here, so they can never be wired.
-
-// ── Identifier families (durable; no dictionary needed) ──
-// EU instrument number "2023/1805", "2019/1242"; CELEX "32023R1805". Case-insensitive, word-bounded.
 export const RE_REGNUM = /\b(?:19|20)\d{2}\/\d{1,4}\b/g;
 export const RE_CELEX = /\b(?:CELEX[:\s]*)?[36]\d{4}[A-Z]\d{2,4}\b/gi;
 

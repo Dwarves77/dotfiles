@@ -1,9 +1,3 @@
-// Pure decision logic for POST /api/admin/sources/bulk-import, split out of route.ts (BUILDGATE,
-// 2026-09-02, F34's named residual / build-graph proof). Next 16's route-type validator rejects a
-// route.ts that exports anything besides route handlers/config fields, so the pure functions move
-// to this sibling module and route.ts imports them. Behaviour is unchanged; only the file they
-// live in moved.
-
 import { classifyReachability, REACH } from "@/lib/sources/reachability.mjs";
 
 // #6 CONSUMER DECISION — a head result -> the import's branch. THE BUG (pre-fix): a

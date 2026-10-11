@@ -1,10 +1,5 @@
 #!/usr/bin/env node
-// derive-obligations.mjs — MAINT step wrapping scripts/obligations/derive-obligations.mjs (Lane OBLIG,
-// Wave 2). Coordinator-only apply: migration 290's `obligations` table is populated from
-// `item_forward_events` by this runtime, never by hand. Dry lists the derivation and the binding-position
-// breakdown; apply inserts through the guarded path (idempotent on forward_event_id) and reads back the
-// register count. Not ruling-gated: the register is spec-01's core build and the derivation is
-// deterministic (classify-binding-position.mjs), unmapped → NULL, never invented.
+
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";

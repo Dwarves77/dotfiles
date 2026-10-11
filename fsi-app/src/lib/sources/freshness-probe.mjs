@@ -1,26 +1,11 @@
 // @ts-check
-// FRESHNESS PROBE (Phase 1, operator ruling 2026-07-13, snapshot-first rebuild). Step 2 of the snapshot-first
-// flow: decide whether a stored snapshot is still current WITHOUT a body fetch and WITHOUT a model call — a
-// HEAD request only, comparing the server's Last-Modified against when we captured the snapshot. It NEVER
-// downloads the body and NEVER spends.
-//
-// Outcomes (pure core compareFreshness):
-//   fresh   — the source demonstrably has not changed since capture → cheap-verify against the stored snapshot.
-//   changed — the source demonstrably changed since capture → still cheap-verify against STORED text, but flag
-//             stale_snapshot_content_changed and queue for the (locked) paid path. Never silently pass; never
-//             fetch the new body here.
-//   unknown — the probe could not decide (HEAD blocked on a roadblock host, no Last-Modified header, unparseable
-//             date). Record freshness_unknown and continue on the stored content (do NOT escalate to a fetch).
-//
-// We do not persist ETags today, so ETag equality can only CONFIRM freshness when a caller supplies a stored
-// etag; absent that, the load-bearing signal is Last-Modified vs the snapshot's fetched_at.
-
 /**
  * PURE freshness decision. No I/O.
  * @param {{ fetchedAt?: string|null, storedEtag?: string|null }} stored  snapshot capture time + optional stored etag
  * @param {{ lastModified?: string|null, etag?: string|null, ok?: boolean }} head  values read from a HEAD response
  * @returns {{ status: 'fresh'|'changed'|'unknown', reason: string }}
  */
+
 export function compareFreshness(stored, head) {
   if (!head || head.ok === false) return { status: "unknown", reason: "HEAD unavailable or non-ok" };
 

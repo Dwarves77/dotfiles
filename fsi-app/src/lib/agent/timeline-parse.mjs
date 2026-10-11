@@ -1,30 +1,3 @@
-// src/lib/agent/timeline-parse.mjs
-//
-// Section-14 TIMELINE BULLET/TABLE PARSER -- moved out of extract-regulation-sections.ts (task 6.1b,
-// brief-chain-build-plan-2026-09-11, fix E) so record-briefs/schema.mjs's pre-write timeline-authoring
-// mirror (a plain .mjs validator -- no `@/` alias, no jiti, portable to the no-npm-ci discipline job) can
-// call the SAME parser the live write site uses (canonical-pipeline.ts -> harvestItemTimeline ->
-// extractRegulationSections -> parseTimeline), instead of a second hand-rolled copy that could silently
-// drift from it. extractRegulationSections.ts now imports parseTimeline FROM here -- one parser, two
-// callers, reuse-before-construction.
-//
-// WIDENED (lane GATE-A-TOKENS pilot finding E, 2026-09-12). The prior bullet-line regex required a dash
-// separator ONLY (hyphen-minus, en dash, or em dash) between the date token and the label. This repo
-// forbids writing literal em/en-dash glyphs in generated prose (CLAUDE.md's dash ban), so a compliant
-// lane wrote "- 3 November 2023: Commission Decision ..." (a COLON separator) and the old regex read it
-// as zero entries -- all ten pilot items lost their whole section-14 harvest this way (buildTimelineRows
-// got zero entries in, so it could only ever emit zero rows out; the harvest logic itself was never at
-// fault). The date-token grammar is also narrowed from a generic "any non-whitespace run" heuristic to
-// the specific forms toIsoDate (timeline-harvest.mjs) actually parses: ISO, day-month-year / month-day-
-// year, month-year, quarter/half, bare year, and a range of two of those joined by "to"/a dash -- so a
-// leading token this parser recognises is, by construction, one toIsoDate can convert. Conversion itself
-// is NOT duplicated here (this module never imports timeline-harvest.mjs): only the SHAPE needed to find
-// where the date ends and the label begins.
-//
-// PURE -- no I/O, no imports. Dash/section-sign glyphs below are written as \u escapes, never literal
-// characters, so this file's own diff carries none (the same convention this task's every other new file
-// follows).
-
 const MONTHS_RE =
   "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?";
 

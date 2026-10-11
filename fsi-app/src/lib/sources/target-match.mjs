@@ -1,21 +1,3 @@
-// src/lib/sources/target-match.mjs
-//
-// TARGET-MATCH VERIFY (drain-loop finding, 2026-07-16): a captured primary document must actually be the
-// ITEM's instrument before it is ground. officialnessOf path 'a' confirms a capture is AN official
-// instrument; it does NOT confirm it is the CORRECT one. eu_clean_trucking captured the CSRD directive
-// (Directive (EU) 2022/2464) for an item that is the HDV CO2 regulation (Regulation (EU) 2024/1610) and it
-// scored "official" — the wrong-instrument defect that this gate closes.
-//
-// EXECUTOR-AGNOSTIC: this is a PURE predicate over (item, captureText) with NO I/O, so BOTH drivers (the CC
-// executor and the metered pipeline) call the identical gate — a wrong-instrument capture is HELD, never
-// ground, whoever captured it. It never SETS status: it PROPOSES a verdict that the caller uses to hold.
-//
-// PRECISION OVER RECALL (conservative — a false MISMATCH would wrongly hold a good capture): a MISMATCH fires
-// only on a HARD signal (the capture bears a DIFFERENT instrument identifier in a clear instrument context AND
-// the item's own identifier is absent). Absent any identifier signal, it falls back to title/subject overlap
-// at a RAISED threshold (the 0.4 that let eu_clean_trucking slip is gone). Reuses identifier-variants.mjs
-// (parseYearNumber / euCandidates / detectScheme) — no reinvented identifier derivation (reuse-before-construction).
-
 import { parseYearNumber, euCandidates, detectScheme } from "./identifier-variants.mjs";
 import { classifyIdentifier } from "../coverage/identity.mjs";
 

@@ -3,8 +3,6 @@
   "registered": "2026-09-21",
   "registered_by": "lane M6b",
   "governing_files": [
-    "../.github/workflows/gate-a-rescan.yml",
-    "scripts/maintenance/gate-a-rescan.mjs",
     "scripts/turns/emit-gate-a-rescan-artifact.mjs",
     "scripts/lib/gate-a-state-writer.mjs"
   ],

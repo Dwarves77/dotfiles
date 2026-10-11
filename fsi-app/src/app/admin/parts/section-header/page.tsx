@@ -1,25 +1,3 @@
-/**
- * /admin/parts/section-header: the SectionHeader sign-off page (lane W10-SectionHeader,
- * 2026-09-22, build item 3). Renders the real `SectionHeader` part (`src/components/ui/
- * SectionHeader.tsx`) against the frozen real record (`record-grade-fixture.ts`,
- * intelligence_items.id = f8268063-0e07-4562-82da-a1373d6dd797, EC 391/2009, EUR-Lex, frozen
- * 2026-09-22), NO invented title text.
- *
- * Three states, matched to real call shapes already live on the four detail surfaces
- * (DetailSection, `src/components/detail/DetailShell.tsx`):
- *   - with ordinal ("S1 Summary"), the regulation surface's Summary section shape.
- *   - without ordinal, with meta ("Sources", "4 · tier = provenance, never urgency"), the
- *     regulation surface's own Sources section shape (`sourceRows.length` meta text, same
- *     formula RegulationDetailSurface.tsx uses).
- *   - long title (the frozen record's own full instrument title, unabridged, per the operator's
- *     "no analysis text is ever cut to fit a layout" ruling) with no ordinal and no meta, proves
- *     the title wraps rather than truncating.
- *
- * F49 (parts-not-pages): this page imports SectionHeader and renders fixtures through it; no
- * header literal style is retyped here.
- *
- * Platform-layer surface, not customer-facing (caros-ledge-platform-intent Value Delivery Check).
- */
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { PageMasthead } from "@/components/shell/PageMasthead";
 import { SectionCard } from "@/components/ui/SectionCard";

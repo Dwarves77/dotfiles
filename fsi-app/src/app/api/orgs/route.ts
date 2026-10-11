@@ -1,16 +1,3 @@
-// src/app/api/orgs/route.ts
-//
-// POST /api/orgs: self-service org creation with the onboarding profile. Creates the organisation,
-// makes the caller the owner, seeds workspace_settings, and records the sector, company size and
-// region the person gave plus their job title (lane AUTH-2, 2026-10-06; logic in
-// src/lib/orgs/create-org.mjs, which documents what is written and what is never taken from the body).
-//
-// Request body: { name: string, sectors?: string[], headcount_band?: string, regions?: string[],
-//                 job_title?: string }. An organisation id, user id, role or slug in the body is ignored.
-// Response: { org_id, slug, name, settings_saved, profile_saved }
-//
-// Workstream B (Multi-Tenant Foundation) 2026-05-15; extended by AUTH-2.
-
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

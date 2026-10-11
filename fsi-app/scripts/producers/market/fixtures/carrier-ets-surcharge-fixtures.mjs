@@ -1,11 +1,3 @@
-// carrier-ets-surcharge-fixtures.mjs, fixture candidates + captures for the ETS-proxy producer's own
-// tests AND for the --fixtures CLI dry run (R14 hold: no live carrier fetch, no live DB read/write).
-//
-// Deliberately spans FOUR different carriers and TWO trade lanes (CLAUDE.md rule 19,
-// examples-are-not-scope): the producer must generalise across carriers, not anchor to one. Nothing here
-// is a claim about a real carrier's live tariff, these are TEST fixtures shaped like a real ETS/FuelEU
-// surcharge notice, not scraped content.
-
 export const FIXTURE_CANDIDATES = [
   {
     carrierName: "Maersk",

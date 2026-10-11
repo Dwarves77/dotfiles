@@ -1,10 +1,3 @@
-// POST /api/admin/sources/[id]/pause { paused: boolean }
-//
-// Toggles processing_paused on a single source. When paused: worker
-// scans skip this source, /api/agent/run returns 409 for it, trust
-// recomputes skip it (preserving its last score). Manual fetch and
-// regenerate actions still work.
-
 import { NextRequest, NextResponse } from "next/server";
 
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";

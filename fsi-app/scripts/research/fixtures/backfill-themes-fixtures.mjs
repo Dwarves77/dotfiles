@@ -1,16 +1,3 @@
-// backfill-themes-fixtures.mjs — fixture population for scripts/research/backfill-themes.mjs's dry
-// run (lane L8, 2026-10-02). Sized to the coordinator's live, DB-executor-confirmed count: 47
-// research_finding rows with theme IS NULL (SELECT count(*) FROM intelligence_items WHERE
-// item_type = 'research_finding' AND theme IS NULL; the 49-total/2-themed denominator is the same
-// read). No DB credential, no live LLM call — this module is imported only by the test file and by
-// backfill-themes.mjs's own dry path.
-//
-// Each row carries enough text for the SAME keyword signal the live Haiku call would see (title +
-// a short body), tagged by `expectTheme` for this fixture's own fake classifier (fakeStream below) so
-// the dry run's printed assignments are deterministic and reviewable, never randomly generated.
-// `expectTheme` is fixture-only; it is never read by backfill-themes.mjs itself, which classifies
-// from `title`/`text` exactly as the live path would.
-
 const TEMPLATES = [
   { theme: "emissions_accounting", title: "Scope 3 GHG accounting methodology revision", text: "A revised lifecycle CO2e accounting methodology changes how freight forwarders report Scope 3 emissions for ocean and air legs." },
   { theme: "fuels_saf", title: "SAF feedstock supply constraint analysis", text: "Sustainable aviation fuel feedstock supply remains constrained, with hydrogen and biofuel blending pilots showing slow price-trajectory improvement." },

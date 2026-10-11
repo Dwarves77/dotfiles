@@ -1,19 +1,3 @@
-/**
- * timeline-math, pure date/collapse logic for the ActionCard TIMELINE part
- * (lane W10-ActionCard-a, 2026-09-21, operator review item 3). Split into
- * its own plain .ts module (no JSX) so `timeline-math.test.mjs` can import
- * it directly under bare `node --test` (same convention as
- * `milestone-timeline-classify.ts`, `format-fixed-date.ts`).
- *
- * F36 (date-format-timezone-pin): this module never calls
- * `toLocaleDateString`/`toLocaleTimeString`/`Intl.DateTimeFormat`, dates
- * are formatted with a hand-rolled month table (same approach as
- * `src/lib/format.ts`'s `formatDate`), so there is no locale/timezone call
- * for F36 to gate. A `YYYY-MM-DD` string is parsed as its own calendar
- * date components, never through `new Date(iso)` (which would parse as UTC
- * midnight and could shift a day under a naive local-timezone read).
- */
-
 import type { TimelineEntry } from "@/types/resource";
 // Relative path + explicit .ts extension (not the `@/` alias): this module's own
 // timeline-math.test.mjs imports it directly under bare `node --test`, with no bundler to resolve

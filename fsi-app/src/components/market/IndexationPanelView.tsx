@@ -1,20 +1,3 @@
-/**
- * IndexationPanelView — the sync, render-only half of IndexationPanel.tsx's VIEW/FETCH split (same
- * rationale as OemRoadmapPanelView.tsx's header: keeps every server-only import, including
- * `@/lib/supabase-server`, out of this file's module graph so an esbuild-bundled UX smoke spec can still
- * import it without pulling in `@opentelemetry/api`).
- *
- * MECHANICS ONLY, NEVER DRAFTED TEXT (spec 09 §1.3/§5 open decision 2's conservative default,
- * indexation.mjs's own draftClauseText() throws on purpose): this view renders the STORED clause terms —
- * base value/date, passthrough, floor/cap band, review cadence, rounding rule — never a computed
- * "indexed value today" figure. Rendering a live figure would need a current index reading
- * (indexCurrent) this table does not carry and no market_series feed currently populates (0 rows,
- * wiring-audit-2026-09-04) — showing a stale or fabricated "current" number would be exactly the kind of
- * confident-but-ungrounded figure CLAUDE.md rule 18 forbids. src/lib/spec09/indexation.mjs's
- * computeIndexedValue() is exercised by the worked example in scripts/spec09/indexation-producer.mjs's own
- * summary, not by this render path.
- */
-
 import "@/components/market/spec09.css";
 import { CoverageState } from "@/components/ui/CoverageState";
 

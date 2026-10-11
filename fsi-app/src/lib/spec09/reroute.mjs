@@ -1,10 +1,3 @@
-// reroute.mjs — spec 09 §1.7's geopolitical rerouting multiplier. "A single scalar multiplier applied at
-// the end would get this wrong, because the penalty function is bracketed, not linear" (spec text) — this
-// module therefore does exactly ONE thing (scale a baseline fuel-burn figure by the reroute's own
-// fuel_burn_multiplier) and explicitly does NOT compute the downstream bracketed FuelEU/EU-ETS penalty;
-// compoundingChain() below names the five-surface chain as DESCRIPTIVE metadata for a UI notice, not as a
-// computation. No fs, no I/O.
-
 import { labelled, missing } from "./label.mjs";
 
 /** Scale a baseline fuel-burn figure by a reroute's fuel_burn_multiplier. Pure multiplication — the ONLY

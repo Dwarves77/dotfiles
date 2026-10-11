@@ -1,10 +1,3 @@
-// mutation-lease.mjs — per-item mutation lease (H5, operator ruling 2026-07-16). A drain session acquires the
-// lease on an item BEFORE touching it and releases it at bank; a live lease held by the OTHER session blocks
-// acquisition (no item is ever worked by two sessions at once). Mirrors the funded_pass_runlock atomic
-// acquire-or-stale-takeover-or-fail semantics (mig 211). The lease RPCs are write functions but callable through
-// the read client's .rpc passthrough (the proxy only blocks .from().insert/update/delete). Wrap a drain action
-// in withLease() so acquire/release always pair, even on throw.
-
 const one = (data) => (Array.isArray(data) ? data[0] : data);
 
 /** Acquire the lease. Returns {acquired, takeover, cur_holder, cur_heartbeat}. acquired=false => held by cur_holder. */

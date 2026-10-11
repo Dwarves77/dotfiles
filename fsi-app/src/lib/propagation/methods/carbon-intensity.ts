@@ -1,19 +1,3 @@
-// methods/carbon-intensity.ts — the registered recompute method for the per-factor carbon-intensity
-// derived value (docs/specs/08-flywheel-design.md §2.3 worked example: "Market Intel: carbon-cost-per-FEU
-// on 11 corridors" — this is the narrower, one-factor-row shape of the same idea: "an emission_factors row
-// changed -> its carbon-intensity figure recomputes"). Lane DP-SURF, system-completion train, 2026-09-02.
-//
-// PLAIN RELATIVE IMPORTS, NO `@/` ALIAS — see ../types.ts's header.
-//
-// INPUT RESOLUTION. Exactly one declared input: the `emission_factors` row this value derives from
-// (seed-derived-values.mjs registers it that way). `{ok:false, reason}` when the row cannot be resolved
-// (deleted, or the drain resolved a `null` for an unrecognised table — see drain.ts's resolveInputs) or
-// when carbon-intensity.mjs itself refuses (an unsupported quantity_basis, or no usable ttw/wtw/wtt
-// number) — both are ordinary, expected outcomes, never a thrown drain (spec §2.2 Part 3).
-
-// NOTE: this file does NOT import registerMethod from "./index.ts" ; see the header note in
-// index.ts for why (a circular index.ts <-> method-file import breaks on REGISTRY's TDZ).
-// index.ts imports this file's named exports and calls registerMethod itself.
 import type { MethodFn, MethodContext, MethodResult } from "./index.ts";
 import { carbonIntensity } from "../../market/carbon-intensity.mjs";
 

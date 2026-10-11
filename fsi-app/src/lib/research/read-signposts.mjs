@@ -1,28 +1,3 @@
-// read-signposts.mjs -- beside read-assessments.mjs, same division of labor (this module selects and
-// shapes; the page fetches with its OWN already-constructed client). Lane L5, 2026-10-02, extended
-// scope after lane L6 (PR #890, migration 346) merged BEFORE this lane branched: the `signposts` table
-// and `research_assessments.lifecycle_state`/`entity_id` columns are real and live on `origin/master`.
-//
-// PLAIN ESM, ZERO NPM DEPENDENCIES for the pure shaping functions (same constraint as read-assessments.mjs:
-// `node --test` covers the shaping logic with no database). The two fetch functions below DO perform I/O,
-// but take an INJECTED client (lane-common-contract's own pattern: "DB access is injected via a deps
-// object so tests run without a database" -- `scripts/mint/screen-reconcile-records.mjs`'s own
-// precedent) rather than constructing one themselves, so a test can hand them a fake client and assert
-// the walking/mapping logic with zero network, zero Supabase.
-//
-// CLIENT PRIVILEGE, NAMED HONESTLY (CLAUDE.md rule 14). The real call site (src/app/research/[slug]/
-// page.tsx) passes `loadDetail`'s `supabase`, which `load-detail.ts`'s `defaultCreateServiceClient()`
-// builds from `getServiceSupabase()` -- a SERVICE-ROLE client, fail-closed to `null` when
-// `SUPABASE_SERVICE_ROLE_KEY` is unset (true in this worktree; the live Vercel deploy carries the key).
-// A service-role client bypasses RLS entirely, so `fetchAssessmentHistoryChain` below CAN read prior
-// (non-current) `research_assessments` rows in production despite migration 344's deliberate "no SELECT
-// policy for anon/authenticated" on that raw table -- this is not a workaround of that RLS posture, it
-// is the SAME privilege every other guarded-write reader of this table already uses (migration 344's own
-// comment: "the Supabase client used by the producer... bypasses RLS/grants entirely, same posture as
-// every other guarded-write table"). `fetchSignpostsForAssessment` needs no such privilege -- migration
-// 346 grants `signposts` a world-readable SELECT policy (`USING (true)`), so any client, service-role or
-// anon, sees the same rows.
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The 6 columns migration 346 gives `signposts`, as a query selects them. */

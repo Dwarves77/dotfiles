@@ -1,12 +1,4 @@
 // @ts-check
-// PURE merge for the ruling-5 self-surfacing null-tier host flag (span-attribution unit, 2026-07-03).
-// A FACT that grounds to an UNREGISTERED host (null tier even after floor-first re-attribution) is the
-// "authoritative host nobody registered yet" signal — the exact shape that made lovdata.no absent. Rather
-// than a per-item quarantine, grounding aggregates these per HOST into ONE integrity_flag/host that
-// verifyCandidate consumes at hold-lift (shaped for Phase 3's unresolved-entity aggregation). No new queue.
-//
-// The flag carries a per-item fact-count MAP (not a running total) so a re-ground of the same item
-// OVERWRITES its own contribution instead of double-counting — idempotent under repeated grounding.
 
 const MAX_SAMPLES = 5;
 

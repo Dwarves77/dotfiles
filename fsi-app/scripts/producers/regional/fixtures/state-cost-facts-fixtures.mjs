@@ -1,13 +1,3 @@
-// state-cost-facts-fixtures.mjs, fixture candidates + captures for the state-cost-facts producer's own
-// tests AND for a future --fixtures CLI run. Deliberately spans TWO different states, TWO different
-// dimensions, and TWO different institution classes (a state government host and an unclassified host),
-// per CLAUDE.md rule 19 (examples-are-not-scope): the producer must generalise, not anchor to one state
-// or one cost type. Nothing here is invented data for a real jurisdiction beyond what is needed to
-// exercise the producer's own logic, these are TEST fixtures, not a claim about live California/New
-// York law.
-
-// Fixture stand-in for the live `regions` table (id + code only, the two columns this producer's
-// region-resolution step reads). Not a live read, the CLI's --fixtures/dry path never touches the DB.
 export const FIXTURE_REGIONS = [{ id: "region-us-fixture-id", code: "US" }];
 
 export const CAPTURES = {

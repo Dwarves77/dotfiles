@@ -1,39 +1,4 @@
 #!/usr/bin/env node
-// run-extraction.mjs — the forward-events family's canonical entry point (Wave MH-5, "harness
-// completion").
-//
-// WHY THIS EXISTS: before this file, forward-events had NO runner script at all — PROTOCOL.md's own
-// header says so plainly ("this lane deliberately does not create scripts/harness-runs/forward-events/"
-// until a real run lands one), and the one run this family has (forward-events-run-001.json) was
-// produced by a scratch script (`/root/work/forward-events/run-live.mjs`) that lived OUTSIDE this repo
-// and is not in version control — its `full_trace_refs` even name it as an external path. That means
-// every future forward-events run either re-derives that scratch script from scratch, or (worse) runs
-// the extractor ad hoc and forgets to write the artifact at all — exactly PROPOSER-RUNBOOK.md §5's
-// "Known residual" describes for mint and fetch-drain, extended to a family that never even had prose
-// runbook steps to forget. This script closes that gap by giving forward-events a real, versioned,
-// self-emitting entry point, the same shape screen-worklist.mjs already is for screen and
-// run-mint-batch.mjs (this same wave) now is for mint.
-//
-// WHAT IT DOES — a thin orchestrator around the family's EXISTING, unmodified extractor:
-//   1. Reads a corpus file: an array of { id, claims, sections } items (or { items: [...] }) — the exact
-//      shape extractForwardEvents() already consumes per PROTOCOL.md §2, just batched over many items.
-//   2. Runs extractForwardEvents({claims, sections}) once per item — no new extraction logic here; this
-//      script never touches a date pattern or a trigger rule.
-//   3. Prints (and, on --execute, writes) the full events/skipped output for every item.
-//   4. ALWAYS writes this run's CONVENTION.md-shaped artifact via scripts/lib/run-artifact.mjs's
-//      writeRunArtifact, from a `finally` block, so a thrown error partway through an --execute run
-//      still leaves a record — see main() below.
-//
-// extractForwardEvents() is pure and does no I/O of its own (no DB, no network, no writes) — per
-// PROTOCOL.md §2, "the extractor never writes." This script does not change that: it only reads the
-// corpus file it's given and writes its own output files + run artifact, never a database.
-//
-// --dry-run is the default (preview: extract, print, touch nothing on disk). Pass --execute to write the
-// events/skipped output files and the run artifact.
-//
-// USAGE:
-//   node scripts/forward-events/run-extraction.mjs --input path/to/corpus.json [--execute]
-//                                                    [--harness-runs-dir dir] [--out-dir dir]
 
 import { parseArgs } from "node:util";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";

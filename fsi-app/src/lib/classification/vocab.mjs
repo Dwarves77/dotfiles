@@ -1,28 +1,3 @@
-// vocab.mjs — closed vocabularies for the 5-axis source-classification framework's still-unbuilt
-// axes (docs/plans/source-classification-framework-2026-05-10.md). Axis 1 (role) already has a live
-// classifier (src/lib/sources/classify-source-role.ts) and Axis 2 (tier)'s role->tier mapping was
-// explicitly SUPERSEDED 2026-06-01 (that doc's own inline note: base_tier is independently set, never
-// derived from source_role) — neither is this module's concern. This file is the vocabulary SoT for
-// Axis 3 (jurisdiction shape), Axis 4a (scope topics), Axis 4c (scope verticals), and the Axis 5
-// (expected output) category set. Axis 4b (scope modes) needs no new vocabulary: it is a subset of the
-// TRANSPORT_MODES this repo already ships in src/lib/contracts/vocabularies.mjs, imported below.
-//
-// NO INVENTED VALUES WHERE A REAL SoT EXISTS:
-//   - jurisdiction shape/sentinels are PORTED VERBATIM from src/lib/jurisdictions/iso.ts's
-//     KNOWN_FREE_TEXT_JURISDICTIONS + its two ISO regexes (same technique source-type-taxonomy.mjs's
-//     header documents for porting logic out of a TS module into plain ESM — see that file). This
-//     module's own test statically greps iso.ts's source text so the port cannot drift silently.
-//   - the Axis 5 category set REUSES src/lib/surface-of.mjs's SURFACES ("regulations"/"market"/
-//     "operations"/"research" — the single, drift-guarded item->surface classification home) plus one
-//     additional sentinel, "out_of_scope" (the framework's fifth bucket, which surfaceOf's
-//     "uncategorized" output is treated as an alias of — see expected-output.mjs).
-// Topics (4a) and verticals (4c) have no existing structured SoT anywhere in the codebase (confirmed:
-// REC-2-plans.md §9 lists them as never built) — the framework document itself is therefore the SoT
-// for those two, and their value sets are transcribed here closed and frozen, never free text.
-//
-// PLAIN ESM, ZERO DEPENDENCIES beyond relative .mjs siblings (portable to the no-npm-ci discipline job,
-// same constraint vocabularies.mjs and surface-of.mjs state for themselves). Do not add .ts imports.
-
 import { LEG_MODE_CODES } from "../contracts/vocabularies.mjs";
 import { SURFACES } from "../surface-of.mjs";
 

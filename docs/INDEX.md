@@ -81,48 +81,18 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## runbooks
 
-- [MAINTENANCE-RUNBOOK](./runbooks/MAINTENANCE-RUNBOOK.md)  -  The dispatch-only maintenance runtime (`.github/workflows/maintenance.yml`): one section per dispatch step (topics seed, tier opinions, W1 dispositions, origin_class backfill, census off-vertical, review digests, tag proposals, tag ratification incl. `auto`, provenance heal, benchmark seed, spec09 reroute), each dry by default, the ruling it is gated on, the artifact it writes
-- [maintenance.d/60-question-answers](./runbooks/maintenance.d/60-question-answers.md) - step 60: the `question-answers.yml` dispatch workflow (export open questions, a session writes a committed answer batch, apply writes the first inference and closes the question); no schedule, not chained (lane L4-B, 2026-10-05, ADR-044)
-- [maintenance.d/61-source-resolution](./runbooks/maintenance.d/61-source-resolution.md) - step 61: the `source-resolution.yml` chained workflow running `resolve-provisional-sources` then `recompute-tiers` after Brief apply and Research walker (lane S1-E, 2026-10-05)
-- [maintenance.d/62-live-smoke](./runbooks/maintenance.d/62-live-smoke.md) - step 62: the read-only `live-smoke.yml` check workflow that signs in as a smoke account and asserts named invariants on a real deployment (lane GATES-2, 2026-10-05)
-- [maintenance.d/63-judgement-drain](./runbooks/maintenance.d/63-judgement-drain.md) - step 63: the scheduled judgement drain (`.claude/commands/drain.md`, planner `plan-drain.mjs`), shipped OFF behind a kill switch (lane G6-DRAIN, 2026-10-06)
-- [judgement-drain family](../fsi-app/scripts/harness-runs/judgement-drain/FAMILY.md) - harness family for the judgement drain: what a run records, its kill switch and its off state (lane G6-DRAIN, 2026-10-06)
-- [live-smoke family](../fsi-app/scripts/harness-runs/live-smoke/FAMILY.md) - harness family for the live smoke run: invariants checked, artifact landed in `harness_runs` (lane GATES-2, 2026-10-05)
-- [maintenance.d/64-chain-proof](./runbooks/maintenance.d/64-chain-proof.md) - step 64: the dispatch-only `chain-proof.yml` that proves the data layer on a disposable local stack by migration replay and a schema oracle; the applied-map classes, the 2026-10-08 rulings (statements-null and apply-record-stub, the outside-ledger ruling, ledger-order replay) and the state of the job (lane PROOF-1, 2026-10-07; DOCS-3, 2026-10-08)
-- [maintenance.d/65-needs-search](./runbooks/maintenance.d/65-needs-search.md) - step 65: the `needs-search.yml` dispatch workflow where an open source need becomes a committed URL batch a session authors and a rule applies (lane G5-SEARCH, 2026-10-07)
-- [maintenance.d/66-recompute-trust-scores](./runbooks/maintenance.d/66-recompute-trust-scores.md) - step 66: the trust-score pass kept as a maintenance step after `trust-recompute.yml` was retired (lane TRUST-RET, 2026-10-07)
-- [maintenance.d/67-backfill-market-series-entity](./runbooks/maintenance.d/67-backfill-market-series-entity.md) - step 67: the data step that goes with migration 373, stamping `market_series.entity_id` from the producer registry (lane L4-E, 2026-10-08)
-- [maintenance.d/68-migration-proof](./runbooks/maintenance.d/68-migration-proof.md) - step 68: the pull_request "Migration proof" workflow that replays the applied set and applies every pending migration on a local stack before production sees it (lane MIG-CI)
-- [maintenance.d/69-plan-quarantine-disposition](./runbooks/maintenance.d/69-plan-quarantine-disposition.md) - step 69: plans a disposition for every live-quarantined item and writes plan.json, the input of step 70 (lane QUARANTINE-DISPOSITION)
-- [maintenance.d/70-apply-deferrals](./runbooks/maintenance.d/70-apply-deferrals.md) - step 70: validates and writes the deferrals that disposition a past-bound quarantined item as blocked (lane M6)
-- [gate-evaluation](./runbooks/gate-evaluation.md) - how to reproduce an evaluation of the CI gates from the firing artifacts every discipline run uploads, so the next evaluation is a query (lane GATE-4, 2026-10-08)
-- [chain-proof family](../fsi-app/scripts/harness-runs/chain-proof/FAMILY.md) - harness family for the chain proof run: the replay, the schema oracle and what its artifact records (lane PROOF-1, 2026-10-07)
-- [needs-search family](../fsi-app/scripts/harness-runs/needs-search/FAMILY.md) - harness family for the two needs-search runtimes (export of open source needs, apply of a committed URL batch) (lane G5-SEARCH, 2026-10-07)
 - [INTEGRITY-TRIAGE-PROCEDURE](./runbooks/INTEGRITY-TRIAGE-PROCEDURE.md)  -  Integrity-flag triage procedure
 - [PERF-PLAYBOOK](./runbooks/PERF-PLAYBOOK.md)  -  Perf Playbook
-- [SPOT-CHECK-PROCEDURE](./runbooks/SPOT-CHECK-PROCEDURE.md)  -  Tier-H Spot-Check Procedure
 - [fleet-budget-control](./runbooks/fleet-budget-control.md)  -  Fleet halt switch, cadence, and charter cost rules (2026-08-07 token-usage audit)
-- [dispatch-discipline-protocol](./runbooks/dispatch-discipline-protocol.md)  -  Every dispatch constraint names its enforcement or is disclosed as trust-the-executor (2026-07-14 honest-limit ruling)
-- [run-structure-protocol](./runbooks/run-structure-protocol.md)  -  Effectful runs execute in ascending cost/irreversibility tiers; halt for operator spend-authorization at each boundary (2026-07-14)
-- [sprint4-dataops-ledger](./runbooks/sprint4-dataops-ledger.md)  -  Sprint 4  -  Data-Operations Ledger (already-executed; do NOT re-run)
-- [audit-catalogue](./runbooks/audit-catalogue.md)  -  the ten audit lenses (exists, runs, called, attacked, costs, fired-true, mode, overlaps, operator-seat, record-vs-reality), the 18 subsystems they apply to, the audit-of-audits matrix over every file in docs/audits with its owed cells in priority order, the rules of an audit, the incident-to-lens ledger, and the one-page fact-lane brief template (lane AUDIT-CAT, 2026-10-08)
-- [layout-guard-baseline-renewal](./runbooks/layout-guard-baseline-renewal.md)  -  procedure for renewing the site-wide layout guard's dated exemption baseline before its hard-cliff expiry; the renewal warning gate (lane R23, 2026-10-02) fires 7 days ahead of expiry and fails the standing test until re-measured
-- [live-source-anti-fabrication-audit](./runbooks/live-source-anti-fabrication-audit.md)  -  standing post-wave gate: live-source anti-fabrication audit
-- [POPULATION-TURN-RUNBOOK](./runbooks/POPULATION-TURN-RUNBOOK.md)  -  how a coordinator dispatches `population-turn.yml` (dry then apply, limit 200, capture on), reads the pushed `population/<run>` branch back against the live table, and lands it by hand because the repository refuses Actions-created PRs (2026-09-03)
-- [CORPUS-TURN-RUNBOOK](./runbooks/CORPUS-TURN-RUNBOOK.md)  -  how a coordinator requests a corpus turn (dispatch or push `turn/**`), what `.github/workflows/corpus-turn.yml`/`source-sweep.yml` land where, the first full backfill (`since=1970-01-01`), and the no-schedule-during-build standing rule (2026-09-01)
-- [PROPAGATION-DRAIN-RUNBOOK](./runbooks/PROPAGATION-DRAIN-RUNBOOK.md) - `propagation-drain.yml` and its driver `run-propagation-drain.mjs`, with the whole loop that feeds the drain (lane CHAIN, 2026-09-06)
 - [FUELEU-STATUTORY-RUNBOOK](./runbooks/FUELEU-STATUTORY-RUNBOOK.md) - rows-file runbook for the FuelEU Annex IV penalty writer (`write-statutory.mjs`) and its pre-flight gate; a transcription of published figures, not legal interpretation (lane FUELEU-ROWS, 2026-09-06)
 - [eia-api-key-registration](./runbooks/eia-api-key-registration.md) - `EIA_API_KEY` registration, the operator action still needed before the EIA v2 petroleum spot producer runs (lane L11, 2026-10-03)
 - [warm-static-detail-routes](./runbooks/warm-static-detail-routes.md) - documented, decision-ready, not wired into CI: warm every static detail route after a deploy so the first request of a newly minted item is not an on-demand generation (PERF-13)
-- [TRAIN-ASSEMBLY-RUNBOOK](./runbooks/TRAIN-ASSEMBLY-RUNBOOK.md)  -  how a coordinator scripts one train's assembly (`scripts/lib/assemble-train.mjs`): folds every artifact branch the six PR-producing workflows stranded on `origin`, runs the proposer pass, lands, gates, and prunes, replacing the branch-by-branch hand procedure (2026-09-05, plan section W1.6)
-- [fleet-charters/authorship-worker](./runbooks/fleet-charters/authorship-worker.md)  -  fleet charter: authorship worker (consolidated, daily). Charter cost rules in [fleet-budget-control](./runbooks/fleet-budget-control.md)
-- [fleet-charters/citation-harvest](./runbooks/fleet-charters/citation-harvest.md)  -  fleet charter: citation harvest
-- [fleet-charters/legacy-remediation](./runbooks/fleet-charters/legacy-remediation.md)  -  fleet charter: legacy remediation
-- [fleet-charters/summary-sweep](./runbooks/fleet-charters/summary-sweep.md)  -  fleet charter: short-summary convention sweep
 
 ## plans
 
 - [complete-build-plan-2026-10-11](./plans/complete-build-plan-2026-10-11.md) - the W0..W6 plan from the complete audit; done = P1..P6 observed by the operator
+- [data-invariants](./plans/rebuild/data-invariants.md) - CLEAN-3 extraction: one line per invariant the old maintenance, remediation, verify and proof scripts enforced or repaired (INV-NNN, resolver behaviour, old file, register line)
+- [protected-properties](./plans/rebuild/protected-properties.md) - CLEAN-3 extraction: one line per property the old discipline layer protected and how the new tree checks it (PROP-NNN, lint rule / type / test / CI step / NOT CARRIED)
 
 ## audits
 
@@ -142,6 +112,3 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [design-principles](./design/design-principles.md)  -  Caro's Ledge Design Principles
 - [ux-laws](./design/ux-laws.md)  -  BINDING 2026-09-03 (DP-2, RD-60): the twenty interface laws every surface lane applies; enforced by F35 + the rendering guard's UX smoke slot (real rows measured at 375 px) and the discipline CI "UX compliance" gate
 
-## dispatches
-
-- [lane-common-contract](./dispatches/lane-common-contract.md)  -  BINDING for every executor lane (2026-09-03): where you work, read-before-write, write sets, gates, commit and report format, the UX contract (data-guard-title + UX smoke spec + UX compliance section)

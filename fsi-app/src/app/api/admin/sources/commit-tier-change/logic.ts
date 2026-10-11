@@ -1,6 +1,3 @@
-// Decision + write for POST /api/admin/sources/commit-tier-change, kept beside route.ts because a route
-// file may export only handlers (F34). Lane G7-TIER (2026-10-05).
-
 type QueryResult<T> = PromiseLike<{ data: T | null; error: { message: string } | null }>;
 
 interface PriorSourceRow {

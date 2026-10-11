@@ -1,18 +1,3 @@
-// tier-override-guard.mjs: the ONE statement-level guard every automatic writer of a sources tier carries
-// (lane G7-TIER, 2026-10-05). Operator ruling: the admin can edit tiers when needed, never by default;
-// automatic writers respect an admin override. Customer tier rule: tier_override, else effective_tier,
-// else base_tier.
-//
-// Why the guard lives IN the UPDATE and not only in the decision: every writer decides from a row it read
-// earlier. An admin override set between that read and the write would be written over by a decision made
-// on stale data (a check-then-write race). `tier_override IS NULL` on the UPDATE statement itself makes the
-// database refuse the write for any row that is overridden at write time. Zero matched rows is the signal
-// that the row was overridden, so the writer counts a skip and records no audit event for a move that did
-// not happen.
-//
-// Pure module: query builders and clients are passed in; nothing here reaches a database by itself.
-
-/** The column an admin sets to pin a source's tier. */
 const TIER_OVERRIDE_COLUMN = "tier_override";
 
 /**

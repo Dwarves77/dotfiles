@@ -1,22 +1,3 @@
-// /api/community/moderation/reports
-//
-// GET  — list moderation reports (group admin/mod sees their group's posts'
-//        reports; platform admin sees all). RLS on moderation_reports
-//        enforces this; we additionally honour the optional ?group_id and
-//        ?status filters.
-// POST — file a new report. Any authenticated group member can report a
-//        post in a group they belong to.
-//
-// Schema reality (migration 032) — the table uses target_kind / target_id
-// (not target_post_id) and resolved_at / resolved_by_user_id (not
-// reviewed_at / reviewed_by). There is no action_taken column and the
-// reason column is open text (no enum check). We standardise the reason
-// vocabulary at the application layer:
-//   spam | harassment | misinformation | off-topic | self-harm | other
-//
-// Auth: cookie session (RLS-aware client).
-// Rate limit: 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

@@ -1,9 +1,3 @@
-// POST /api/admin/sources/[id]/visibility { admin_only: boolean }
-//
-// Toggles a source's admin_only flag. When admin_only=true, the source
-// is hidden from workspace-facing reads (fetchSources default in
-// supabase-server.ts) and remains visible only via /api/admin/sources/all.
-
 import { NextRequest, NextResponse } from "next/server";
 
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";

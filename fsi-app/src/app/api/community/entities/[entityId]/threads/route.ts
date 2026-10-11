@@ -1,17 +1,3 @@
-// GET /api/community/entities/[entityId]/threads?limit=20&before=<ISO>
-//
-// Entity-bound discovery (spec 05 §5 component 2: "Makes Community reachable from the other four
-// surfaces and from the portfolio, rather than a walled forum"). Lists top-level community threads bound
-// to a spine entity (community_thread_entities, migration 293), newest first. This is the route
-// COMMUNITY-B's cross-surface "peers are discussing this" strip (detail pages) and the portfolio calls
-// to find community activity tied to a corridor, jurisdiction, instrument, technology, or organisation.
-//
-// RLS-aware (the caller's own client) — a thread bound to the entity but living in a private group the
-// caller is not a member of is correctly excluded by community_posts' own SELECT policy, joined through
-// naturally rather than re-implemented here.
-//
-// Auth: cookie session. Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

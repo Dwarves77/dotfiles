@@ -1,31 +1,3 @@
-// batch-primitives.mjs
-//
-// Resilience primitives for long-running batch scripts in Caro's Ledge.
-// See remediation-discipline skill Section 5 (primitive extraction patterns)
-// and Section 7 worked example 1 (Q4 sources 21/22 failure) for the
-// architectural rationale.
-//
-// Triggered by OBS-51 (Q4 sample-scale validation passed but full-batch
-// hit Anthropic timeout + pg disconnect at sources 21/22).
-//
-// Primitives:
-//   withRetry(fn, opts)               retry with backoff on retryable errors
-//   withRateLimit(fn, opts)           enforce minimum interval / max concurrency
-//   withIdempotency(fn, opts)         skip already-done items
-//   createPgPool(opts)                configured pg.Pool factory
-//
-// Predicates (callers compose into withRetry):
-//   isGenericRetryable(err)           generic network errors
-//   isAnthropicRetryable(err)         for @anthropic-ai/sdk consumers
-//   isPgRetryable(err)                for pg.Pool consumers
-//
-// Design notes:
-//   - withReconnect is intentionally absent. pg.Pool handles reconnection
-//     natively when configured correctly; a separate wrapper would reinvent.
-//   - withCheckpoint (save-and-resume progress state) is intentionally absent.
-//     Current batches finish in 16 min and resume cleanly via idempotency
-//     alone. Add withCheckpoint if a long-running batch (multi-hour) needs it.
-
 import pg from "pg";
 
 const DEFAULT_BACKOFF_MS = [1000, 2000, 4000];

@@ -1,19 +1,3 @@
-/**
- * state-note-fixtures.tsx: static data for the `/admin/parts/state-note` sign-off page (lane
- * W10-StateNote, 2026-09-23, parts-brief 2.7). Hand-built, not a query, StateNote takes plain
- * data (band key + children + an optional action), same precedent as
- * `src/lib/detail/action-card-fixtures.ts` ("Hand-built, not a query: the part takes plain data,
- * no database read inside the part").
- *
- * Every string below is copied VERBATIM from a real call site in the shipped app (never invented
- * copy for this fixture); the source file:line is named on each entry so the fixture stays
- * traceable to production usage. This is StateNote's own operator ruling read narrowly: the
- * "frozen real record" rule (SELECT only, id + date in the header) governs fixtures that stand in
- * for DATABASE CONTENT (FactCard claims, record facts); StateNote's children are always
- * app-authored UI copy, not source-document content, so there is no SELECT to freeze. The
- * traceable-to-production-usage discipline is the equivalent honesty bar for this part.
- */
-
 import type { ReactNode } from "react";
 import type { UrgencyBandKey } from "@/lib/urgency/bands";
 

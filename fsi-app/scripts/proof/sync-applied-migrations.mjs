@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-// sync-applied-migrations.mjs -- write the committed inventory of what production has applied (lane PROOF-1,
-// coordinator ruling 2026-10-07). The migration replay applies exactly what production has applied, and file
-// headers are not evidence of that (several headers still say NOT APPLIED for applied migrations), so the
-// source is production's own migration list.
-//
-// HAND STEP (no credentials here, no network): the coordinator's executor exports the Supabase MCP
-// `list_migrations` result as JSON, an array of { version, name }, then runs
-//   node scripts/proof/sync-applied-migrations.mjs <path-to-export.json>
-// and commits the output, fsi-app/docs/inventories/applied-migrations.json. Names and versions only; no secrets.
-//
-// Usage: node scripts/proof/sync-applied-migrations.mjs <export.json> [--out <path>]
-// Exit: 0 = written; 1 = the export is malformed (named reason); 2 = usage error.
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";

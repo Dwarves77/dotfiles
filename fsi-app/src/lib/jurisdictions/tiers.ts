@@ -1,33 +1,3 @@
-// ══════════════════════════════════════════════════════════════
-// Jurisdiction tiers (W2.D)
-// ══════════════════════════════════════════════════════════════
-//
-// Tier 1 = "must cover" — every Caro's Ledge workspace, regardless of
-//   sector profile, expects intelligence and active sources for these.
-//   Coverage gaps here are the loudest signal in the admin matrix.
-//
-// Tier 2 = "should cover" — high-value secondary jurisdictions with
-//   non-trivial freight or regulatory weight. Gaps are surfaced but
-//   carry less urgency.
-//
-// Tier 3 = "long tail" — populate on customer demand. Not enumerated.
-//   `jurisdictionTier(iso)` returns 3 if the code parses as ISO but
-//   isn't in tiers 1 or 2; returns null for completely unknown codes.
-//
-// City handling: ISO 3166-2 reserves the second component for first-
-// level subdivisions (states, provinces, regions). Cities are not
-// canonical ISO codes, so we map them to the most-canonical-state
-// code that contains them. This is a Tier 1 placeholder until the
-// platform adopts a richer city schema.
-//   NYC → US-NY      San Francisco → US-CA       Los Angeles → US-CA
-//   Boston → US-MA   Chicago → US-IL              Seattle → US-WA
-//   Denver → US-CO   London → GB-ENG             Tokyo → JP-13
-//   (JP-13 is the ISO 3166-2 code for Tokyo Metropolis.)
-// Each city is collapsed onto its parent ISO code in this list — a
-// future Tier 1 expansion can add explicit US-NY-NYC-style codes if
-// the schema starts emitting them.
-// ══════════════════════════════════════════════════════════════
-
 import { extractCountryFromIso, isIsoCode } from "./iso";
 
 // ── Tier 1 ────────────────────────────────────────────────────

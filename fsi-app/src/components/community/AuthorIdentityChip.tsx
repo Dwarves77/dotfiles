@@ -1,19 +1,3 @@
-/**
- * AuthorIdentityChip, the author-identity line (spec 05 section 2, section 5 components 1/11; amended by R8.7,
- * 2026-09-25, migration 336).
- *
- * "A room can and should know who you are when you're talking, unless you choose to be anonymous"
- * (operator, R8.7). Renders name + company (when present), org type, role, sector, region, and a
- * verification mark, via formatAuthorIdentity, identity.mjs's projectAuthorIdentity is the ONE place
- * that decides whether name/company are present at all (withheld only when the post or the author
- * opted into anonymity; the verified mark is never withheld by anonymity). This is the replacement
- * for the legacy raw author name in any surface that shows a post from the entity-bound,
- * guard-enforced posting flow; Post.tsx renders this INSTEAD OF the legacy author name when the post
- * carries an identity projection (see Post.tsx's header for the fallback rule when it does not).
- *
- * Pure presentational, no data dependency.
- */
-
 import { ShieldCheck } from "lucide-react";
 import { authorIdentityLabel } from "./identity-format";
 import type { CommunityAuthorIdentity } from "./types";

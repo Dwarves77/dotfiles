@@ -1,16 +1,7 @@
 // @ts-check
-// CHEAP-VERIFY (Phase 1, operator ruling 2026-07-13, snapshot-first rebuild — CHECKPOINT 1). The DEFAULT verify
-// path: re-confirm an item's already-extracted claim spans against its STORED snapshot text, with ZERO model
-// calls. It is pure string work — normalize the snapshot to text, then test each claim's verbatim source_span
-// for presence. No fetch, no Anthropic call, ~$0. If a claim's span is present in the stored source, the claim
-// is still grounded in that source; if a required FACT span is absent, cheap-verify cannot confirm the item and
-// the caller escalates (freshness-changed → stale flag; genuinely unverifiable → the LOCKED paid path).
-//
-// CP1 CONTRACT: nothing in this module spends. Any future need for a model call here MUST be surfaced in the PR
-// with a per-item cost estimate before merge — it does not belong in the cheap path.
-
 /** Strip HTML tags + collapse whitespace so a text-extracted span matches against a stored HTML snapshot.
  *  Mirrors the grounding-time text extraction (tags→space, whitespace→single). Pure. @param {string} s */
+
 export function normalizeForMatch(s) {
   return String(s ?? "")
     .replace(/<[^>]+>/g, " ")

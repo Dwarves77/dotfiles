@@ -1,24 +1,3 @@
-/**
- * UpcomingObligationsStripView — the pure presentational half of UpcomingObligationsStrip
- * (lane MOBILE, 2026-09-03). Extracted so the row markup can be UX-smoke-tested at all.
- *
- * WHY THIS FILE EXISTS. UpcomingObligationsStrip.tsx is an async Server Component whose only
- * data-access import (`createSupabaseServerClient` -> `next/headers`'s `cookies()`) cannot be
- * evaluated in a browser bundle: confirmed empirically while building this lane's UX smoke specs —
- * esbuild bundles the module without error (it resolves fine), but the moment ANY export of that
- * module is actually used by the render tree, `next/headers`'s own top-level code runs and throws
- * "process is not defined" in the page (no `process` global outside Node/Next's server runtime).
- * Tree-shaking does not save an unused SIBLING export in the SAME file either — importing one named
- * export from a module still evaluates that module's own top-level statements in full, `next/headers`
- * import included, before any binding is available to use.
- *
- * The fix is physical separation, not a smarter import: this file carries every byte of the row
- * markup (Header / EventCard / DetailCard, unchanged) and zero server-only imports, so it is safe to
- * mount with `ReactDOM.createRoot` the same way every other row component in this lane's UX smoke
- * specs is. UpcomingObligationsStrip.tsx now does the data fetch and calls this component with the
- * result — identical rendered output, reached through a file the harness can actually load.
- */
-
 import Link from "next/link";
 import { Calendar } from "lucide-react";
 import { formatEventDate } from "@/lib/connections/forward-event-format.mjs";

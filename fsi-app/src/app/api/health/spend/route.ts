@@ -1,35 +1,3 @@
-// GET /api/health/spend — month-to-date agent spend probe (R0.2).
-//
-// Sums agent_runs.cost_usd_estimated over the current UTC month and reports it
-// against the monthly ceiling so the uptime workflow's daily spend-watch step
-// can fail before the budget is blown. Same server-side aggregate the /admin
-// MtdSpendTile shows, exposed on a secret-gated endpoint for external polling.
-//
-// SPEND GAUGE (Wave W2, wire #2 of the unwired-module disposition register,
-// docs/plans/unwired-disposition-2026-08-31.md §A). readSpendGauge/spend-gauge.mjs
-// had zero production callers before this wave. Mounted here ADDITIVELY as
-// `spend_gauge` in the response — NOT as a replacement of mtd_usd/pct/frozen.
-// Those three are computed TOGETHER, from one `created_at`-filtered read, inside
-// computeSpendHealth (spend-health.mjs, outside this wire's write scope) and the
-// uptime workflow (.github/workflows/uptime-probes.yml) reads pct/frozen alongside
-// mtd_usd as one internally-consistent trio; swapping mtd_usd's source out from
-// under them would desync two numbers in the same response. spend-gauge.mjs is
-// also a deliberately DIFFERENT framing by its own header ("no ceiling, no
-// denominator, informational only") — forcing its figure into the ceiling-shaped
-// mtd_usd field would misrepresent both mechanisms. The gauge instead adds what
-// this route did not otherwise have: today's spend, and paid-run traceability
-// coverage across the WHOLE month (not just the post-freeze rows mtd_usd's trio
-// already reports). Every existing response field, name, and semantic is
-// unchanged — see the consumer at .github/workflows/uptime-probes.yml (jq'd by
-// name: healthy, reason, mtd_usd, monthly_ceiling_usd, pct, frozen,
-// acquire_lock_on, paid_after_freeze, paid_after_rows[]).
-//
-// Auth: WORKER_SECRET header (workerAuthGuard), same pattern as
-// /api/health/surfaces and every worker/cron route.
-//
-// Output is numbers only (no row content) — safe for a public-repo workflow's
-// logs.
-
 import { NextRequest, NextResponse } from "next/server";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 import { checkRateLimit } from "@/lib/api/rate-limit";

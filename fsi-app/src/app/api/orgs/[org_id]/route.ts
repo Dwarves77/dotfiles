@@ -1,21 +1,3 @@
-// /api/orgs/[org_id]
-//
-// Per-org GET + PATCH for the UserProfilePage Organization tab.
-//
-// GET — returns org identity + derived stats (owner display, member
-// count) for the caller's own org. Caller must be a member; the
-// auth check uses community-auth (cookie session) to keep parity
-// with the rest of the user-facing org surface.
-//
-// PATCH — updates name and/or slug. OWNER-ONLY per the three-layer
-// tenant model (ADR-001: owners control workspace identity). slug
-// validation: lowercase letters, digits, hyphens, 2-60 chars,
-// uniqueness enforced by the existing organizations.slug UNIQUE
-// constraint.
-//
-// Service-role writes only via server routes per operator binding
-// rule (never client-side).
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { type SupabaseClient } from "@supabase/supabase-js";

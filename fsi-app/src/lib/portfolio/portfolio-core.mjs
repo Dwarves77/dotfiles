@@ -1,32 +1,3 @@
-// portfolio-core.mjs: the portfolio object's rules, in one plain-ESM module with no framework imports
-// (lane S8-D, 2026-10-07; spec 00 section 5; migration 362). Everything here runs under `node --test`
-// with a fake client, the same convention src/lib/entities/*.mjs and src/lib/corrections/*.mjs follow.
-//
-// WHAT A PORTFOLIO IS. A workspace-owned SELECTION of already-held things: intelligence items by id,
-// corridors and other spine entities by entity id. It is lens state, like the watchlist and workspace tags
-// (ADR-042 keeps those); the only typed text is its name, and no typed input produces a result (ADR-043).
-// Adding the same thing from any surface is the same record (spec 00 section 8 assertion 14): the add is
-// idempotent on (portfolio, member).
-//
-// WHAT THIS MODULE OWNS
-//   1. input rules   : name normalisation, member parsing, member kind from an entity id.
-//   2. the service   : list / create / rename / delete a portfolio and add / remove a member against a
-//                      Supabase-shaped client passed in. EVERY statement is filtered by the caller's org,
-//                      resolved on the server from org_memberships by the route, never taken from the client.
-//                      A portfolio id from another org is indistinguishable from a missing one (not_found).
-//   3. the roll-ups  : computeRollup(), computed at read time from held rows only. Nothing is stored.
-//
-// ROLL-UP RULES, each traced to the spec (they are the spec's aggregate rules, not new ones):
-//   - Denominator beside every aggregate (spec 00 section 8 assertion 13): "held of total", with the
-//     members that are not currently held named in `notHeld`, never silently dropped.
-//   - Weakest origin class (spec 00 section 3.6, assertion 9): propagated with weakestOriginClass() from
-//     src/lib/contracts/vocabularies.mjs, the one lattice; items carrying no class are counted as
-//     `unclassified` and are NOT treated as strong.
-//   - Counts per surface use the same surface the item's row links to (item-links.ts), so a portfolio
-//     group and the list a reader lands on can never disagree.
-//   - Band counts are by stored platform priority; the view maps a priority to a band with
-//     bandFromPriority() (src/lib/urgency/bands.ts), the one place that does.
-
 import { weakestOriginClass } from "../contracts/vocabularies.mjs";
 
 export const PORTFOLIO_NAME_MAX = 80;

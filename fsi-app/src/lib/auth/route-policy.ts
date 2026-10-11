@@ -1,29 +1,3 @@
-// route-policy.ts — pure routing decision for src/proxy.ts (Next 16 middleware), PERF-2 lane
-// (2026-09-03, docs/audits/perf-load-times-2026-09-03.md §8).
-//
-// WHY THIS EXISTS. proxy.ts previously inlined this decision (public route? static/api passthrough?
-// scanner probe? authenticated?) directly in the middleware function body, alongside the Supabase client
-// construction and the auth network call — meaning the only way to prove "a protected route with no
-// session redirects to /login" was to run the whole Next middleware, which `node --test` cannot do
-// (proxy.ts value-imports `@supabase/ssr`'s createServerClient and next/server's NextResponse; neither
-// resolves outside Next's own bundler the same way next/cache does not — see
-// src/lib/detail/load-detail-core.ts's header for the identical, already-proven reasoning). Splitting the
-// decision out into a PURE function (no framework imports, takes a plain `{ pathname, authenticated }`
-// input, returns a plain action descriptor) makes the full public/static/api/protected ×
-// claim-present/absent/expired matrix testable by a plain `node --test` proof
-// (route-policy.test.mjs) — proxy.ts becomes a thin wiring layer: build `authenticated` from
-// supabase.auth.getClaims() (see proxy.ts's own header for why getClaims() replaces getUser()), call
-// decideRoute, switch on the returned action.
-//
-// SCOPE: this module owns the SAME decision proxy.ts always made — it changes nothing about which routes
-// are public, which are passthrough, or when a redirect fires. It is a pure extraction, not a behavior
-// change.
-
-/** Routes that don't require authentication. /privacy is public by design (Wave-α A7, CODE-4b F2): the
- *  page declares robots index:true and a privacy policy must be readable before signup (GDPR/CCPA
- *  notice-at-collection). /auth/reset-password is public because its only visitor is someone who cannot sign
- *  in (the login page links to it); /auth/update-password stays gated, it needs the recovery session the
- *  callback establishes. */
 const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/auth/reset-password", "/privacy"];
 
 // perf item #9: scanner/probe short-circuit. Production logs show repeated hits to WordPress/PHP admin

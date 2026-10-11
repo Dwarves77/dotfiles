@@ -1,19 +1,9 @@
-// theme-stats.mjs — pure stats derivation for the U3 themes route (flywheel). PURE, no DB, no LLM.
-//
-// Same discipline as cluster.mjs/gaps.mjs: plain ESM, zero dependencies, deterministic. Extracted out
-// of the route handler (api/admin/themes/route.ts) specifically so it has a REAL execution-wired proof
-// (rule 15) — there is no vitest/jest/tsx test runner anywhere in this repo (verified: zero *.test.tsx
-// files, no test script beyond `node --test` on *.mjs, admin/intersections/route.ts and
-// IntersectionDetectionView.tsx — the exact precedent this unit mirrors — carry no tests either). Rather
-// than write a route/component test nothing runs (a cited-but-unrun "proof" rule 15 forbids), the one
-// piece of real computation is pulled into a module that joins the src/lib/connections/*.test.mjs glob
-// like cluster.mjs and gaps.mjs. The route stays thin glue, same posture as its precedent.
-
 /**
  * Summary stats for a themes response — the numbers a stat-strip banner shows without a second query.
  * @param {Array<{surfaces?: string[], convergence?: number}>} themes
  * @returns {{total:number, avg_convergence:number, cross_surface_count:number, single_surface_count:number}}
  */
+
 export function computeThemeStats(themes) {
   const list = Array.isArray(themes) ? themes : [];
   const total = list.length;

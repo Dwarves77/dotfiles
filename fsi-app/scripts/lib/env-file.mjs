@@ -1,27 +1,3 @@
-/**
- * The ONE home for loading fsi-app's local env file into process.env (lane T2, 2026-09-19).
- *
- * Why one home. Every script used to carry its own `try { process.loadEnvFile(resolve(ROOT, ".env.local")); }
- * catch { }` line (about 90 copies). Two of them broke the same test class twice in two days: a test strips
- * the credential variables from a child's environment and expects the script to refuse or self-skip, but
- * the script then reads the env file from disk, so in the one worktree that HAS an env file the credentials
- * come straight back and the test fails there and nowhere else (check-vocabulary-drift on 2026-09-18, lane
- * T1; ecb-fx-producer on 2026-09-19, the second occurrence, which by the operator's ruling gets a class fix,
- * not a second per-script flag). With one loader there is one switch, one credential list, and gate F48
- * refuses a bare `process.loadEnvFile` anywhere else, so the class cannot come back one script at a time.
- *
- * The contract:
- *   - `loadLocalEnvFile()` never throws. Absence of the file is normal (every workflow dispatch injects the
- *     environment from secrets and carries no .env.local); the result says what happened.
- *   - The ONE switch: when `FSI_NO_ENV_FILE` is set to any value other than "" or "0", the load is skipped.
- *     Tests that assert credential-absent behaviour build their child environment with
- *     `withoutCredentials()`, which strips the credential variables AND sets the switch, so the child cannot
- *     read them back from disk. A test that strips by hand and forgets the switch is refused by F48.
- *   - Existing variables are never overwritten (`process.loadEnvFile` semantics), so an injected CI
- *     environment always wins over the file.
- *
- * `node:` builtins only: this module sits on the import graph of tests in the no-npm discipline glob.
- */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 

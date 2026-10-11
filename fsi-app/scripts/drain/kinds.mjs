@@ -1,29 +1,3 @@
-// kinds.mjs: the judgement drain's ONE registry of judgement queues (lane G6-DRAIN, 2026-10-06, plan Stage 6,
-// "How model judgement runs"). A workflow EXPORTS items, a Claude session WRITES a committed batch file, a
-// workflow APPLIES it by rule. This file names, for each queue (a "kind"): where its batch files live, how
-// they are named, which existing exporter produces the queue, which existing apply workflow consumes the
-// batch, and how big one batch is. It is the single source of that wiring: plan-drain.mjs plans from it,
-// resolve-push-batch.mjs reads the same directories and name patterns when an apply workflow fires on a
-// merge, and the paths here are the ones each apply workflow's `push:` trigger lists.
-//
-// NOTHING here queries anything. The exporters are the existing ones and are run as they stand (no second
-// copy of any export query lives in scripts/drain/); `readQueue` only reads what an exporter wrote.
-//
-// BATCH SIZE (CLAUDE.md rule 11): "fewer firings with larger batches beat frequent small ones". batchSize is
-// the item count of ONE batch file. maxBatchesPerRun is 1 for every kind: a drain session lands ONE batch file
-// per kind per PR, because an apply workflow that names its file (brief-apply, theme-briefs, question-answers)
-// takes exactly one file per merge (resolve-push-batch.mjs refuses a push that adds more). The session splits a
-// batch's items among sub-agents and merges their output into the one file. Sizes follow each exporter's own
-// per-item character budget (theme bundles 60000 characters each, question bundles 60000, ledger 200 to 400 per
-// the README), not a guess.
-//
-// KINDS NOT HERE, ON PURPOSE: corpus-turn's extraction (export-corpus-for-extraction.mjs, apply-extraction-
-// output.mjs). Forward-event extraction is a pure, deterministic parser (src/lib/forward-events/extract-
-// forward-events.mjs, "no-LLM module"), run by corpus-turn.yml itself; no session writes a batch for it and no
-// committed extraction batch directory exists, so there is no judgement to drain. The with-pool-text export
-// that DOES feed a session is the record-briefs queue below.
-
-/** Fixed tie-break order for kinds whose pending age is unknown or equal: upstream of the flywheel first. */
 export const KIND_ORDER = Object.freeze(["ledger-verdicts", "host-verdicts", "needs-search", "question-answers", "theme-briefs", "record-briefs"]);
 
 /**

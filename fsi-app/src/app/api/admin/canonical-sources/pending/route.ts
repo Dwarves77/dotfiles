@@ -1,13 +1,3 @@
-// GET /api/admin/canonical-sources/pending
-//
-// Returns all canonical_source_candidates rows where decision='pending',
-// joined with their parent intelligence_item, grouped by item, sorted by:
-//   1. issue severity (stale_url > missing_link > missing_source)
-//   2. confidence (high > medium > low) within an item's candidate list
-//   3. item title alphabetical for stable display
-//
-// Read-only. Auth required. Rate-limited.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

@@ -1,30 +1,3 @@
-// Emission-factor tier resolution: seed on open data today, upgrade to carrier primary later.
-//
-// WHY THIS FILE EXISTS. v1 ships static seed factors, not live APIs. The schema is pre-wired with a
-// fallback hierarchy so connecting a real feed later inserts rows rather than rewriting code, and the
-// active-factor view re-prioritises automatically. This module is the ONE definition of that priority,
-// consumed by both the resolver and the SQL codegen, so JS and SQL cannot disagree about which factor is
-// live.
-//
-// TWO CORRECTIONS TO THE ORIGINAL TIER DESIGN, both material:
-//
-//   1. DQI DIRECTION WAS INVERTED. The draft carried `data_quality_score smallint CHECK BETWEEN 1 AND 5`
-//      and described a GLEC default as "2 out of 5" upgrading to "4/5 or 5/5" on API connection — i.e.
-//      HIGHER IS BETTER. That is backwards relative to the convention this product already ships: the
-//      ecoinvent/Weidema pedigree used by ISO 14083 and by our own `validatePedigree` is 1 = BEST,
-//      5 = WORST. Two scales pointing opposite ways in one product is how a quality score silently
-//      inverts, and an inverted quality score is worse than none because it is confidently wrong.
-//      RESOLVED: `pedigree` is 1-best throughout, matching what already ships. A display helper converts
-//      to a 5-star reading at the edge, and nothing inverted is ever STORED.
-//
-//   2. THE LICENCE GATE WAS ABSENT. A tier is not selectable just because a row exists. A 2026-08-12
-//      licence verification found that GLEC and ISO 14083 default tables cannot be embedded and re-served
-//      commercially, and that Clean Cargo carrier factors are members-only. So the resolver checks
-//      `mayEmbedAsSeed()` and SKIPS a tier whose source is not licence-clear, rather than serving it and
-//      hoping. The Tier-2 slot exists and stays EMPTY until a membership with redistribution rights does.
-//
-// PLAIN ESM, ZERO DEPENDENCIES.
-
 import { mayEmbedAsSeed, attributionsFor } from "./source-licence.mjs";
 import { DERIVATION } from "./envelope.mjs";
 import { ORIGIN_CLASS, PEDIGREE_AXES, LEG_MODE_CODES } from "./vocabularies.mjs";

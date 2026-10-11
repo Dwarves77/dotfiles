@@ -1,28 +1,3 @@
-// theme-brief-text.mjs: the ONE render-time pass over a theme brief written BEFORE the structured-sections
-// contract (migration 351), lane P3 (2026-10-05). PURE, no DB, no LLM.
-//
-// WHY. Every theme brief stored today predates the contract (read-only count 2026-10-05: 9 briefs, none with
-// `sections`). The generator of that era wrote its own working numbers and raw tag slugs into the prose:
-// a bold stats header ("68 members, four surfaces, 409 grounded intra-theme connections, density 0.180"),
-// "(dominant signal weight 104.2)", "scores 0.986" and bare 0.895 / 0.762 scores, and tag slugs such as
-// emissions-reporting-Scope3 and freight-forwarder. A customer reads none of those. The card beside the text
-// already states the live member count and pages once, from the live theme row.
-//
-// WHAT IT CHANGES, and nothing else. Exactly these patterns:
-//   A. the generator's stats header: a whole line that is one bold span starting "<N> member(s)" and
-//      containing "density <number>" (it restates member count, pages, connection count and density, all of
-//      which the live card shows or which are working numbers). The whole line is removed.
-//   B. "dominant signal weight <number>", with its surrounding parentheses when that is all they hold.
-//   C. "scores <d.ddd>" and any bare three-decimal number in [0,1] (the generator's score precision).
-//      Whole numbers, percentages and other decimals are untouched.
-//   D. "density <number>" as a phrase (with its parentheses when that is all they hold).
-//   E. slugs: a hyphenated token that is a KEY of the existing tag label tables (tag-labels.mjs, the one
-//      label source) is replaced by its human label, case-insensitively. Unknown hyphenated words
-//      (same-source, intra-theme, dates) and single-word tag names (shipper, drayage) are never touched.
-// After the removals, stranded separators and doubled spaces left by a removal are tidied; no sentence is
-// rewritten. A brief written under the contract (it has `sections`) is never passed through this: the caller
-// decides, and renders such a brief as written. Pre-contract briefs are re-authored at population.
-
 import { SCENARIO_LABELS, COMPLIANCE_OBJECT_LABELS } from "../connections/tag-labels.mjs";
 
 // Hyphenated keys only: a single-word key is ordinary prose and is never rewritten.

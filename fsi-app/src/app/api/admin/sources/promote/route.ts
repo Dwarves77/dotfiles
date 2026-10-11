@@ -1,18 +1,3 @@
-// POST /api/admin/sources/promote
-//
-// Decision flow for a row in provisional_sources. Three decisions:
-//   approve → INSERT into sources copying name/url/description, applying
-//             reviewer-provided tier/domains/jurisdictions/transport_modes/
-//             topic_tags. UPDATE provisional row to status='promoted',
-//             populate promoted_to_source_id, reviewed_at, reviewer_notes.
-//             Write a source_trust_events audit row.
-//   reject  → UPDATE provisional row to status='rejected', reviewed_at,
-//             reviewer_notes. Write a source_trust_events audit row
-//             (source_id null since no source was created).
-//   defer   → UPDATE provisional row reviewer_notes + reviewed_at; status
-//             stays 'pending_review'. No audit event (deferral is a
-//             non-decision and doesn't affect trust history).
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

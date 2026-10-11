@@ -1,26 +1,3 @@
-// SHARED-WRITER: intelligence_items
-// applyStagedUpdate — the MACHINE materialization of a staged_updates row (extracted from the former
-// /api/staged-updates/route.ts, Unit 0c-2). The sole live caller is runIntakeCycle
-// (no-human-finish-of-intake — the machine gates ARE the approval, RD-20). The legacy
-// /api/staged-updates POST human-approve handler was retired to a 410 (Unit 0c) and then the whole route
-// was purged 2026-07-18 (dormant-systems P-2/P-8); this materializer stays, reached only by the machine cycle.
-//
-// It performs the side-effect implied by a staged_update: for `new_item` it mints through the SINGLE
-// chokepoint mintIntelligenceItem (congruence 1a/1b + subject-existence dedup + relevance floor + the one
-// INSERT), gated first by the entity-gate (a portal-root source_url is a SOURCE, not an item → refused).
-// For the other update_types it applies the update/status/archive/source side-effect.
-//
-// IMPORTANT: this must NEVER throw. All error paths return structured failure so the caller can record
-// materialization_error / mark rejected-with-reason. (Verbatim move — no behavior change — so the
-// legacy route stays identical and the suite confirms it.)
-//
-// MOAT BOUNDARY (contract rule 16, "the forward-participation clause", 2026-09-01): `update_item` is the
-// ONE other write path (besides mint-item.ts's mint chokepoint) capable of a SUBSTANTIVE update to an
-// intelligence_items row's content, so rule 16 applies here too — see isSubstantiveUpdate below for the
-// boundary and participateInFlywheel for the (a)/(b)/(d) participation itself, which reuses the exact same
-// modules mint-item.ts's own post-insert blocks call (run-discovery.mjs, read-and-extract.mjs,
-// flywheel-defect.ts) so the two writers can never drift on shape. This file becomes, alongside
-// mint-item.ts, a writer of item_forward_events (see docs/inventories/shared-dataset-ownership.md).
 import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 import { mintIntelligenceItem } from "@/lib/intake/mint-item";
 import { classifySourceRole } from "@/lib/sources/classify-source-role";

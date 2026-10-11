@@ -1,15 +1,3 @@
-// data.mjs: the reads and the pure bundle assembly shared by the theme-briefs export and apply (lane S3-C).
-//
-// ONE home for "what a theme brief is authored from and validated against", so the export that hands an
-// author the bundle and the apply step that validates the author's batch read the SAME rows the SAME way
-// (a second copy would let the export show one thing and the validator check another). Every function here
-// takes its database reads as injected deps ({ readAll, readAllByIds }, the scripts/lib/db.mjs shapes) so
-// the fixture tests run with no database, and nothing here writes.
-//
-// Reuse: gaps come from src/lib/connections/gaps.mjs detectGaps (the same detector analyze-corpus runs),
-// surfaces from src/lib/surface-of.mjs, the staleness and continuity lookup from brief-staleness.mjs
-// resolveBriefForTheme, the lineage from theme-delta.mjs. Nothing is recomputed here.
-
 import { detectGaps } from "../../../src/lib/connections/gaps.mjs";
 import { computeMemberHash, resolveBriefForTheme } from "../../../src/lib/connections/brief-staleness.mjs";
 import { lineageFromThemeDelta } from "../../../src/lib/connections/theme-delta.mjs";

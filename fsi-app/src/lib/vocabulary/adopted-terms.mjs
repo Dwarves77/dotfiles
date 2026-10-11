@@ -1,22 +1,3 @@
-// adopted-terms.mjs (lane G5-READ, 2026-10-07, buildout plan Stage 5). The ONE loader of adopted vocabulary
-// terms and the ONE place a code vocabulary is unioned with them. G5-TERMS (migration 355) counts mentions of
-// things the system does not hold and adopts a term by rule; an adopted term that no reader sees is a table
-// write with no effect (CLAUDE.md standing rule 17). Every reader (system prompt glossary, parse-output,
-// derive-tags, entity-resolve, the theme write boundary) takes the adopted set as an ARGUMENT so the pure
-// functions stay pure; a caller with database access loads it once per run through this module.
-//
-// SHAPE. `AdoptedTerms` is a plain object, one array per term kind, each entry `{ key, label }`:
-//   key   = vocabulary_terms.term_key (normaliseTermKey form: lower case, single spaces)
-//   label = vocabulary_terms.label (the first-seen surface text; falls back to the key)
-// Only status = 'adopted' rows are ever read. A proposed or retired term is NOT held, so the same term while
-// proposed is not accepted by any reader (the acceptance fixture of the lane brief).
-//
-// FAIL CLOSED. A read failure (migration 355 not applied, a transient error) returns the empty set: every
-// reader then behaves exactly as it did before this lane, on the code constants alone. The union can only ADD.
-//
-// PLAIN ESM. Imports the shared page reader and the one term normaliser; no node built-ins, so a script, a
-// route and a fitness function can all import it.
-
 import { fetchAllRows } from "../db/paginate.mjs";
 import { normaliseTermKey } from "../connections/term-recurrence.mjs";
 

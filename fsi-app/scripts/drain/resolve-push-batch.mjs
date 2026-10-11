@@ -1,21 +1,4 @@
 #!/usr/bin/env node
-// resolve-push-batch.mjs: which committed batch file did this merge add (lane G6-DRAIN, 2026-10-06).
-//
-// Each judgement apply workflow (brief-apply, theme-briefs, question-answers, ledger-consume, source-resolution)
-// has a `push:` trigger on master limited to its own batch directory (kinds.mjs is the one list of those
-// directories and name patterns). On a push the workflow has no `inputs.*`, so its first step calls this to find
-// the batch the merge added:
-//   node scripts/drain/resolve-push-batch.mjs --kind <kind id> [--before <sha>] [--sha <sha>]
-// It prints ONLY `KEY=VALUE` lines on stdout (redirect straight into $GITHUB_ENV), diagnostics on stderr:
-//   PUSH_BATCH_FILE=<fsi-app relative path>     (kinds that name their file; empty otherwise)
-//   PUSH_BATCH_COUNT=<n>
-// Exit 0 with a count of 0 when the push touched nothing that matches (a README edit under the directory, a
-// fixture): the workflow's later steps skip on an empty file. Exit 1 when a kind that names its file finds more
-// than one: the drain lands exactly one batch per kind per PR, and silently applying the first of two would drop
-// the second. Mode is NEVER decided here: the workflow runs chained-dry-guard.mjs with --ref, which forces dry
-// while scrape_cadence='off' (the guard, not this trigger, holds the population ruling).
-//
-// Zero npm dependency (node builtins and git only), so it runs before `npm ci`.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { spawnSync } from "node:child_process";

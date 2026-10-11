@@ -1,17 +1,3 @@
-// /api/community/posts/[id]/replies
-//
-// GET  ?limit=10&before=<ISO>  — list replies to this post, oldest-first.
-// POST { body }                — create a reply (child post with
-//                                parent_post_id = [id]).
-//
-// Replies are stored in the same community_posts table; a reply has
-// parent_post_id != null AND title IS NULL (CHECK constraint
-// community_posts_title_shape). The reply_count + last_reply_at on the
-// parent are maintained by the trigger added in migration 030.
-//
-// Auth: cookie session.
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

@@ -1,19 +1,3 @@
-// screen-verdict.mjs — ONE census row's relevance verdict, the way the operator's 2026-08-31 ruling defined it.
-//
-// WHY THIS EXISTS (2026-09-02, population runs #9–#11). The build of 2026-08-31 ran the $0 relevance
-// screen (screen-rules.mjs + screen-worklist.mjs) over all 3,661 `would_mint` census rows and the operator
-// ruled the split: 1,729 mint / 1,676 off-vertical / 256 need-fetch (Addendum 71). The verdicts were
-// recorded in `scripts/mint/reviewed-verdicts.json` and in the rules, but NEVER stamped onto
-// census_worklist — and the population exporter (export-census-rows.mjs) selected on
-// `dryrun_disposition = 'would_mint'` alone. Three apply runs minted ~130 record-grade items from the
-// unscreened pool; screened afterwards, about half were off-vertical by the operator's own ruling
-// (Coast Guard safety zones, FAA airworthiness directives, federal pay rules, VAT derogation
-// decisions, EC vehicle type-approval SIs). That is ADR-020's August incident, repeated.
-//
-// The screen must sit IN the runtime, at the export, and its verdict must be computed one way in every
-// consumer. This helper is that one way: the rule engine first; a reviewed verdict overrides ONLY a rule
-// verdict of `ambiguous` — exactly mergeReviewed()'s semantics in screen-worklist.mjs, so a reviewer's
-// judgment never silently outranks a rule that fired. Pure; no I/O.
 import { classifyRelevance } from "../screen-rules.mjs";
 
 // not exported (lane DEAD-EXEC, 2026-09-04): used only within this file (isMintable below), per the

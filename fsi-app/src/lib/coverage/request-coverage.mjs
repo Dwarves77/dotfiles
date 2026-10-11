@@ -1,25 +1,3 @@
-// SHARED-WRITER: integrity_flags
-// request-coverage.mjs: the "request coverage" action's write (lane COV-1, 2026-10-08).
-//
-// Spec 00 section 4 gives a named coverage gap a "request coverage" action. The platform already has ONE
-// channel for a concern that is not tied to a single item: a row in `integrity_flags` (migration 048) with
-// category `coverage_gap`, read by the /admin Platform flags queue (fsi-app/.claude/CLAUDE.md, "Integrity flags,
-// agent contract"). This module is that channel's customer-side writer. It builds the row from two validated
-// strings and writes it through a service client handed in by the route; it opens no second table and no
-// second queue (reuse before construction).
-//
-// WHAT A READER CAN SEND. A route path (the `subject_ref` the contract names for a surface subject, for example
-// `/dashboard/coverage?data_class=research&geography=EU`) and a short label for what they are asking about. Nothing else
-// reaches the row: the description and the recommended action are composed here, so free customer text never
-// lands in the admin queue verbatim. This is a request for coverage, not customer data for analysis.
-//
-// DE-DUPLICATION. One OPEN flag per subject. A second request for a subject that already has an open or
-// in-review `coverage_gap` flag writes nothing and answers `already: true`: the reader gets the same
-// confirmation, and the queue is not flooded by repeat clicks.
-//
-// PLAIN ESM, relative imports only. The client is injected, so the write path is exercised by a test through a
-// stub (an apply-only crash must not be reachable only live).
-
 export const COVERAGE_REQUEST_CREATED_BY = "coverage-request-route";
 export const COVERAGE_REQUEST_CATEGORY = "coverage_gap";
 export const COVERAGE_REQUEST_SUBJECT_TYPE = "surface";

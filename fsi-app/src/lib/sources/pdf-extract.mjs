@@ -1,18 +1,3 @@
-// PDF -> text for the ONE transport primitive (canonical-pipeline.fetchWithTransport). A reachable PDF
-// (the GLEC S3 whitepaper, and many wave sources) must ground like an HTML page: directFetchClean pulls
-// the bytes, this module turns the bytes into text. There is deliberately NO second PDF fetcher — the
-// transport stays the SSOT for transport selection; this is only the bytes->text CODEC it calls, so the
-// fetchMeta/blFetchClean unification the fetch-path audit won is not re-accreted.
-//
-// unpdf bundles a serverless pdf.js build (zero native deps), so it runs in the Vercel Node function the
-// same as in local node. The classification helpers (URL + magic-byte + content-type) are pure and
-// dep-free (unit-tested in the depless discipline CI); pdfToText loads unpdf via a DYNAMIC import so this
-// module imports clean without the dependency present — and so the ~MB pdf.js only loads when a PDF is
-// actually fetched. Proven live on the 26-page GLEC whitepaper (1.17 MB -> 57,592 chars).
-
-// A URL whose PATH ends in .pdf (ignoring ?query / #hash). The transport uses this to route a PDF
-// straight to the byte-fetch path — Browserless renders a PDF as an empty viewer shell, so spending a
-// unit on it is pure waste AND trips a false roadblock. A bare 'pdf' substring mid-path does NOT match.
 export const looksLikePdfUrl = (url) => /\.pdf(?:$|[?#])/i.test(String(url || ""));
 
 // PDF magic bytes: a PDF file begins with "%PDF-" (0x25 0x50 0x44 0x46 0x2D) per the spec. This catches a

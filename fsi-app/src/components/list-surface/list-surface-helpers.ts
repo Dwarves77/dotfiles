@@ -1,26 +1,3 @@
-/**
- * Shared row/facet derivations for the five list surfaces (UI system handoff
- * 2026-09-06, README screens 2/4/6/8/11: Regulations, Market, Research,
- * Operations, Watchlist). Extracted here — not duplicated per surface —
- * because all five render the SAME facet groups (Mode / Band / Region) over
- * the same band vocabulary (src/lib/urgency/bands.ts) and the same row
- * anatomy (ListRow). This is a lib helper, not a UI part: it holds no JSX
- * and is the natural home for logic five sibling page components would
- * otherwise hand-copy (CLAUDE.md rule "no duplication").
- *
- * Band counts come from the surface's own get_surface_counts RPC bundle
- * (WorkspaceAggregates.byPriority) wherever a caller has one — the SAME
- * "single SoT, never recomputed from the visible rows" rule every existing
- * list page in this app already follows (see regulations/market/operations/
- * research page.tsx headers). Region facet counts likewise come from
- * WorkspaceAggregates.byJurisdiction (migration 148), also a live corpus
- * count, not a loaded-rows count. Mode has no such per-surface RPC
- * breakdown today; its counts are computed from the rows actually loaded
- * (first-paint page, then the full corpus once the after-paint remainder
- * fetch resolves) and are logged as a deviation in
- * docs/design/handoff-2026-09-06/DEVIATION-LOG.md.
- */
-
 import type { Resource } from "@/types/resource";
 import { TRANSPORT_MODES } from "@/lib/contracts/vocabularies.mjs";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";

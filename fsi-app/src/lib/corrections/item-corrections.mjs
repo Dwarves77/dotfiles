@@ -1,25 +1,3 @@
-// item-corrections.mjs , the ONE JS home for the admin correction layer's read side (lane G7-CORR, 2026-10-06).
-//
-// Migration 356 (item_corrections) holds every admin correction to item data (fact, tag, connection,
-// section_text, full_brief). The DATABASE preserves a correction through every machine write (BEFORE
-// triggers call item_corrections_patch()), so no writer needs to change. This module is what the READERS
-// share: the scripts and modules that PLAN around a correction so they report accurately instead of
-// writing something the trigger will strip or skip.
-//
-//   write-edges.mjs / link-items.ts / lineage-backfill.mjs  -> tombstonedPairKeys(), isPairTombstoned()
-//   apply-tags.mjs / propose-tags.mjs                       -> removedTagsFor(), filterTagProposals()
-//   load-detail-core.ts fetchClaimTierMap                    -> suppressedClaimMatcher()
-//   the admin API logic                                      -> validateCorrectionInput(), latestPerTarget()
-//
-// Semantics mirror the SQL exactly (item_corrections_latest, item_corrections_pair_tombstoned):
-//   active  = revoked_at is null
-//   latest  = newest active correction per (item_id, target_kind, target_ref), ties broken by id
-//   a connection pair is tombstoned when the newest active connection correction between the two items, in
-//   either direction, is a `remove`.
-// Pure except readItemCorrections / readAllCorrections, which take a caller-supplied client and never
-// construct one (same posture as write-edges.mjs). A read ERROR throws (fail closed): a reader that cannot
-// see the corrections must not plan as if there were none.
-
 import { fetchAllRows } from "../db/paginate.mjs";
 
 const TARGET_KINDS = Object.freeze(["fact", "tag", "connection", "section_text", "full_brief"]);

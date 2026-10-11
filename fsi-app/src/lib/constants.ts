@@ -1,4 +1,3 @@
-// ── App Identity ──
 export const APP_NAME = "Caro's Ledge";
 export const APP_TAGLINE = "Freight Sustainability Intelligence";
 

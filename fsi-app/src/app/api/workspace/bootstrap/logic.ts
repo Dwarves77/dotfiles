@@ -1,9 +1,3 @@
-// Shared field loaders for /api/workspace/bootstrap, split out of route.ts (BUILDGATE, 2026-09-02,
-// F34's named residual: a route.ts may export only route handlers/config — see list-order/logic.ts's
-// identical precedent). PERF-9 (2026-09-04, item 5, ADR-026 §4): pulled out specifically so each field
-// is a plain, mockable function testable with a fake Supabase client — no NextRequest/NextResponse
-// involved — mirroring health/spend/logic.ts's buildSpendResponseBody pattern.
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { isPlatformAdmin } from "@/lib/auth/admin";

@@ -1,13 +1,3 @@
-/**
- * OemRoadmapPanelView — the sync, render-only half of OemRoadmapPanel.tsx's VIEW/FETCH split. Separate
- * file, not a second export in the same module: OemRoadmapPanel.tsx imports `@/lib/supabase-server`, which
- * pulls Next's server request-tracing chain (transitively requires `@opentelemetry/api`, absent from a
- * plain esbuild browser bundle; proven live while building `spec09-smoke.mjs`). Because ESM tree-shaking
- * cannot always drop an import with module-level side effects, keeping the fetch-only imports out of THIS
- * file's module graph entirely is the reliable fix. This is the canonical statement of the split's
- * rationale that every other spec-09 panel view and the corridors-applied strip point to.
- */
-
 import { tcoCrossoverBand } from "@/lib/spec09/oem-payload.mjs";
 import "@/components/market/spec09.css";
 import { CoverageState } from "@/components/ui/CoverageState";

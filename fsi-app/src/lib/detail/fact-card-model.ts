@@ -1,17 +1,3 @@
-// src/lib/detail/fact-card-model.ts
-//
-// Lane w10-factcard (2026-09-20). Converts an already-classified `FactParagraph`
-// (src/lib/detail/fact-paragraphs.ts's `parseFactParagraphs`/`classifyParagraph`) into
-// zero or more `FactCardModel` objects: the render-ready shape src/components/ui/FactCard.tsx
-// v2 consumes. This module EXTENDS fact-paragraphs.ts (imports its parser and its FACT/
-// ANALYSIS/LEGAL vocabulary) rather than re-parsing content_md from scratch - per
-// docs/design/parts-brief-2026-09-18.md section 2.1's "Pipeline mapping" and the lane
-// brief's "extend that parser, do not write a second one".
-//
-// Pure, render-time, no I/O. Never writes back to the database. Never invents a fact
-// or a figure the source text does not carry (CLAUDE.md rule 2 / the skill's Integrity
-// Rule) - a claim with no bold figure gets no invented figure lead.
-
 import type { FactParagraph } from "./fact-paragraphs.ts";
 import { parseFactParagraphs, parseSourceCitation } from "./fact-paragraphs.ts";
 import { hostFromUrl } from "../entities/host-from-url.mjs";

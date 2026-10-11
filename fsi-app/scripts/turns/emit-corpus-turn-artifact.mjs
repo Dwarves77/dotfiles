@@ -1,26 +1,4 @@
 #!/usr/bin/env node
-// emit-corpus-turn-artifact.mjs — corpus-turn's own harness-run artifact writer (lane TURNREQ,
-// 2026-09-04). "Emission is CODE" — the same posture run-mint-batch.mjs / run-extraction.mjs /
-// screen-worklist.mjs already hold for their own families (PROPOSER-RUNBOOK.md §5, "forgetting is not
-// possible"): .github/workflows/corpus-turn.yml calls this after every one of its own steps (its own
-// `if: always() && steps.turn.outcome == 'success'` step), dry or apply, so a corpus-turn dispatch that
-// selected 0 tickets or ran into a downstream failure STILL leaves a record — "record it every batch,
-// even when zero," MINT-RUNBOOK.md's own rule, applied here.
-//
-// This is NOT a canonical entry point in the same shape run-mint-batch.mjs/run-extraction.mjs are (it
-// runs no discovery, no extraction, no analysis — corpus-turn.yml's own earlier steps already did all of
-// that, through scripts that belong to OTHER already-governed families or to this family's own
-// consume-turn-requests.mjs/export-corpus-for-extraction.mjs). Its only job is: read back what THIS run's
-// own earlier steps already produced (a tickets snapshot, a corpus-file path, the freshest forward-events
-// artifact this same job wrote) and record it as this family's own CONVENTION.md-shaped artifact.
-//
-// Reads its configuration entirely from environment variables (CT_*), set by corpus-turn.yml's own
-// "Record this turn's own harness-run artifact" step — this script has no CLI flags because it has
-// exactly one caller and that caller already has every value as a workflow-step output.
-//
-// Exit 0 on a successful write. Throws (non-zero exit) on a schema-invalid artifact (writeRunArtifact's
-// own fail-closed validation) or an id-claim collision after 50 attempts (claimRunId) — both real
-// conditions a coordinator should see, not swallow.
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";

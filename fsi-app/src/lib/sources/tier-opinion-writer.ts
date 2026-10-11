@@ -1,20 +1,3 @@
-// SHARED-WRITER: source_tier_opinions
-// src/lib/sources/tier-opinion-writer.ts
-//
-// THE MISSING WRITER for public.source_tier_opinions (migration 091). The read side has been
-// complete since 091 landed: public.get_tier_opinion_disagreements(window_days) plus the admin
-// route /api/admin/sources/tier-opinions. But the table sat at 0 rows — 1,414 source_verifications
-// formed tier opinions upstream (the brief-generation agent's "New Sources Identified" table
-// estimates a tier for every source it cites) and NONE of them were ever recorded, because the
-// citation-registration path (registerCitedSources in source-growth.ts) discarded the agent's
-// tier_estimate the moment a citation's URL matched an EXISTING source — so the disagreement
-// aggregator had nothing to read. This module is that writer, finally wired in. It is not new
-// machinery: the table, the CHECK constraints, and the aggregator all predate this file.
-//
-// Deliberately IMPORT-FREE (no `@/` aliases, no @supabase/supabase-js types) so it can be exercised
-// directly under plain `node --test` with a stub/fake client (see tier-opinion-writer.test.mjs) —
-// the same portability discipline host-authority.ts uses for register-step.test.mjs.
-
 export interface SupabaseLikeError {
   message?: string;
   details?: string | null;

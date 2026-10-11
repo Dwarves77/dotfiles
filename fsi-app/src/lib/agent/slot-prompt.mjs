@@ -1,27 +1,7 @@
 // @ts-check
-// SLOT ENFORCEMENT AT SYNTHESIS (Wave-α C1; CODE-1 F-01 criterion-5 half). Pure core for the
-// synthesiseAndWriteBrief slot contract, DI so it is red-then-green node-testable:
-//
-//   1. buildSlotDirective(slots)   — inject the item_type's REQUIRED SLOTS (read from the DB table
-//      item_type_required_slots at generation time) into the synthesis user prompt, for ALL 12 item
-//      types. The static SYSTEM_PROMPT covers the reg-family slots only; the 7 non-reg types had ZERO
-//      slot language anywhere in generation — `missing_required_slot` was deterministic for them
-//      (generate slot-blind → ground → quarantine → paid re-research over the same slot-blind prompt).
-//   2. uncoveredSlots(body, slots) — the post-synthesis pre-gate: which required slots does the brief
-//      prose cover NEITHER with topical content NOR with an explicit GAP statement? Deliberately the
-//      SAME lenient keyword heuristic as grounding's slot-forcing `proseCovers` (canonical-pipeline
-//      `uncovered` builder) so synthesis and grounding agree on "the prose speaks to this slot at
-//      all". It catches TOTAL omissions cheaply; the DB validator (validate_item_provenance
-//      criterion-5, claims-based) remains the hard gate — this never replaces it.
-//   3. buildSlotRetryFeedback(uncovered) — the ONE corrective-retry feedback block. Fail after the
-//      retry → the caller returns an honest named failure (never silent pass-through).
-//   4. slotCacheGet/slotCachePut — sane in-process cache for the per-type slot rows (the table is 48
-//      rows and changes only by operator spec decision; TTL-bounded so a spec change lands without a
-//      process restart).
-
 /** @typedef {{ slot_key: string, description?: string|null }} SlotRow */
-
 /** Prompt block naming EVERY required slot for this item_type. Empty string when no slots. @param {SlotRow[]} slots */
+
 export function buildSlotDirective(slots) {
   if (!slots || !slots.length) return "";
   const lines = slots.map((s) => `- ${s.slot_key}: ${s.description || s.slot_key}`);

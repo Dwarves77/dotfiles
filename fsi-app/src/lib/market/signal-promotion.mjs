@@ -1,38 +1,3 @@
-// signal-promotion.mjs — Lane SURF, spec 02 §2 ("Signal versus fact") and §6 item 4 ("Signal feed with
-// promotion state: signal/fact, corroboration count, ICD-203 confidence, first-seen, last-movement,
-// promotion timestamp") and §9's named defect:
-//
-//   "Partial. An 'Unverified' chip exists but is unconditional (isSignalType = !!r.type, and the mapper
-//   defaults type to 'uncertain'), so a verified regulation opened here renders labelled Unverified. An
-//   epistemic-integrity inversion."
-//
-// THE DEFECT, PRECISELY. `!!r.type` is a truthiness check on a field the mapper (rpcRowToResource /
-// fetchIntelligenceItemUncached, src/lib/supabase-server.ts) NEVER leaves falsy — an absent item_type is
-// defaulted to the string "uncertain", which is itself truthy. The chip therefore renders on every item,
-// unconditionally, regardless of what the item actually is. This module replaces that always-true check
-// with a state derived from REAL evidence about promotion maturity.
-//
-// WHAT EVIDENCE IS ACTUALLY AVAILABLE TODAY, READ HONESTLY. `intelligence_items.origin_class` exists
-// (migration 267) but carries ZERO backfilled rows [confirmed in that migration's own verification
-// block: "SELECT count(*) FROM intelligence_items WHERE origin_class IS NOT NULL; -- 0 (no backfill
-// yet)"], and none of the category-routed mappers (`rpcRowToResource`, `fetchIntelligenceItemUncached`)
-// project it onto `Resource` yet — extending them is a `src/lib/supabase-server.ts` change, outside this
-// lane's write set (see this lane's own report for the exact line to add). `independent_citers` (real,
-// non-fabricated corroboration count from `sources.independent_citers`) IS already threaded through to
-// the detail page as `convergence.independent_citers` — that is real, live evidence this module can use
-// today. This module therefore accepts `originClass` as an optional, FORWARD-COMPATIBLE input (undefined
-// today, real the day the mapper projects it) and treats `independentCiters` as the load-bearing signal
-// available now — never inventing a promotion the corroboration count alone cannot support.
-//
-// THE ONE RULE THAT MATTERS: CORROBORATION NEVER PROMOTES TO FACT BY ITSELF. Spec §2's own example is
-// explicit — "[SIGNAL] Corroboration: 2 independent ... → promotes to [FACT] on primary-source
-// confirmation" — corroboration is a SIGNAL-side property; only a primary-source-backed origin_class
-// (verified/official/partner — DERIVATION.contractable / ORIGIN_CLASS.citableAsFact in the shared
-// vocabulary) may promote a card to FACT. Ten corroborating trade-press pickups are still a signal.
-//
-// PLAIN ESM, ZERO DEPENDENCIES beyond the shared vocabulary (vocabularies.mjs) — imported, never
-// duplicated, per this lane's own instructions.
-
 import { ORIGIN_CLASS, citableAsFact } from "../contracts/vocabularies.mjs";
 
 /** The four promotion states this surface distinguishes. Ordered worst (least certain) to best. */

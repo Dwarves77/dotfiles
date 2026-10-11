@@ -1,7 +1,3 @@
-// Portfolio view-model types (lane S8-D, 2026-10-07; spec 00 section 5; migration 362). Types only: the
-// server read (read.ts) builds these, the two client views (src/components/portfolio) render them, and
-// neither imports the other, so the client bundle never pulls in a server module.
-
 import type { ListRowFields } from "@/lib/list-row-fields";
 
 export type PortfolioSurfaceKey = "regulations" | "market" | "research" | "operations";

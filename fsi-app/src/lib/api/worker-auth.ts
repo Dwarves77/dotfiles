@@ -1,19 +1,3 @@
-// Shared authentication for worker/cron routes.
-//
-// SECURITY (DEEP-AUDIT S1-4, P0-1): every worker/cron route previously read
-//   const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
-// so a deploy that forgot to set WORKER_SECRET silently accepted the public
-// string "dev-worker-secret" (printed in the repo). This helper removes the
-// fallback entirely and FAILS CLOSED: an unset WORKER_SECRET authenticates
-// nothing (500 + loud log), and a wrong secret is 401. Comparison is
-// constant-time (crypto.timingSafeEqual) so the check does not leak the secret
-// byte-by-byte via timing.
-//
-// Fail-closed is evaluated at REQUEST time, not module load, on purpose: a
-// module-load throw would break `next build` on any deploy whose build step
-// lacks WORKER_SECRET. Request-time evaluation gives the identical security
-// outcome (no public default ever authenticates) without a build-time landmine.
-
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 

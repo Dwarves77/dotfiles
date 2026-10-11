@@ -1,15 +1,3 @@
-/**
- * RelevanceBadge — flywheel U9 (D1). Renders the read-time relevance lens (relevanceForItem,
- * src/lib/workspace/profile.ts, Option B mig 251) on an item detail page: a band pill (high/medium/low)
- * plus the deterministic one-line "Relevance to your operation" summary. Server component (no client
- * state) — the caller resolves the viewer's relevance server-side (per-request, never cached alongside
- * the item itself: see getViewerRelevanceForItem in supabase-server.ts for why) and passes the result.
- *
- * A LENS, not a filter/gate (relevance.mjs's own framing) — this never hides the item, only annotates
- * it. Absent relevance (viewer has no org, or the computation soft-failed) renders nothing, matching the
- * lens's fail-open posture: no relevance signal is not an error state worth a banner.
- */
-
 import type { ItemRelevance } from "@/lib/workspace/profile";
 
 const BAND_COLOR: Record<ItemRelevance["band"], string> = {

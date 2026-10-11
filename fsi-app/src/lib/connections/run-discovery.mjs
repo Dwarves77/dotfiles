@@ -1,22 +1,3 @@
-// run-discovery.mjs — the shared connection-discovery-and-write driver (Pillar A1 discover.mjs + Pillar
-// A2 write-edges.mjs glue), reused by every rule-16(a) participant: mint-item.ts at mint time, and
-// apply-staged-update.ts at substantive-update time (contract rule 16, "the forward-participation
-// clause"). Loads the non-archived, verified corpus signature (CONNECTION_SIGNATURE_COLUMNS — the SAME
-// set backfill-edges.mjs (Pillar A2, scripts/) selects; duplicating the column-list STRING across the
-// src/scripts boundary remains the accepted seam mint-item.ts's own prior header documented — but within
-// src/, this module is now the one home for the query, closing the query-layer-refactor gap that header
-// named), scores the given item's own signature against it (discover.mjs, pure), and writes any material
-// connections through write-edges.mjs's origin-aware upsert (never clobbers an entity_extraction /
-// agent_semantic edge).
-//
-// MOVED HERE (lane FIX, 2026-09-01) from mint-item.ts's own post-insert block, unify the corpus-load +
-// score + write sequence in ONE place before apply-staged-update.ts grew a second hand-copied copy of it
-// for the update path. Content and behavior for the mint caller are UNCHANGED by this move — same query
-// shape (select/eq/eq/neq/order/range), same threshold/limit defaults, same edge shape — verified by
-// mint-forward-participation.npmtest.mjs, which exercises this exact call sequence unmodified.
-//
-// Throws on a corpus read error so BOTH callers' identical try/catch + recordFlywheelDefect (rule 16d)
-// posture keeps working unchanged: this function never swallows an error itself, that is the caller's job.
 import { discoverConnections, computeTagFrequencies } from "./discover.mjs";
 import { writeDiscoveredEdges } from "./write-edges.mjs";
 import { surfaceOf } from "../surface-of.mjs";

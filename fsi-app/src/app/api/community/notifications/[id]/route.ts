@@ -1,23 +1,3 @@
-// GET  /api/community/notifications/[id]
-// POST /api/community/notifications/[id]   body: { action: "mark_read" | "mark_unread" }
-//
-// Single-notification operations.
-//
-// GET is rare and exists for navigation handoff (e.g. a deep link
-// to /community/.../?nid=... that wants to fetch the row to confirm
-// it still exists / belongs to the caller). Most reads happen via
-// the list endpoint.
-//
-// POST flips read_at:
-//   mark_read   — sets read_at = now() if currently null (idempotent).
-//   mark_unread — sets read_at = null  if currently set   (idempotent).
-//
-// Auth:    cookie session via requireCommunityAuth.
-// Limits:  60 req/min/user via checkRateLimit.
-// RLS:     SELECT and UPDATE are both self-only on notifications. The
-//          UPDATE policy additionally locks user_id, kind, payload, and
-//          created_at — only read_at can change.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

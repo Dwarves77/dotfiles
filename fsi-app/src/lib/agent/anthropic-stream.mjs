@@ -1,19 +1,3 @@
-// src/lib/agent/anthropic-stream.mjs
-//
-// Streaming Anthropic Messages call. Exists because a LARGE non-streaming completion (max_tokens 24000)
-// HANGS in some network paths: the response socket sits idle for the whole multi-minute generation and
-// never resolves (proven 2026-06-19 — non-stream hung >300s where the identical stream:true call
-// completed in ~500s, first byte <1s). A non-streaming call that never returns cannot be saved by a
-// retry count or a bigger timeout. Streaming keeps the socket alive (continuous deltas) AND lets us bound
-// on NO-PROGRESS (idle) rather than total duration — a legitimately long completion finishes; only a true
-// hang trips the idle watchdog.
-//
-// PURE/IO split so CI can unit-test the parse (createSSEAccumulator) without network. The classifier
-// (anthropic-error.mjs) is preserved on BOTH failure surfaces a stream has: the pre-stream HTTP status
-// (out-of-credits / auth / bad-request arrive as a normal non-200 before any byte streams) AND a
-// mid-stream `event: error` frame (overload). So a billing/auth halt still re-throws FATAL and the batch
-// runner HALTS with the actionable cause — it does not regress the error-swallow we already fixed.
-
 import { anthropicError } from "./anthropic-error.mjs";
 
 // api.anthropic.com -- ONE HOME (lane L35, F46 external-host-home). This is the sanctioned transport

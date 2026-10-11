@@ -1,8 +1,3 @@
-// Shared relative-time formatter for "X minutes ago", "Y hours ago", etc.
-// Extracted 2026-05-21 so both the credibility RecencyChip (when Build 8 mounts
-// it) and the /regulations masthead "last sync" indicator share one
-// implementation. Add new consumers here, don't reinline.
-
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;

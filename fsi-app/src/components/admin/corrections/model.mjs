@@ -1,10 +1,3 @@
-// model.mjs , the pure core of the admin corrections screen (lane G7-UI, 2026-10-06). No React, no network of
-// its own: the screen's components import this, and the tests drive it with a stubbed fetch.
-//
-// The API contract is at the top of src/lib/corrections/admin-api/logic.mjs (lane G7-CORR). This module adds no
-// behaviour to it: it builds the request bodies the contract names (through the SAME validateCorrectionInput the
-// API runs, so the screen and the API cannot disagree), posts them through an injected fetcher, and turns every
-// refusal into the API's own message, never a generic one.
 import { validateCorrectionInput, OPS_BY_KIND, TAG_COLUMNS, EDGE_RELATIONSHIPS } from "../../../lib/corrections/item-corrections.mjs";
 
 export { OPS_BY_KIND, TAG_COLUMNS, EDGE_RELATIONSHIPS };

@@ -1,8 +1,3 @@
-// Pure helpers for DashboardMasthead's title derivation (UI system handoff 2026-09-06, README
-// screen 1). Split out of the "use client" component (which carries JSX) so these have a plain
-// node --test companion, same posture as src/lib/dashboard/row-fields.ts.
-
-/** "<first name>'S BRIEF" -> workspace name -> the literal "YOUR BRIEF". */
 export function deriveBriefTitle(firstName: string | null, orgName: string): string {
   if (firstName) return `${firstName.toUpperCase()}'S BRIEF`;
   if (orgName) return orgName.toUpperCase();

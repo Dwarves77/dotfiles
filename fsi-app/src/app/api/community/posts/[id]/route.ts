@@ -1,17 +1,3 @@
-// /api/community/posts/[id]
-//
-// GET     — fetch a single post (top-level or reply) with author profile.
-// PATCH   — edit body (and title, if top-level) by author.
-// DELETE  — hard-delete by author OR group admin/moderator.
-//
-// Soft-delete is NOT supported in the current schema (migration 030 has
-// no deleted_at column). DELETE here is a hard delete; reply rows
-// CASCADE via the parent_post_id FK. See docs/C5-feed-spec.md for the
-// rationale and the deferred soft-delete proposal.
-//
-// Auth: cookie session.
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";

@@ -3,7 +3,6 @@
   "registered": "2026-10-05",
   "registered_by": "lane L4-B",
   "governing_files": [
-    "../.github/workflows/question-answers.yml",
     "scripts/turns/export-questions-for-answers.mjs",
     "scripts/turns/apply-question-answers.mjs",
     "scripts/turns/question-answers/schema.mjs",

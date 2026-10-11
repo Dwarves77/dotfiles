@@ -1,29 +1,3 @@
-// series-freshness.mjs — Lane SURF, spec 02 §6 item 11 ("Freshness panel: last-updated and
-// next-expected on every series, visibly degraded past cadence") and §9's named defect ("PriceBoard
-// prints 'Next release: <date>' against a hand-run script with no scheduler").
-//
-// WHY THIS EXISTS RATHER THAN A NEW "NEXT RELEASE" CALCULATION. Spec §9 calls the current "Next
-// release: <date>" claim on the market signal detail page dishonest, specifically because IT IMPLIES A
-// RUNNING SCHEDULER THAT DOES NOT EXIST — market_series and published_price_statistics are populated by
-// hand-run producer scripts (series-registry.mjs's own header), not a cron. A predicted date is a
-// promise this product cannot keep. The honest replacement is not a BETTER prediction, it is a DERIVED
-// STATE: how old is the latest observation relative to what this source's own registered cadence would
-// imply, told in the vocabulary spec 00 §3.4 / §2 already ships (current / ageing / stale / frozen /
-// unknown) — a state, not a forecast.
-//
-// REUSES THE SHIPPED FRESHNESS-DERIVED FUNCTION. src/lib/contracts/envelope.mjs's `stalenessOf` is
-// where this vocabulary's arithmetic already lives (current/ageing/stale/frozen thresholds at 1x/2x/4x
-// the nominal period, "frozen" meaning the source stopped publishing, not "pending" — see that file's
-// own header). This module does NOT reimplement that arithmetic a second time; it only ADAPTS the
-// registry's `cadenceDays` (an integer, series-registry.mjs's own shape) into the cadence NAME
-// `stalenessOf` expects (`envelope.mjs`'s REFRESH_PERIOD_DAYS keys), because the two callers evolved
-// independently — the registry names a day count, the envelope names a cadence label — and adapting at
-// the boundary is what keeps ONE arithmetic home instead of two.
-//
-// PLAIN ESM, ZERO DEPENDENCIES beyond the two sibling contracts modules (both plain ESM themselves).
-// TIME IS INJECTED, never read from the clock — same discipline envelope.mjs's own header states, so
-// this module is deterministic and testable with `node --test`.
-
 import { stalenessOf, REFRESH_PERIOD_DAYS } from "../contracts/envelope.mjs";
 import { FRESHNESS } from "../contracts/vocabularies.mjs";
 

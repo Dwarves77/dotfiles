@@ -1,11 +1,3 @@
-/**
- * timeline-dot-styles: the one home for a timeline dot's passed/next/ahead geometry (F45
- * duplicate-code, lane W10-ActionCard-a, 2026-09-21). MilestoneTimeline.tsx's row-strip dots and
- * Timeline.tsx's full-card dots draw the SAME three visual states at different sizes; before this
- * extraction each file re-typed the three style objects independently, which is exactly the
- * reinventing-the-wheel signal remediation-discipline's Section 5 names for extraction. Plain
- * function, no JSX, so both callers stay pure-style consumers.
- */
 import type { CSSProperties } from "react";
 
 /** Filled solid circle: a passed milestone. */

@@ -1,39 +1,3 @@
-// The source licence register. WHAT WE MAY LEGALLY EMBED AND RE-SERVE.
-//
-// WHY THIS FILE EXISTS. The v1 build ships STATIC SEED DATA rather than live APIs, which is the right
-// call: it removes runtime dependencies and it is cheaper. But it moves the risk. Reading an open
-// dataset is not the same act as embedding it in a database and re-serving it to paying customers, and a
-// licence verification pass on 2026-08-12 found that several datasets an initial seed plan named are
-// NOT redistributable. Two of them were the centre of that plan.
-//
-// The distinction that matters, and the one "is it free?" hides, is THREE separate questions:
-//   (a) may we REDISTRIBUTE / re-serve it to paying customers?
-//   (b) may we embed it in a COMMERCIAL product?
-//   (c) what ATTRIBUTION must ship with it?
-// A dataset can be free to download and still fail (a) and (b). IEA is the clearest example: free to
-// read, explicitly prohibited from redistribution.
-//
-// THIS IS A GATE, NOT A MEMO. `mayEmbedAsSeed()` is called by the seed loader, which refuses to load a
-// red-listed source. A licence policy that lives in a document gets violated by whoever writes the next
-// importer at 11pm; a licence policy that throws does not.
-//
-// NOT LEGAL ADVICE. This register records what published terms SAY, with the URL and the date read, so a
-// lawyer can check our reasoning rather than reconstruct it. Every AMBER entry names the question to ask
-// and who to ask. Where terms could not be read, the entry is `unverified` and the gate treats
-// unverified as REFUSED — the safe default, because the cost of wrongly excluding a dataset is a gap in
-// coverage and the cost of wrongly including one is a takedown or a claim.
-//
-// PLAIN ESM, ZERO DEPENDENCIES, importable by node --test.
-
-/**
- * Redistribution verdict.
- *
- * `permitted`  — an explicit open licence covering commercial redistribution.
- * `conditional`— permitted subject to an act we must actually perform (notify, register, accredit).
- *                Conditional is NOT permitted until the condition is discharged and recorded.
- * `prohibited` — explicit terms against it, or licensed-only.
- * `unverified` — terms not read, or unclear. TREATED AS PROHIBITED by the gate.
- */
 export const REDISTRIBUTION = Object.freeze({
   permitted: Object.freeze({ code: "permitted", label: "Redistribution permitted", embeddable: true, order: 1 }),
   conditional: Object.freeze({ code: "conditional", label: "Conditional", embeddable: false, order: 2 }),

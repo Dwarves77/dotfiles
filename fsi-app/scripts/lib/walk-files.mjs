@@ -1,6 +1,3 @@
-// SHARED recursive file-tree walker (lane TOOL-GAP-2, 2026-09-25, extracted per remediation-discipline's
-// reuse-before-construction: column-existence-parity.mjs and dead-column-audit.mjs both walked src/scripts
-// with an identical readdirSync/statSync recursion, this is the one home). Pure I/O helper, no decisions.
 import { readdirSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 

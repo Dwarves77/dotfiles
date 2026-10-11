@@ -1,20 +1,3 @@
-// src/lib/sources/source-growth.ts
-//
-// THE source-growth step — PATH-AGNOSTIC, shared by every brief on every surface (it is NOT a
-// Research detail). One step: register cited sources -> record source_citations edges -> COLLAPSE
-// SYNDICATION -> compound convergence (independent_citers / highest_citing_tier) -> recompute
-// trust_score_citation. This is the load-bearing piece that makes the platform GROW source
-// credibility ("the more a source is referenced by good sources, the higher its rating").
-//
-// REUSE: the trust score itself is the existing engine (computeCitationComponent in trust.ts). The
-// genuine NET-NEW vs the existing aggregation is SYNDICATION COLLAPSE: the existing path dedupes by
-// distinct citing_source_id, so N trade sites republishing one press release count as N independent
-// citers — inflating credibility from a single announcement. The integrity rule (operator-stated):
-// one announcement syndicated across N sites = ONE corroboration. aggregateConvergence enforces it.
-//
-// The pure functions (aggregateConvergence, citationScore) are unit-provable in ISOLATION with no
-// DB — that is the gate this build passes BEFORE it is wired into the canonical workflow path.
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeCitationComponent, recomputeEffectiveTier } from "@/lib/trust";
 import type { TrustMetrics } from "@/types/source";

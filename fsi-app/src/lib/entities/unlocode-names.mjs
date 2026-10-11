@@ -1,28 +1,3 @@
-// unlocode-names.mjs — human-readable place names for the UN/LOCODE codes the entity spine actually
-// holds. Lane SCOPE-READER, 2026-09-06 (operator ruling, same date: "keep spec 08's scoping table,
-// build the reader, and make every customer-facing corridor reference human-readable, because nobody
-// knows what CNSHA-NLRTM means").
-//
-// SOURCE OF TRUTH FOR EVERY NAME BELOW: UN/LOCODE — Code List for Trade and Transport Locations,
-// maintained by UNECE (UN Economic Commission for Europe), https://unece.org/trade/uncefact/unlocode
-// (current edition at authoring time: 2025-1). Each entry cites the code's country + place-name pair
-// from that published list, transcribed verbatim — never guessed, never machine-translated, never
-// inferred from the code string itself. A code with no entry here renders the RAW CODE, never a
-// fabricated name (this module's own `nameForLocode()` returns null on a miss — the caller decides how
-// to render that, per the "never guessed" rule; see corridor-scope.ts's own `formatCorridorLabel()`).
-//
-// ONLY THE CODES THE SPINE ACTUALLY HOLDS (per this lane's brief — not a full UN/LOCODE mirror, which
-// would be tens of thousands of entries the product never needs and could drift from the published list
-// unnoticed). Live check, 2026-09-06 (Supabase project kwrsbpiseruzbfwjpvsp, `SELECT DISTINCT
-// canonical_name FROM entities WHERE kind='corridor'`): four corridors, five distinct UN/LOCODE
-// endpoints — CNSHA, NLRTM, USNYC, USLAX, ITGOA (all origin CNSHA per ADR-024's worked example plus the
-// three named WCI destinations seed-corridors.mjs falls back to). unlocode-names.test.mjs asserts every
-// one of them resolves here, so a fifth corridor whose endpoint this file does not yet name FAILS the
-// test rather than silently rendering a raw code in production with nobody noticing until a support
-// ticket — the message names exactly which code is missing and where to add it.
-//
-// PLAIN ESM, ZERO DEPENDENCIES.
-
 /**
  * @typedef {object} LocodeEntry
  * @property {string} place       The place name (city/port), UN/LOCODE column "Name".
@@ -32,7 +7,6 @@
  * @property {string} countryName Full country name (ISO 3166-1 short name, English).
  */
 
-/** UN/LOCODE -> {place, countryIso, countryName}. Cite: UNECE UN/LOCODE 2025-1 edition. */
 export const UNLOCODE_NAMES = Object.freeze({
   CNSHA: Object.freeze({ place: "Shanghai", countryIso: "CN", countryName: "China" }),
   NLRTM: Object.freeze({ place: "Rotterdam", countryIso: "NL", countryName: "Netherlands" }),

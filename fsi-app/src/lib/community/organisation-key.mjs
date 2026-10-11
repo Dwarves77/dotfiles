@@ -1,37 +1,3 @@
-// organisation-key.mjs — server-only, pseudonymous per-organisation identifier (spec 05 §2, §3;
-// migration 293's community_member_profiles.organisation_key column comment; docs/dispatches lane
-// COMMUNITY-C). The benchmark response table that also stored this key was removed by ADR-042.
-// PURE — no I/O, no env read. The caller (a route, running server-side only) supplies the salt from
-// process.env.COMMUNITY_ORG_SALT and the verified corporate email DOMAIN (never the full address)
-// explicitly, so this module is unit-testable without touching the environment and cannot itself be the
-// place a client-supplied value leaks in (see migration 294's own header on exactly that risk).
-//
-// WHAT THIS DERIVES A KEY FROM: the member's VERIFIED CORPORATE EMAIL DOMAIN, salted with an
-// operator-provisioned secret (env var COMMUNITY_ORG_SALT — read by the routes, never by this module)
-// and hashed with HMAC-SHA256. Two members at the same employer (same domain) always derive the SAME
-// organisation_key (this is the point — it lets k-anonymity count DISTINCT organisations, spec 05 §1);
-// nobody outside the server can invert the key back to the domain without the salt. This is a step
-// further than spec 05 §2's own "the platform knows exactly who you are, the room does not" — the
-// organisation_key makes an AGGREGATE not even reveal which employer's data is whose within it.
-//
-// NEVER SURFACED TO A CLIENT. identity.mjs's projectAuthorIdentity() allowlist does not carry this
-// column (see that module's header); this module's own output is consumed only by server-side route
-// code, which stores it in community_member_profiles.organisation_key (REVOKEd from
-// anon/authenticated SELECT, see migration 293) and never echoes it back in an HTTP response body.
-//
-// REFUSES for two independent reasons, checked explicitly rather than left to fail open:
-//   1. `verified` is not `true` — an org key must never exist for an unverified member. Migration 293's
-//      own CHECK constraint (verified=true requires organisation_key NOT NULL) is the DB-side half of
-//      this same contract; this function is the JS-side half that keeps an unverified profile from ever
-//      being handed one.
-//   2. the domain is a FREE-MAIL / consumer webmail domain (FREE_MAIL_DOMAINS below) — spec 05 §2's own
-//      model (Gartner Peer Insights: "identifiable CORPORATE email matching their stated company") is
-//      meaningless against a gmail.com address, because a free-mail domain does not identify an employer
-//      at all — every free-mail user would collide into the SAME organisation_key, silently manufacturing
-//      fake k-anonymity (five gmail.com users look like "5 organisations" when they may all be the same
-//      actor working around the guard). Refusing derivation outright, rather than hashing the free-mail
-//      domain anyway, is the only posture consistent with spec 05 §1's antitrust requirement.
-
 import { createHmac } from "node:crypto";
 
 /** Consumer / free webmail domains — NEVER treated as a corporate identity (see file header, reason 2).

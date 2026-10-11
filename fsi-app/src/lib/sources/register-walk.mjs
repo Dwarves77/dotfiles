@@ -1,18 +1,5 @@
 // @ts-check
-// register-walk — B2 of the scrape-and-build plan (docs/plans/scrape-and-build-content-plan-2026-07-19.md):
-// the date-paged REGISTER index walk. A register (the EUR-Lex Official Journal, the Federal Register)
-// publishes a dated index of every instrument; walking the index by date enumerates documents the
-// portal-homepage crawl never sees. Both walkers FEED THE SAME LEDGER B1 consumes (persistPortalCandidates
-// is injected — the ONE write-site stays one), so downstream (classify → intake chokepoint) is unchanged.
-//
-// REUSES: extractPortalLinks (the OJ daily view is HTML — the same extractor B1's harvest proved live;
-// the ledger's UNIQUE-url dedup makes the repeated site chrome free, only NEW instruments land per day),
-// the FR API host routing already codified in transport-escalation's apiEndpointFor (federalregister.gov
-// → /api/v1 — no key required), and the hold gate (the live runner threads assertFetchAllowed + the F16
-// caller through the injected fetchers; the walkers themselves are PURE + dep-injected, no network here).
-//
-// BOUNDED BY CONSTRUCTION: an explicit from/to date range, per-page cap, maxPages cap, and a per-walk
-// summary that reports what was NOT collected (pages beyond the cap) — no silent truncation of a walk.
+
 import { extractPortalLinks } from "./portal-links.mjs";
 // F46 (lane L35): eur-lex.europa.eu's one home is identifier-variants.mjs; re-exported here so this
 // file's own callers and test keep importing ojDailyViewUrl from register-walk.mjs.

@@ -1,31 +1,3 @@
-// GET  /api/community/notifications
-// POST /api/community/notifications
-//
-// List the caller's in-app notifications, or perform a bulk action
-// (currently mark_all_read).
-//
-// Schema reference (migration 032):
-//   notifications(id, user_id, kind, payload, read_at, created_at)
-//   kind ∈ {mention, reply, invite, moderation, archive, assignment}
-//   (the table CHECK of migration 359 still admits a legacy 'promote' value; no code writes it since
-//   C-TOGGLE, PR 963, removed the on_promote preference and the promote kind)
-//
-// Auth:    cookie session via requireCommunityAuth.
-// Limits:  60 req/min/user via checkRateLimit.
-// RLS:     SELECT/UPDATE self-only — no service role used here. Callers
-//          can never read another user's notifications even if they try.
-//
-// Query params (GET):
-//   unread_only   — "true"|"1" (optional). When set, filters read_at IS NULL.
-//   limit         — 1..100, default 20.
-//   before        — ISO timestamp; returns rows with created_at < before.
-//                   Used to paginate ("Load older").
-//
-// POST body:
-//   { action: "mark_all_read" }   — sets read_at=now() on all caller's
-//                                   currently-unread rows. Returns
-//                                   { updated: N }.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

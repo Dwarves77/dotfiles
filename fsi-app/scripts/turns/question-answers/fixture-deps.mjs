@@ -1,13 +1,3 @@
-// fixture-deps.mjs: the in-memory database the question export and apply run over with --fixture <corpus.json>
-// (lane L4-B). Built on the theme-briefs fixture database (reads, guardedInsert, guardedUpdate over a plain
-// { tables: { name: [rows] } } object), adding the two shapes the answer apply step needs that it does not
-// have: guardedUpdateByIds (the id-list guarded update the flag close and outcome record use) and an `rpc`
-// that behaves like register_inference_record (migration 339): one inference_records row, refusing what the
-// table's CHECKs refuse (status token, confidence range, empty cited_item_ids, origin class).
-//
-// It does NOT model RLS, triggers, snapshots or derivation_edges. The tests use it too, so what the CLIs do
-// under --fixture is what the tests prove.
-
 import { fixtureDeps as baseFixtureDeps } from "../theme-briefs/fixture-deps.mjs";
 
 const STATUS = ["CONFIRMED", "HYPOTHESIS", "REFUTED"];

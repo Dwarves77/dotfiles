@@ -1,31 +1,3 @@
-// methods/index.ts — the METHODS registry + registerMethod() seam (docs/specs/08-flywheel-design.md §2.2
-// Part 3: "the drain recomputes each stale value through its own registered method"). Lane DP-ENGINE,
-// system-completion train, 2026-09-02.
-//
-// THIS FILE OWNS THE SEAM, NOT ANY METHOD BODY. `drain.ts` imports ONLY `getMethod`/`METHODS` from here —
-// never a concrete method — so drain.ts itself never grows a per-method import list.
-//
-// UPDATE (Lane DP-SURF, same train, same day): the side-effect imports at the bottom of this file ARE the
-// governing plan's own explicit instruction to this lane ("register them in methods/index.ts via the seam
-// — you may edit index.ts only to import/register"), and the reason is mechanical, not a change of mind
-// about the seam's design: a `registerMethod()` call only RUNS when its module is imported by something,
-// and nothing else in this train imports a concrete method module (DP-ENGINE's own drain.ts deliberately
-// does not, per the paragraph above, and no route/script/component in this lane's write set is a natural
-// "boot" file that every method file could register itself into). This file is the one already-live
-// import target every method needs regardless (drain.ts calling `getMethod`/`METHODS` gives IT a real
-// production importer), so making it the aggregation point too costs no new liveness risk and needs no new
-// file. A method module's OWN header still states its method id/version/registration; this file's job is
-// still confined to importing (never re-implementing) — "own the seam, not the body" still holds, the body
-// still lives one file over.
-//
-// PLAIN RELATIVE IMPORTS, NO `@/` ALIAS, NO NPM PACKAGE AT MODULE SCOPE — see types.ts's header for why.
-//
-// A METHOD IS A PURE FUNCTION OF ITS RESOLVED INPUTS. No `sb`, no network, no `Date.now()` — `now` is
-// injected in `MethodContext`, matching every other pure function in this engine (effective-confidence.mjs,
-// admissible-for.ts). drain.ts resolves each `derived_values.inputs` entry into a real row (or `null` when
-// unresolvable — e.g. the input row was itself deleted) BEFORE calling the method; a method never fetches
-// its own inputs.
-
 import type { Derivation, OriginClass, Lifecycle, Admissibility } from "../types.ts";
 
 /** One resolved input a method receives — the InputRef the value was registered with, plus the actual row

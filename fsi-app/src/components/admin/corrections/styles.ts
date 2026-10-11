@@ -1,5 +1,3 @@
-// styles.ts , the one home for the form control styles the Corrections screen shares (lane G7-UI, 2026-10-06).
-// The field, the select and the textarea are the same 44 px control; the label is the same small bold caption.
 import type { CSSProperties } from "react";
 
 export const fieldStyle: CSSProperties = {

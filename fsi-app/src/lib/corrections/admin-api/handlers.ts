@@ -1,7 +1,3 @@
-// handlers.ts , the request handlers of the admin item-corrections API (lane G7-CORR, 2026-10-06). A route.ts
-// may export only route handlers (F34), and the admin gate must be reachable in a test without a real session,
-// so each route file calls requireAdminRoute (F2 reads that call in the route file) and passes it in as `guard`;
-// the tests pass a guard built with injected deps. The contract is documented in ./logic.mjs.
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, type AdminRoute } from "@/lib/api/route-guard";
 import { revalidateItem } from "@/lib/cache/revalidate-item";

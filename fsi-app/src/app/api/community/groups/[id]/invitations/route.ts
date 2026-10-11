@@ -1,13 +1,3 @@
-// GET /api/community/groups/[id]/invitations
-//
-// List pending invitations for a group, visible to admins/moderators
-// (the SELECT policy on community_group_invitations already enforces
-// visibility). Joined to invitee profile metadata so the Invite UI can
-// surface names instead of bare UUIDs.
-//
-// Auth:    cookie session via requireCommunityAuth.
-// Limits:  60 req/min/user via checkRateLimit.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

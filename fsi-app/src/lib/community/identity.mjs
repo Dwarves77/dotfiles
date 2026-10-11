@@ -1,28 +1,3 @@
-// identity.mjs, author identity projection (spec 05 section 2, required component 1; R8.7 amendment, spec 07
-// Community section, 2026-09-25, migration 336). PURE. Takes a raw profile-shaped object and returns
-// ONLY the allowlisted fields a room may show: org type, role, sector, region, verification status, and
-// (identity-by-default, R8.7) NAME and COMPANY, unless the post or the member opted into anonymity.
-//
-// R8.7 SUPERSEDES this module's original framing ("The platform knows exactly who you are. The room
-// does not", spec 05 section 2 item 1). Operator, 2026-09-25, verbatim: "a room can and should know who you
-// are when you talking. unless you choose to be annonymous"; "people can be anonymous if they choose in
-// a post or as a user." The new default is IDENTITY SHOWN; ANONYMITY is the opt-in, per-post
-// (`community_posts.anonymous`) or per-user (`community_member_profiles.default_anonymous`, migration
-// 336). This function is still the ONE place that decision is enforced in code: it is an ALLOWLIST
-// projection (picks named fields out), never a denylist (strips named fields out), a denylist silently
-// leaks the next field someone adds to the profile row the moment it lands, because "strip everything
-// except these" fails open and "keep only these" fails closed. Any caller that wants to render an
-// author's identity on the Community surface calls this, never selects raw profile/organisation columns
-// directly.
-//
-// ANONYMOUS CARVE-OUT (R8.7, verbatim): "an anonymous post keeps the verified-member marker so the room
-// can still trust the source without knowing who it is." So `anonymous: true` withholds ONLY name and
-// company; `verified` (and the pseudonymous org type/role/sector/region) are unaffected, since spec 05
-// section 2 items 2-6 (the antitrust guard, k-anonymity, etc.) never depended on withholding identity.
-
-/** Canonical org-type vocabulary community members self-declare against (spec 05 §2's own Gartner-model
- * fields: "job title, role, industry and company size"). Kept small and freight-domain-specific rather
- * than open text, so aggregation (dominance/k-anonymity by org TYPE, not identity) stays meaningful. */
 export const ORG_TYPES = Object.freeze([
   "forwarder",
   "carrier",

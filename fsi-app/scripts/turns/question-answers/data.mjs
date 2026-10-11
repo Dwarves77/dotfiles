@@ -1,19 +1,3 @@
-// data.mjs: the reads and the pure bundle assembly shared by the question export and the answer apply step
-// (lane L4-B, 2026-10-05, ADR-044).
-//
-// ONE home for "what a question is answered from and validated against", so the export that hands an author
-// the bundle and the apply step that validates the author's batch read the SAME rows the SAME way (a second
-// copy would let the export show one thing and the validator check another). Every function takes its
-// database reads as injected deps ({ readAll, readAllByIds }, the scripts/lib/db.mjs shapes) so the fixture
-// tests run with no database, and nothing here writes.
-//
-// A question is an open integrity_flags row under the `question:` namespace (flag-namespaces.mjs, written by
-// the trigger generator). Its held material is the question's item plus the items connected to it by an
-// item_cross_references edge, at most MAX_CONNECTED of them, typed edges first (a typed edge is one whose
-// relationship is not the generic "related"; the intersection signal rides on the same edge row's basis).
-// Held pool text is retrieved by seek-more.mjs queryHeldPools and identified by heldPoolHash; both are the
-// shared implementations, not copies.
-
 import { QUESTION_NAMESPACE, HOLDINGS_NEED_NAMESPACE, HOLDINGS_NEED_ACTION, TERM_NEED_NAMESPACE, createdBy } from "../../../src/lib/connections/flag-namespaces.mjs";
 import { TERM_KINDS } from "../../../src/lib/connections/term-recurrence.mjs";
 import { PRODUCT_QUESTIONS } from "../../../src/lib/learning/constants.mjs";

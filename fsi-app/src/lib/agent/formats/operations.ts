@@ -1,15 +1,3 @@
-// src/lib/agent/formats/operations.ts
-//
-// Operations Profile — 8 sections, per analysis-construction-spec/references/formats-regulatory-operations-market.md §5 (a gated data-sourcing
-// program). Grounding = 'matrix': S1/S2 are single-region span facts that populate incrementally;
-// S3/S4 (cost comparison + cross-regional) GATE on the matrix reaching >=2 sourced regions per
-// dimension and stay omit-with-note until then. The matrix is a COVERAGE QUERY over the existing
-// regional_data rows (dimension x jurisdiction) — NOT a new store (Rule 3).
-//
-// BUILD AGENT OWNS: required-slots migration for regional_data, the coverage-gate adapter, and a
-// NET-NEW section-aware OperationsDetailSurface (none exists today) with routing. Exemplar-test the
-// coverage gate against the 26 non-archived regional_data items before building anything net-new.
-
 import { makeFormatSpec } from "@/lib/agent/formats/prose-extractor";
 import type { SectionDef } from "@/lib/agent/format-spec";
 

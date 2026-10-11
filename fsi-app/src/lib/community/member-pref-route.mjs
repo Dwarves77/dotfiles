@@ -1,19 +1,3 @@
-// member-pref-route.mjs: the ONE shared PATCH handler body for a self-only community_group_members
-// preference toggle (migration 029: starred, muted). NOT pure (does auth + a DB write) -- deliberately
-// separate from group-member-prefs.mjs's pure validateMemberPrefToggle, which this module imports and
-// uses rather than re-validating inline.
-//
-// WHY THIS EXISTS. F45 (duplicate-code) caught PATCH /api/community/groups/[id]/star and PATCH
-// .../mute as a 12-window exact clone (lane W2-B, 2026-09-29/2026-10-02): the mute route was written
-// as a close-to-verbatim mirror of the star route, by design (the brief's own words, "mirroring the
-// existing /star route"), and exact-mirroring is exactly the class this gate exists to catch. One
-// factory, parameterised on the field name, is the shared home; each route.ts file now exports only
-// its own one-line PATCH handler (F34: route files export only handlers).
-//
-// Imported DIRECTLY by each route.ts, never re-exported through index.mjs: this module needs
-// next/server, and index.mjs is imported by plain `node --test` files with no npm resolver (see
-// index.mjs's own comment on why it does not re-export this).
-
 import { NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "../api/route-guard";
 import { rateLimitHeaders } from "../api/rate-limit";

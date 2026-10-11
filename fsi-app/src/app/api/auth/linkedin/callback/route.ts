@@ -1,27 +1,3 @@
-// src/app/api/auth/linkedin/callback/route.ts
-//
-// GET /api/auth/linkedin/callback
-//
-// Receives the LinkedIn authorization-code redirect. Validates the CSRF state
-// cookie, exchanges the authorization code for an access_token, fetches the
-// LinkedIn lite profile + primary email, maps to the Caro's Ledge profile
-// shape, and UPSERTs into `profiles` for the currently authenticated user.
-// On success redirects back to /onboarding (or /profile if onboarding is
-// already complete) with ?linkedin=imported. On failure redirects back with
-// ?linkedin=error&reason=...
-//
-// Security:
-//   - Validates state by comparing the OAuth state query param against the
-//     httpOnly cookie issued by the /start route. Mismatch or missing cookie
-//     redirects with reason=state-mismatch.
-//   - Validates the code parameter is present before any token exchange.
-//   - Wraps the token exchange and profile fetches in try/catch and returns
-//     reason=token-exchange-failed or reason=profile-fetch-failed on error.
-//   - Requires an authenticated Supabase session (cookie-based) to perform
-//     the profile upsert. Unauthenticated callers get reason=not-authenticated.
-//   - Never logs the access_token or any LinkedIn token material. Logs are
-//     limited to success / failure event names plus the failure reason key.
-
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { getServiceSupabase } from "@/lib/supabase-service";

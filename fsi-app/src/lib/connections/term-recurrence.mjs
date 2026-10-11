@@ -1,33 +1,3 @@
-// term-recurrence.mjs (lane G5-TERMS, 2026-10-06, buildout plan Stage 5): PURE counting, proposal and
-// adoption of repeated mentions of a term the system does not hold. Node builtins only, no I/O: every read
-// and write is injected, so the module runs in the no-npm discipline job and is proven on fixtures.
-//
-// THE CLASS, NOT THE EXAMPLE (CLAUDE.md rule 19). The question this module answers: "which things do items
-// keep mentioning that no code vocabulary holds, and when does a repeated mention become a held term?" The
-// kinds are standard, material, theme, scenario, compliance_object and term. Themes and standards are two
-// instances of the class; materials and general terms have no detector in the repo before this lane, so the
-// brief author's optional `mentioned_terms` array is the detector that reaches them (detector 5 below).
-//
-// DETECTORS. Each one turns rows that ALREADY exist into mentions; none re-implements existing logic:
-//   1. entity-link        the unresolved, ambiguous and unknown-standard mentions entity-resolve.mjs
-//                         aggregates into one `intake-entity-link` integrity_flags row per item
-//                         (recommended_actions[].rationale = "<kind>:<mention> resolved to <n> item(s)")
-//                         -> kind `standard`.
-//   2. theme-candidate    intelligence_items.theme_candidate (migration 136), other than `unclassified`
-//                         -> kind `theme`.
-//   3. scenario-tag       operational_scenario_tags outside the system-prompt glossary (the caller supplies
-//                         the held set, read from derive-tags.mjs's SCENARIO_TAG_VALUES) -> kind `scenario`.
-//   4. compliance-object  intelligence_items.compliance_object_candidates (migration 355, the capture that
-//                         replaces the silent drop in parse-output.ts) -> kind `compliance_object`.
-//   5. brief-terms        the optional `mentioned_terms` [{kind: material|term|standard, text}] a session
-//                         brief author emits in the record-briefs metadata; written at apply time.
-//
-// ADOPTION RULE (pure function decideAdoption). A term adopts when distinct_items >= minItems (the caller
-// passes trust.ts CITATION_FREQUENCY_PROMOTION_THRESHOLD, imported there, never typed here) AND
-// distinct_sources >= ADOPTION_MIN_SOURCES (2). Adoption needs no human. Adoption is monotonic: an adopted
-// term stays adopted when a later count dips (items archived); a retired term (set by an admin) is never
-// touched by an automatic writer, the admin-override rule of the lane contract.
-
 export const TERM_KINDS = Object.freeze(["standard", "material", "theme", "scenario", "compliance_object", "term"]);
 /** The kinds a brief author may name in `mentioned_terms`. */
 export const MENTIONED_TERM_KINDS = Object.freeze(["material", "term", "standard"]);

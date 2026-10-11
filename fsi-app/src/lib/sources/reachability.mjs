@@ -1,20 +1,3 @@
-// SSOT reachability classification, the ONE implementation that verification.ts and the
-// other sources decision modules (check-sources-decision.mjs, fetch-now-decision.mjs,
-// verification-decision.mjs) CALL, so the non-answer-as-negative bug cannot live again in
-// aligned copies. Mirrors the canonical-fetch.mjs SSOT pattern that D1 established.
-// (The two .mjs corpus runners this comment used to name, tier1-population-runner.mjs and
-// california-pilot.mjs, were May-era one-shot population scripts superseded by the
-// canonical pipeline; removed 2026-10-02, see docs/tech-debt-log.md.)
-//
-// THE PRINCIPLE (fetchOk): a fetch that FAILED TO ANSWER — 429 (rate-limited / refused),
-// 5xx (server couldn't serve), timeout / abort / dns / network, 403 (refused), or a
-// Browserless render failure — is INCONCLUSIVE, never a substantive negative. Only a
-// definitive 404/410 is DEAD. Inconclusive routes to tier M (operator review), EXACTLY as
-// this pipeline already treats a Haiku-classify failure ("don't reject a row we couldn't
-// determine"). Reject (tier L) is reserved for a genuine negative. D1 swapped the fetch
-// METHOD (plain -> browserlessRender) but left this INTERPRETATION wrong: a Browserless
-// 429/5xx/timeout still mapped to ok:false -> tier L. This is the interpretation fix.
-
 import { browserlessFetch, BrowserlessError } from "./canonical-fetch.mjs";
 
 export const REACH = Object.freeze({ REACHABLE: "reachable", INCONCLUSIVE: "inconclusive", DEAD: "dead" });

@@ -1,16 +1,3 @@
-// POST /api/community/groups/[id]/invite { invitee_user_id }
-//
-// Invite another user to a community group. Caller must be an admin
-// or moderator of the group; we verify via SELECT before insert.
-//
-// Inserts a row into community_group_invitations with status='pending'.
-// The partial unique index (group_id, invitee_user_id) WHERE status =
-// 'pending' prevents duplicates — we map that 23505 error to a 409
-// "Invitation already pending" rather than a 500.
-//
-// Auth: cookie session.
-// Rate limit: standard 60/min/user.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

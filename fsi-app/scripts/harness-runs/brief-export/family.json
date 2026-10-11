@@ -3,7 +3,6 @@
   "registered": "2026-09-20",
   "registered_by": "lane M4",
   "governing_files": [
-    "../.github/workflows/brief-export.yml",
     "scripts/turns/emit-brief-export-artifact.mjs",
     "scripts/turns/export-corpus-for-extraction.mjs"
   ],

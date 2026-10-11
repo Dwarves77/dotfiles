@@ -1,29 +1,3 @@
-// load-registry.mjs -- the producer registry loader (lane S8-E0, 2026-10-07; plan Stage 8, spec 09 S1.1 to
-// S1.8). The registry is a DIRECTORY (the F51 entry-dir pattern): one JSON file per producer in this
-// folder, so the eight domain lanes each add one file and never edit producers.yml. producers.yml's
-// "registry producers" step runs scripts/producers/registry/run-registered.mjs, which iterates what this
-// loader returns; there is no hand list of registry producers anywhere else.
-//
-// TO ADD A PRODUCER: add <name>.json here (filename equals the entry's name). Required fields:
-//   name          kebab-case id, equal to the filename stem
-//   script        fsi-app-relative path under scripts/producers/ or scripts/gen/ (must exist on disk)
-//   domain_table  the table the producer feeds (snake_case)
-//   source        the source-licence register key (or data_sources key) the rows are attributed to
-//   licence       the licence statement for that source, as written in the register
-//   dry_capable   must be true: every registry producer is dry by default and takes --apply
-//   enabled_env   the runtime kill-switch env var the runner sets to "1" for the run, or null
-//   in_all        true: runs in the producer=all sweep; false: runs only when named
-// Optional: args (static CLI args, never --apply), pre ({script, args, since_flag}: a fetch stage run
-// first, given --since <date> when the dispatch passes one), entity_id (lane L4-E, 2026-10-08: the entity
-// the producer's rows describe, `cl:<kind>:<16 hex>`; checked for SHAPE only, never against the live
-// entities table; the runner hands it to the producer as PRODUCER_ENTITY_ID_ENV and the producer's write
-// path stamps it on the rows it writes, which is what lets an outbox row for those rows reach an item).
-// The runner appends --apply itself.
-// Unknown fields are refused, so a typo cannot silently do nothing.
-//
-// Pure apart from reading the directory and checking that each script exists; the existence probe is
-// injectable so tests need no files on disk.
-
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

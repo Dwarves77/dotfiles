@@ -1,19 +1,4 @@
 #!/usr/bin/env node
-// run-registered.mjs -- producers.yml's "registry producers" step (lane S8-E0, 2026-10-07). Iterates the
-// producer registry (load-registry.mjs, one JSON per producer in this folder) and runs each selected
-// producer exactly as the four hand-written steps it replaced did: an optional fetch stage, then the
-// producer script, dry by default, --apply only when the workflow's mode is apply, the entry's kill-switch
-// env var set to "1" for the child.
-//
-// Usage (cwd is fsi-app, as in producers.yml):
-//   node scripts/producers/registry/run-registered.mjs --mode dry|apply --producer all|registry \
-//        [--only <name>] [--since YYYY-MM-DD] [--list]
-//   --list prints the selected runs as JSON and runs nothing (the fixture dry-run).
-//
-// Failure semantics match the steps it replaced: the first child exiting non-zero stops the run and this
-// process exits with that code (a later producer does not run after an earlier failure). Producer scripts
-// inherit the environment, so PRODUCER_SUMMARY_DIR reaches writeProducerSummary unchanged and the
-// producers-family artifact step downstream sees the same summaries.
 
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";

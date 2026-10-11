@@ -1,13 +1,3 @@
-// getNavCounts — the one source of nav-rail counts (UI system handoff
-// 2026-09-06, README §0.3: "sections Brief / Intelligence / Network /
-// Operator with right-aligned live counts"). Server-only.
-//
-// REUSES the existing bounded/cached helpers rather than adding a new
-// Supabase read (F38/F39): getSurfaceCoverageSnapshot (unstable_cache,
-// 60s, migration-148-backed RPC with a scanning fallback) is the same
-// call the dashboard's own rail already makes; getWatchlist() is the
-// same cached call the dashboard's watchlist card already makes.
-
 import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { getWatchlist, getWorkspaceAggregates } from "@/lib/data";
 

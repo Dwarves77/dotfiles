@@ -1,13 +1,3 @@
-// The ONE route preamble for the workspace item notes and assignments routes (lane S8-A, 2026-10-07).
-// /api/workspace/items/[id]/notes and /assignments differ only in their handlers (item-notes.mjs,
-// item-assignments.mjs); everything before the handler is identical and lives here:
-//   1. Bearer auth + the 60/min/user rate limit (requireUserRoute, the guard every workspace route uses).
-//   2. The caller's org and ROLE, resolved server-side from org_memberships (never from the request): no
-//      membership is a 403, same as the other workspace routes.
-//   3. The item, by legacy_id or uuid (the id the detail page URL carries), verified items only, the customer
-//      read gate. An item that does not exist or is not verified is a 404.
-// The handlers then run with { supabase, notify } and a ctx, and their { status, body } is returned with the
-// rate-limit headers. Route files export only handlers (F34).
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";

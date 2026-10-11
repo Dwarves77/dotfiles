@@ -1,9 +1,3 @@
-// Pure/injectable core of GET /api/search, split out of route.ts (BUILDGATE, 2026-09-02: a route.ts
-// may export only route handlers/config — see check-sources/logic.ts's identical precedent cited in
-// route.ts's own header). Split here specifically so the BOUND and the SCOPE gate can be proven with
-// a fake Supabase client under `node --test`, the same shape check-sources/logic.npmtest.mjs and
-// admin/recompute-trust/logic.npmtest.mjs already use — no NextRequest/NextResponse involved.
-
 export const MIN_QUERY_LEN = 2;
 // BOUND (F38/F39): the RPC's own max_rows argument, itself clamped to <=30 inside
 // search_intelligence_items (migration 159). Kept below that ceiling, not at it, so this route's

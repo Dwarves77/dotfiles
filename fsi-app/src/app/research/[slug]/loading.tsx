@@ -1,10 +1,3 @@
-// Route-level loading boundary for /research/[slug] (perf lane, 2026-09-03,
-// docs/audits/perf-load-times-2026-09-03.md §6 "loading.tsx per route" item).
-// Renders on the very next frame after a click while loadDetail's
-// Promise.all resolves. Shape mirrors ResearchFindingDetailSurface's own
-// section order (back-link, masthead, finding body, related/theme-brief
-// rail) so layout does not jump when real content lands — no data, no
-// fetch, just proportioned placeholders.
 import { skeletonBox as box, SkeletonPage } from "@/components/ui/skeleton-page";
 
 export default function Loading() {

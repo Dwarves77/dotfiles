@@ -1,22 +1,3 @@
-// The number envelope. NO FIGURE SHIPS WITHOUT ONE.
-//
-// WHY THIS FILE EXISTS (surface spec 00 §2 and 02 §1, 2026-08-12). A professional price is never a
-// scalar. The fields below are the intersection of the IOSCO Principles for Oil Price Reporting
-// Agencies (PD391), the Platts assessment methodology and Argus's published specifications — the three
-// documents that decide whether a number can be written into a contract or only into a newsletter.
-//
-// The 2026-08-11 re-verification found Market Intel rendering a "key figure" column bound to
-// `marketData`, a field with NO PRODUCER anywhere in src, and an Operations masthead claiming "every
-// fact carries a source and date" over fact rows that have no date field and a NULL source_id. Both are
-// the same defect: a number rendered without the jacket that says what it is. This module makes that
-// state unconstructable rather than merely discouraged — makeEnvelope THROWS.
-//
-// PLAIN ESM, ZERO DEPENDENCIES, same constraint and same reason as vocabularies.mjs and surface-of.mjs.
-//
-// TIME IS INJECTED, NEVER READ. Every function that needs "now" takes it as an argument. Pure functions
-// are testable, deterministic and safe to run in the discipline CI; a module that reads the clock is
-// none of those.
-
 import { OBS_STATUS, ORIGIN_CLASS, FRESHNESS, isMissing } from "./vocabularies.mjs";
 
 /**

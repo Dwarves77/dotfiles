@@ -1,46 +1,4 @@
 #!/usr/bin/env node
-// validate-mint-payload.mjs — a $0, local, no-DB replica of public.validate_item_provenance's seven live
-// criteria (C1-C7), run against a mint PAYLOAD (see payload-schema.json) BEFORE the coordinator ever writes
-// a row. This is the gate every M0/M1..Mn payload must clear before handoff (MINT-RUNBOOK.md step 5).
-//
-// PROVENANCE: this is a hand-port of the LIVE function body reconstructed from the migration chain
-// (114 -> 119 -> 145 -> 150 -> 158 -> 171 -> 202 -> 206 -> 209 -> 216/217 -> 218(revert) -> 224/225 ->
-// 227 -> 250 -> 254 -> 264), read migration-by-migration in this lane (see the M0 report's "write plan"
-// section for the full derivation). One piece is imported UNMODIFIED from src/ rather than re-derived:
-//   src/lib/agent/gate-a-scan.mjs   -- criterion 7 (Gate A). Imported directly (lane DEAD-EXEC,
-//   2026-09-04): the mint kit's own scripts/mint/lib/gate-a-scan.mjs / gate-a-match.mjs shims (pure
-//   `export *` re-exports of this same file since Wave GOV-SINGLE) were deleted as dead weight — this
-//   was their one real (non-test) importer. gate-a-match.mjs itself is not imported here; only
-//   validate-mint-payload.mjs's own scanBrief() call needs gate-a-scan.mjs directly.
-// One piece is a faithful JS port of a live SQL function:
-//   lib/canonicalize-citation-url.mjs            -- criterion 2's URL compare (migration 150).
-//
-// KNOWN SIMPLIFICATIONS vs the live DB function (named, not hidden):
-//   - A FACT/ANALYSIS claim's cited source is resolved against the payload's own `source` +
-//     `registry_sources` + `search_results` (the payload's closed world), not by a search_result_id /
-//     source_id foreign key into live tables. This is the natural analogue for a pre-apply payload: the
-//     coordinator's real INSERT still creates the links this validator is standing in for. The SPAN check
-//     (criterion 3's "is the span in the cited text") matches the claim's `source_url` to a search result
-//     by exact canonical URL. The AUTHORITY-TIER lookup (criterion 3's floor) resolves the claim's
-//     `source_url` to a registered source by exact canonical URL first and, failing that, by REGISTRY
-//     IDENTITY (scripts/lib/institution-key.mjs's institutionKey — the same rule registerSource dedups
-//     by): a fact citing `legislation.gov.uk/uksi/2021/1095` is a fact OF the registered institution row
-//     `legislation.gov.uk/`. That is exactly what the live gate computes, because apply-mint-batch.mjs
-//     binds every grounded fact's `source_id` to the payload's source and migration 202 derives the tier
-//     through that FK. Before 2026-09-02 this lookup was exact-URL only, stricter than the registry's own
-//     identity, and it failed all 19 record-grade payloads of mint-run-008 with `source_tier_derived:
-//     null` against a tier-1 registered source (population run #4). Never re-tighten it to exact URL.
-//   - Gate A's DERIVED-claim coverage arm (Gate B, migration 227: derivedCoveredTokens, a live DB lookup)
-//     is not modeled -- this validator always passes an empty derivedCovered set to scanBrief(). A payload
-//     that legitimately needs a DERIVED claim to clear Gate A must get a coordinator-side check; flag this
-//     in the payload's cover note (see MINT-RUNBOOK.md).
-//   - No "standard-only floor loosens to institution tier 4" case has been exercised end-to-end (this kit's
-//     mirror of migration 202 (SQL, item-type floor logic): kept, ported for the mint kit's $0/no-DB validator; unverified for that item_type is a separate, already-flagged finding.
-//     proof item is a directive); the logic is ported from migration 202 but unverified for that item_type.
-//
-// USAGE:
-//   node scripts/mint/validate-mint-payload.mjs scripts/mint/example-payload.json
-//   import { validateMintPayload } from "./validate-mint-payload.mjs";  // for programmatic / test use
 
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";

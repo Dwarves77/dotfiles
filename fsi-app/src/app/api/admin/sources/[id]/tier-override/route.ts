@@ -1,36 +1,3 @@
-// POST /api/admin/sources/[id]/tier-override
-//
-// Q5 tier override endpoint per source-credibility-model skill Section 7.
-// Body:
-//   { tier_override: number | null, override_reason: string | null }
-//
-// Set semantic (tier_override is a number 1-7):
-//   - Validates tier_override BETWEEN 1 AND 7
-//   - Requires non-empty override_reason
-//   - Reads current tier_override + base_tier for audit before/after
-//   - UPDATEs sources.tier_override, override_reason, override_date = NOW()
-//   - INSERTs source_trust_events row with event_type='tier_override',
-//     created_by='human', reviewer_id=auth.userId, details={ before_tier,
-//     after_tier, reason }
-//
-// Revert semantic (tier_override is null):
-//   - Reads current tier_override for audit (previous_override)
-//   - UPDATEs sources.tier_override = NULL, override_reason = NULL,
-//     override_date = NOW() (the revert action is itself an event;
-//     override_date carries the revert timestamp per Q5)
-//   - INSERTs source_trust_events row with event_type='tier_override_revert',
-//     created_by='human', reviewer_id=auth.userId, details={
-//     previous_override, reason: provided_or_null }
-//
-// Audit trail lives in source_trust_events (migration 004 + migration 093
-// CHECK extension to admit the two new event_type values). Override does
-// NOT modify base_tier; base preserves the classifier's original judgment.
-//
-// Auth: requireAuth + isPlatformAdmin per sweep-discipline rule and
-// Track B-code admin-gating precedent (commit 4c7b546). Matches the
-// canonical pattern from src/app/api/admin/sources/bulk-import/route.ts:
-// 323-338. Rate-limited per the same pattern.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

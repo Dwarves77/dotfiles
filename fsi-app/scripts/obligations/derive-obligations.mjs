@@ -1,43 +1,5 @@
 #!/usr/bin/env node
-// derive-obligations.mjs — derive the obligation register (migration 290 `obligations`) from
-// `item_forward_events` joined to `intelligence_items` (Lane OBLIG, 2026-09-02).
-//
-// WHY THIS EXISTS. Migration 274 extracts "what is due, when" into item_forward_events (901+ rows) but
-// that table carries no jurisdiction / transport mode / binding_position of its own — those live on the
-// parent intelligence_items row. This script is the derivation pass spec-01 §2 asks for ("the atomic
-// unit is not the document, it is the obligation"): for every forward event, read its parent item, copy
-// over jurisdiction/mode, deterministically classify binding_position (never invented — see
-// src/lib/obligations/classify-binding-position.mjs's own header), and write one `obligations` row.
-//
-// DETERMINISTIC. Same input (a forward event + its parent item's current jurisdiction/mode/title) always
-// produces the same output row — no LLM, no fetch, $0 (COMMON lane contract). Re-running over an
-// unchanged corpus slice is therefore a true no-op: `deriveObligationRows` is pure, and `main` diffs
-// against the forward_event_ids already present in `obligations` before writing anything (idempotent at
-// the SCRIPT layer; migration 290's `obligations_forward_event_unique` constraint backs it as a second,
-// DB-enforced guarantee, matching item_forward_events' own two-layer idempotency posture).
-//
-// NEVER INVENTS A DUE DATE. `deriveObligationRows` copies `due_date`/`date_precision` straight from the
-// source forward event and ONLY from it — a forward event with no date (defensive: every live row in
-// item_forward_events carries one today, migration 274's own NOT NULL; this script does not trust that
-// blindly and is tested against a fixture event object that omits it) yields `due_date: null,
-// date_precision: null` on the derived row, never a synthesized date. See migration 290's own header for
-// why the column stays nullable for exactly this reason.
-//
-// DRY BY DEFAULT, --apply THROUGH THE GUARDED PATH (COMMON lane contract §"Where you work"). Row
-// mutations go through scripts/lib/db.mjs's guardedInsertMany — a fresh-row audit-sink insert, the same
-// class of write population-turn scripts already use (never guardedUpdate: an obligations row is never
-// mutated in place by this script; a changed item is picked up as a NEW row only if its forward event
-// changes, which never happens for an existing event_id since events are themselves immutable/versioned
-// by re-extraction, not edited).
-//
-// DEPS-INJECTED (mirrors scripts/mint/screen-reconcile-records.mjs's own shape): `main({ apply }, deps)`
-// takes `{ readAll, guardedInsertMany }` so this proof runs with zero database, and the live entrypoint
-// at the bottom wires the real scripts/lib/db.mjs.
-//
-// USAGE:
-//   node scripts/obligations/derive-obligations.mjs            # dry: what would be inserted
-//   node scripts/obligations/derive-obligations.mjs --apply    # insert new register rows through the guarded path
-//   ... --candidates <file>   # also plan (dry) or write (--apply) obligation_objects rows for a grounded candidate batch
+
 import { classifyBindingPosition, classifyInstrumentIdentity } from "../../src/lib/obligations/classify-binding-position.mjs";
 import { dutyHoldersExcludeForwarder, currentObligationObjects } from "../../src/lib/workspace/relevance.mjs";
 import { normaliseMode, LEG_MODE_CODES, BINDING_POSITION } from "../../src/lib/contracts/vocabularies.mjs";

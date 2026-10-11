@@ -1,26 +1,3 @@
-// ══════════════════════════════════════════════════════════════
-// Source Trust Framework — Type Definitions
-// ══════════════════════════════════════════════════════════════
-//
-// A SOURCE is a public portal or official publication where
-// legislation, regulation, or policy is published and made
-// available to the public. EUR-Lex is a source. The Federal
-// Register is a source. IMO.org is a source.
-//
-// A piece of legislation is NOT a source. It is an intelligence
-// item that lives INSIDE a source.
-//
-// The system monitors sources. Sources produce intelligence items.
-// ══════════════════════════════════════════════════════════════
-
-// ── Source Tier Hierarchy ──
-// Trust tiers are structural — they describe what kind of entity
-// maintains the source, not how "good" the source is at reporting.
-//
-// A source can be promoted or demoted between tiers based on
-// verified accuracy over time, but the tiers themselves have
-// fixed meanings.
-
 export type SourceTier = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export const SOURCE_TIER_DEFINITIONS: Record<SourceTier, {

@@ -1,11 +1,3 @@
-// gate-a-derived.mjs — Gate B derived-date coverage (operator ruling 2026-07-27). The Gate-A scanner's SECOND
-// coverage arm, as a PURE DB LOOKUP (no prose-pattern judgment): a fact token is "derived-covered" iff an
-// explicit section_claim_provenance row with claim_kind='DERIVED' carries that EXACT token AND its
-// basis_claim_id FACT exists AND that FACT's source_span still VERBATIM-matches its stored capture.
-//
-// Staleness (re-grounds-never-destroy): if the basis FACT's span ever stops matching its capture — or the basis
-// is deleted (FK → NULL) — the derived token loses coverage and reverts to orphan on the next scan. The caller
-// computes this set and passes it to scanBrief; scanBrief stays mechanical (literal FACT match OR set membership).
 import { norm } from "./gate-a-match.mjs";
 
 /**

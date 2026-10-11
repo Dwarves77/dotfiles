@@ -1,18 +1,3 @@
-/**
- * record-grade-fixture.ts (lane w10-actioncard-b, 2026-09-22, addendum: the production
- * record-grade regulation page rendered 4 fact cards with ZERO `[data-part="item-group"]`).
- *
- * Frozen from the exact record the finding named: `intelligence_items.id =
- * f8268063-0e07-4562-82da-a1373d6dd797`, "REGULATION (EC) No 391/2009 ... on common rules and
- * standards for ship inspection and survey organisations (Recast)", via a read-only SELECT
- * against `intelligence_item_sections` (project kwrsbpiseruzbfwjpvsp), 2026-09-22. The
- * `content_md` below is the row's `record_facts` section verbatim, byte-for-byte; nothing here is
- * invented (operator ruling: "fixtures read from a frozen real record, never invented strings").
- * Parsed through the same production parser (`parseRecordSections`/`splitKeyDateFacts`) the real
- * page uses, not hand-built RecordFactRow objects, so a change to slot classification or claim-line
- * parsing shows up here too.
- */
-
 import { parseRecordSections, splitKeyDateFacts, type RecordSectionRowLike } from "@/lib/agent/parse-record-sections";
 
 export const RECORD_GRADE_FIXTURE_ITEM_ID = "f8268063-0e07-4562-82da-a1373d6dd797";

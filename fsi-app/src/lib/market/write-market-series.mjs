@@ -1,32 +1,3 @@
-// planMarketSeriesUpsert — the pure diffing core for market_series' idempotent upsert (WO-16 step 1:
-// "keyed (series_key, reference_period) … idempotent upsert").
-//
-// WHY PURE, AND WHY SEPARATE FROM THE PRODUCER SCRIPT. The actual DB write must go through the guarded
-// path (scripts/lib/db.mjs — guardedInsert/guardedUpdate: cite + prior-value snapshot + service role),
-// which lives under scripts/lib, not src/lib (src/lib importing scripts/lib runs against this repo's own
-// grain — scripts/ orchestrates src/, not the reverse; write-edges.mjs's header makes the same call for
-// item_cross_references). So the DECISION of which rows are new vs. which need refreshing is pure and
-// lives here (testable with zero I/O, zero mocked client), and the producer script
-// (scripts/producers/market/eu-weekly-oil-bulletin.mjs) is the thin orchestrator that reads existing rows,
-// calls this, and performs the guarded writes — mirroring scripts/source-state-min-wage.mjs's shape
-// exactly (readAll -> byKey Map -> per-row create/update), generalised to any market_series producer.
-//
-// KEY: (series_key, reference_period) — the same pair the migration's UNIQUE constraint enforces. A
-// row's UPDATE payload never touches series_key/reference_period/id (immutable identity + key); it
-// refreshes the envelope + label, same posture guardedUpdate's callers use elsewhere (e.g.
-// source-state-min-wage.mjs's value/unit/trend/source_id refresh on an unchanged (state_code,dimension,
-// fact_label) key).
-//
-// ENTITY (lane L4-E, migration 373). A producer whose registry entry declares an entity_id (scripts/producers/registry)
-// is handed it as PRODUCER_ENTITY_ID by the registry runner. This planner is the one place every market_series producer's rows
-// pass before the guarded write, so it is the one place that stamps `entity_id`: a CREATE row gets the entity unless the row
-// already names one; an UPDATE patch carries it only when the existing row was read WITH entity_id and it is NULL (an existing
-// value is never overwritten, and a producer that does not read the column never touches it; the data script
-// scripts/migrations/data/backfill-market-series-entity.mjs stamps the rows that already exist). No entity configured, no
-// change: the plan is byte-identical to before. A malformed id fails loud (entityIdFromEnv).
-//
-// PLAIN ESM, ZERO DEPENDENCIES beyond the entity-id SHAPE validator (itself plain ESM, no node:crypto).
-
 import { assertEntityId } from "../entities/entity-id-shape.mjs";
 
 /** The env var the registry runner sets on a producer child whose entry declares an entity_id. The one name. */

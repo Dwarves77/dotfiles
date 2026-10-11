@@ -1,30 +1,4 @@
 // @ts-check
-// GATE-A GAUGES (lane OPS-1, 2026-10-07; chain-fire report F-RED-2). Two pure halves behind
-// /api/health/surfaces and the uptime-probes workflow:
-//
-//   readGateAHealth(supabase, now)  shapes the gate_a_health() RPC result into FIVE gauges, each
-//       { value, state, computed_at, reason }, and a gauge is NEVER a bare null:
-//         computed      value is a number, read from the cache within its 30 minute TTL
-//         not_computed  the cache is empty or past its TTL; value null, reason names the cache age
-//         unreadable    the RPC failed, threw, or returned a payload that is not the documented shape
-//
-//   decideGateAProbe(gate_a)        the probe verdict. FAILS on an unreadable gauge or a computed ALARM
-//       above 0. PASSES on not_computed with a warning line naming the age. The output names which state.
-//
-// WHY NOT COMPUTE ON REQUEST (decision, rule 14 labels):
-//   The gauges are the five keys of gate_a_health_compute() (migration 256), one SQL function that only the
-//   unscheduled gate_a_health_refresh() writes into the cache. [CONFIRMED by reading the SQL] one of the four
-//   alarms, verified_failing_revalidation, calls validate_item_provenance() once per verified item, and that
-//   function reads each item's agent_run_searches.result_content pool; briefless_verified filters on
-//   coalesce(full_brief,'') across the verified set. Both detoast large TOAST values. Migration 322's header
-//   records the measured cost of that read shape: 23 and 26 second corpus scans on 2026-09-13 and a database
-//   hang of three and a half hours on the small tier. Threshold used: a gauge may run on request only if it is
-//   an indexed count that decompresses no stored text; the route sits behind a 60 second probe timeout and the
-//   same endpoint serves every surface probe. Two of five gauges fail that test and the five cannot be split
-//   without a migration (compute is one function), so none computes on request. [HYPOTHESIS] The three
-//   remaining gauges would be cheap; not measured, no live database in this lane.
-// The surfaces build-mode posture (CLAUDE.md rule 16) already holds the refresh unscheduled, so
-// not_computed is the expected steady state, reported honestly rather than as a red.
 
 export const ALARM_GAUGES = Object.freeze([
   "invariant_violations",

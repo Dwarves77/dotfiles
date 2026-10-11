@@ -1,36 +1,3 @@
-// /api/orgs/[org_id]/members
-//
-// GET — list org_memberships for the caller's org. Caller must be a
-// member. Returns id, user_id, role, joined timestamp, and the joined
-// profile.full_name / avatar_url for display.
-//
-// PATCH — change a member's role. Owner-or-platform-admin. Body: { membership_id,
-// role }. Role must be one of the role-CHECK values; cannot demote
-// the only owner (server checks that count(owner) > 1 before allowing
-// an owner -> non-owner change on the only owner).
-//
-// PUT — add an EXISTING account to the org by email (S2-10). Owner-or-platform-admin.
-// Body: { email, role? } (role defaults to 'member'; 'owner' is NOT grantable via
-// this path — ownership moves via PATCH on an existing membership). Resolves the
-// account via profiles.email; no matching account → honest 404 pointing at the
-// provision flow (/api/admin/users) — this endpoint never creates auth users.
-// org_member_bans blocks a banned account from being re-added (403), the same
-// policy accept_invitation enforces (migration 156).
-//
-// DELETE — revoke a membership. Owner-or-platform-admin. Cannot revoke self
-// (owner cannot remove their own membership; explicit guard with a
-// 403 to make the operator surface unambiguous).
-//
-// AUTHORITY (S2-10 ruling, flagged in PR for operator review): governed member
-// operations accept TWO authority axes — the WORKSPACE axis (org membership;
-// mutations owner-only) and the PLATFORM axis (profiles.is_platform_admin, the
-// /admin operator identity — the same platform-layer supersession /admin itself
-// gates on, per OBS-17). A platform admin may manage any org's memberships from
-// the admin dashboard without holding a membership row in that org.
-//
-// Service-role writes only via this server route per operator binding
-// rule.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { type SupabaseClient } from "@supabase/supabase-js";

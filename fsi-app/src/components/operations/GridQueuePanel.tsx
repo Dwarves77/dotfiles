@@ -1,14 +1,3 @@
-/**
- * GridQueuePanel — spec 09 §1.6, the electrification feasibility GATE ("a region with cheap power and a
- * 36-month queue is BLOCKED for a 2027 electrification decision regardless of €/kWh"). Lane SPEC-09,
- * wave 3, 2026-09-03.
- *
- * SELF-CONTAINED SERVER COMPONENT, same pattern as market/OemRoadmapPanel.tsx.
- *
- * VIEW/FETCH SPLIT: this file is data-only. The render code (and the decision-horizon note) lives in the
- * separate file `GridQueuePanelView.tsx`, see market/OemRoadmapPanelView.tsx's header for why.
- */
-
 import { isSupabaseConfigured, getServiceSupabase } from "@/lib/supabase-server";
 import { GridQueuePanelView, type GridQueueRow } from "./GridQueuePanelView";
 

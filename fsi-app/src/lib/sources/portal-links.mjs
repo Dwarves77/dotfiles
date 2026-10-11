@@ -1,19 +1,3 @@
-// src/lib/sources/portal-links.mjs
-//
-// PORTAL DEEP-LINK EXTRACTION (P2-5 / chrome-audit S2-08). ~55% of registry sources are root
-// portals; nothing enumerated the deep links where actual instruments live, so discovery had one
-// manual path. This is the pure half: given a portal render's HTML (the SAME uncapped html the
-// accessibility check already returns — zero extra Browserless units), extract candidate
-// INSTRUMENT links for the portal_link_candidates ledger (migration 162).
-//
-// DISCOVERY, NOT INTAKE: a candidate is a lead for later fetch+classification through the intake
-// gate — extraction here widens what gets TRIED, never what qualifies (the same invariant as
-// alternative-search / the cited-host gate). Precision over volume: same-host only, instrument-ish
-// path/anchor signals required, nav/asset/anchor links excluded, capped.
-//
-// PURE — no I/O, regex-based anchor scan (no DOM dependency; Browserless html is server-rendered).
-
-/** Path/anchor tokens that signal a legal-instrument-ish page. Deliberately conservative. */
 const INSTRUMENT_RE = /\b(regulation|regulations|directive|legislation|law|laws|act|acts|statute|decree|ordinance|rulemaking|rule|rules|standard|standards|guidance|circular|notice|consultation|docket|bill|amendment|oj|eli|celex|federal[-_ ]?register|official[-_ ]?journal|compliance|enforcement)\b/i;
 
 /** Path segments that are never instruments (nav / chrome / assets / socials). */

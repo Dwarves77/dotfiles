@@ -1,13 +1,3 @@
-// artifact.mjs: the judgement-drain family's harness-run artifact (lane G6-DRAIN, 2026-10-06, CONVENTION.md shape).
-//
-// One artifact per drain run, written through the shared writer (scripts/lib/run-artifact.mjs), never a second
-// copy of the envelope. It records the switch state the run read, the kinds and counts it planned, the leases it
-// held and released, and the batch PRs it opened. Emission is code (rule 17): plan-drain.mjs --finish calls it on
-// every run that planned work. A run that stopped at STEP 0 (switch off) writes nothing: it read nothing and
-// planned nothing, and an off drain firing on a schedule must not leave a file behind each time.
-// The session lands the artifact into harness_runs with scripts/turns/deliver-artifact-branch.sh (a database
-// write, no commit), the same landing every other family uses.
-
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, buildRunArtifactEnvelope, claimRunId, hashHarnessVersion } from "../lib/run-artifact.mjs";

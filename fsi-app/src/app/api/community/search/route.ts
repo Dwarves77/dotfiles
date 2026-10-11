@@ -1,31 +1,3 @@
-// GET /api/community/search?q=<text>&scope=all|posts|groups|people
-//
-// Cross-surface search for the /community masthead search bar.
-//
-// Implementation note: this route uses ILIKE matching rather than a
-// Postgres tsvector / GIN index. Build 10 chose ILIKE over an FTS
-// migration to avoid taking inventory ownership of a new migration
-// while Builds 7 and 9 are in flight; the case-insensitive substring
-// match is good enough for the masthead's "did you mean…" pattern at
-// platform scale today (per-call cap of 24 rows total). A future build
-// can swap the implementation to to_tsvector + websearch_to_tsquery
-// behind the same route signature without UI change.
-//
-// Auth:    cookie session via requireCommunityAuth. Search is logged-in
-//          only; anonymous callers see 401.
-// Limits:  60 req/min/user via checkRateLimit.
-// RLS:     SELECTs against community_posts and community_groups inherit
-//          the caller's RLS, so private-group posts a stranger cannot
-//          read are correctly omitted.
-//
-// Response shape:
-//   {
-//     posts:  Array<{ id, title, body_excerpt, group_id, group_name,
-//                     group_slug, created_at }>,
-//     groups: Array<{ id, name, slug, region, privacy, member_count }>,
-//     people: Array<{ user_id, name, headshot_url }>
-//   }
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

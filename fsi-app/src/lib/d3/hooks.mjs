@@ -1,20 +1,3 @@
-// SHARED-WRITER: integrity_flags
-// D3 ingestion-layer hooks. Imported by Next route handlers + runners so D3 runs on
-// DATA events, not only on code changes — closing the half of the disease that lives
-// in data flow (the 420 wrongly-excluded sources, the cron degrading trust). These are
-// the buildable-now triggers (app code); PR/periodic triggers wait on a deploy target.
-//
-// GOVERNING RULE (makes sync guards safe to wire into live ingestion):
-//   - a FINDING biases the OUTCOME to the conservative, reversible choice (admit ->
-//     provisional, evict -> quarantine) + flags. Fail-closed-to-safe.
-//   - a D3 ERROR is passthrough (returns the route's default outcome) and NEVER throws.
-//     The guard can never wedge ingestion. Fail-open on its own failure.
-//   - ALWAYS heartbeat (a run happened), so self-liveness can see data-scope runs.
-//
-// The guards bias the outcome; they do not block. The async audit only observes.
-
-// mirror of scripts/lib/exclusion-audit.mjs's registry: kept, that module is Node/DB-only CLI tooling; importing it into this file (used by Next route handlers) would pull script-only dependencies into the app runtime.
-// Methods proven untrustworthy this session (mirror of the exclusion-audit registry).
 export const UNRELIABLE_METHODS = new Set(["plain-fetch-reachability", "dead-jq-hook"]);
 
 // PURE decisions (unit-testable without a client): outcome from method reliability.

@@ -1,18 +1,3 @@
-// load-matrix.mjs: the injected-dependency core of the Coverage surface's data loader (lane COV-1, 2026-10-08).
-//
-// The I/O half is src/lib/coverage/matrix-data.ts (it imports next/cache and the Supabase service client, which
-// a bare `node --test` cannot resolve; the same split coverage-gaps.ts / coverage-gaps-rollup.ts use). This half
-// takes the readers as arguments, so the loader's behaviour, including its failure behaviour, is proven on fixtures.
-//
-// WHAT IT READS. Only what `getCoverageIndex` / `getCoverageEntries` (src/lib/coverage/index-data.ts) already
-// return: the full catalogued entry list for the matrix cells, and the exact platform counts (including the
-// separate verified-brief count) for the headline. It adds no query of its own.
-//
-// FAILURE IS A STATE, NOT A ZERO. If the entry read throws, or the index reports `_error`, the result carries
-// `error` and an empty matrix of the same shape. The page renders that as the coverage "error" state with a
-// retry; it never renders an empty matrix as if the platform had catalogued nothing (that would be a lie of the
-// exact kind spec 00 section 4 exists to prevent).
-
 import { buildCoverageMatrix, emptyCoverageMatrix, surfaceDenominator } from "./coverage-matrix.mjs";
 
 export const COVERAGE_UNAVAILABLE = "Coverage could not be read just now.";

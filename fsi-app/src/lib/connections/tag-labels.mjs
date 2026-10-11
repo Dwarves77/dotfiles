@@ -1,19 +1,5 @@
-// tag-labels.mjs: the ONE human-label source for operational scenario tags and compliance object tags
-// (lane S3-B). PURE, no DB, no LLM, dependency-free so client components can import it.
-//
-// WHY. An intersection between two items is stored as shared tag slugs ("carrier-ocean",
-// "ets-allowance-surrender"). A customer reads "ocean carrier" and "ETS allowance surrender", never the
-// slug. Compliance objects are a CLOSED vocabulary (parse-output.ts COMPLIANCE_OBJECT_VALUES, 19 values);
-// scenarios are an OPEN vocabulary whose core glossary lives in system-prompt.ts. Both lists are labelled
-// explicitly here and tag-labels.test.mjs reads them from their owning files as text, so a value added
-// there without a label fails CI instead of reaching a page as a slug. A scenario outside the glossary
-// (the vocabulary is open by design) is humanised by rule: hyphens become spaces and known acronyms keep
-// their capitals.
-//
-// Slugs are matched case-insensitively: intersection entries store tags lower-cased (intersections.mjs
-// `lc`), while the glossary spells some acronyms upper-case ("SAF-blending").
-
 /** @type {Record<string, string>} closed compliance object vocabulary, lower-case key. */
+
 export const COMPLIANCE_OBJECT_LABELS = Object.freeze({
   "carrier-ocean": "ocean carrier",
   "carrier-air": "air carrier",

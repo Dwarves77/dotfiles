@@ -1,20 +1,3 @@
-// PATCH /api/community/groups/[id]/settings
-// { name?, description?, privacy? }
-//
-// Update group metadata. Admin/moderator/owner only (RLS UPDATE policy
-// on community_groups already enforces this); we pre-check the caller's
-// role so a denied caller gets a clean 403 rather than a generic RLS
-// failure.
-//
-// Privacy downgrades from private to public are permitted (the UI will
-// confirm) — community_groups.privacy is the only column that meaningfully
-// affects RLS visibility on posts, so a downgrade widens visibility for
-// existing posts. The application layer does not retro-redact posts; that
-// behaviour matches Slack and other peer-collab platforms.
-//
-// Auth:    cookie session via requireCommunityAuth.
-// Limits:  60 req/min/user via checkRateLimit.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

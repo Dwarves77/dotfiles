@@ -1,26 +1,3 @@
-// POST /api/admin/canonical-sources/bulk-classify
-//
-// Pre-caches Haiku classifications for a batch of canonical_source_candidates
-// rows. Avoids the browser-side expand-every-card flow, which triggers a
-// re-render + a 2s Haiku call per card and causes CDP timeouts in agent-
-// driven review tabs reviewing 80+ candidates.
-//
-// Request: { candidateIds: string[] }  (max 30 per call to stay within
-// Vercel's 60s function timeout — at 5 concurrent Haiku calls × 2s each,
-// 30 candidates = ~12s server-side)
-//
-// Behavior:
-//   1. Load all requested candidates + their parent intelligence_items.
-//   2. Skip ones whose URL already exists in sources registry (no need
-//      to classify — the existing source row will be reused on approve).
-//   3. Skip ones that already have recommended_classification cached.
-//   4. For the rest, fire Haiku in parallel batches of 5 with the same
-//      prompt as the single /recommend-classification route.
-//   5. Persist each result to canonical_source_candidates.recommended_classification.
-//
-// Response: { total, classified, already_cached, already_in_registry,
-//             failed: [{candidateId, error}] }
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import Anthropic from "@anthropic-ai/sdk";

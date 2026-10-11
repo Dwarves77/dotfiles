@@ -1,48 +1,4 @@
 #!/usr/bin/env node
-// eu-weekly-oil-bulletin.mjs — WO-16's first market_series producer (master execution plan v2 Stage 7,
-// docs/plans/master-execution-plan-2026-08-17.md; ruling WO-16.2 held in
-// docs/plans/connection-redesign-and-build-scope-2026-08-29.md §4).
-//
-// SHAPE, mirroring scripts/source-state-min-wage.mjs (the closest existing envelope-writing producer):
-// read the fixture/input CSV -> parse (src/lib/market/parsers/eu-weekly-oil-bulletin.mjs) -> plan the
-// idempotent upsert (src/lib/market/write-market-series.mjs) -> write through the GUARDED path
-// (scripts/lib/db.mjs — readAll/guardedInsert/guardedUpdate: cite + prior-value snapshot + service role,
-// CLAUDE.md standing rule "facts live in Supabase" / discipline rule 015). This script performs NO raw
-// `.from("market_series").insert(...)` — every write is guardedInsert/guardedUpdate, same posture as
-// every other script under scripts/ that mutates a fact table.
-//
-// TWO INDEPENDENT SAFETY GATES, BOTH MUST BE SATISFIED TO WRITE (WO-16 step 3: "kill-switched with the
-// switch DEFAULT OFF … --dry as the DEFAULT mode and --apply required to write"):
-//   1. --apply on the command line (default is --dry: parse + plan + report, write nothing).
-//   2. MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED=1 in the environment (the kill switch; unset/any other
-//      value = OFF). Checked ONLY when --apply is passed — a --dry run always works for testing the
-//      parser/plan regardless of the switch, since it writes nothing.
-// Passing --apply with the switch off REFUSES with an explanatory message and exits 1; it does not
-// silently downgrade to a dry run (a silent downgrade would hide that the switch is off from whoever is
-// watching the exit code).
-//
-// THE THIRD GATE IS NOW CLEAR (2026-08-30): market_series.source_key is a real FK to
-// public.data_sources(source_key), and 'ec_weekly_oil_bulletin' IS a live row in that table —
-// src/lib/contracts/source-licence.mjs gained the entry (CC BY 4.0, Decision 2011/833/EU) and migration
-// 258's data_source_seed was regenerated and applied, confirmed live this session. The fail-closed
-// posture stays for any FUTURE unregistered source (provenance-envelope.mjs's own header): never widen
-// the FK, never point source_key at a wrongly-attributed row to make a 23503 go away.
-//
-// INPUT. This script itself does not fetch the live bulletin — --input <path> reads a NORMALIZED CSV
-// already in this pipeline's contract (see the parser header); omit --input to read the same contract
-// from stdin. The live fetch + extract step named as a follow-up in earlier revisions of this comment is
-// now BUILT: scripts/producers/market/fetch-oil-bulletin.mjs (2026-08-30, against the workbook structure
-// verified live by two GitHub-runner inspection runs — see that script's and oil-bulletin-workbook.mjs's
-// own headers). Compose it with this script exactly as producers.yml's "EU Weekly Oil Bulletin ->
-// market_series" step does: fetch-oil-bulletin.mjs writes a normalized CSV, this script reads it via
-// --input. This script's own job stays parse -> plan -> guarded write, fully functional and
-// fixture-tested independent of the fetch step.
-//
-// Usage:
-//   node scripts/producers/market/eu-weekly-oil-bulletin.mjs --input path/to/bulletin.csv          # dry (default)
-//   node scripts/producers/market/eu-weekly-oil-bulletin.mjs --input path/to/bulletin.csv --apply   # write (needs the env switch too)
-//   cat bulletin.csv | node scripts/producers/market/eu-weekly-oil-bulletin.mjs --apply
-// Exit 0 done (including a clean dry run) · 1 refused (switch off on --apply, or no DB creds on --apply) · 2 bad input.
 
 import { readFileSync } from "node:fs";
 import { parseEuWeeklyOilBulletinCsv } from "../../../src/lib/market/parsers/eu-weekly-oil-bulletin.mjs";

@@ -1,21 +1,3 @@
-// Shared core of the two workspace item-collaboration modules (lane S8-A, 2026-10-07): item-notes.mjs and
-// item-assignments.mjs. Plain ESM, zero dependencies, so `node --test` proves it with a fake database.
-//
-// WHAT THIS IS. Private-per-workspace notes and multi-person assignment on any intelligence item (plan Stage 8
-// bullet 1). Both are workspace commentary and coordination: external data only, never analysed, never read by
-// any page but the item's own detail page, never fed to the flywheel (ADR-042, ADR-043).
-//
-// THE CONTRACT EVERY HANDLER IN THE TWO MODULES SHARES.
-//   handler(deps, ctx, input) -> { status, body }
-//   deps = { supabase, notify? }   supabase is the service-role client (the routes' only client, same as the other
-//                                  workspace routes); notify is dispatchNotification, injected so a test needs no
-//                                  database and no service key.
-//   ctx  = { userId, orgId, role, item }   resolved SERVER-SIDE by the route (src/lib/workspace/item-collab-route.ts):
-//                                  orgId and role come from org_memberships for the authenticated user, NEVER from
-//                                  the request; item is the verified intelligence_items row.
-// Because the routes use a service-role client (RLS bypassed), every query below scopes by ctx.orgId itself. That
-// scoping is the cross-org boundary; migrations 358 and 359 carry the same rules as RLS for any direct client.
-
 export const NOTE_MAX_LENGTH = 4000;
 export const MAX_ASSIGNEES_PER_REQUEST = 25;
 

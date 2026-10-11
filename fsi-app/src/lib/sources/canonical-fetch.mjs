@@ -1,14 +1,3 @@
-// THE single canonical Browserless content-fetch (plain JS), callable by BOTH the TS
-// routes (via browserless.ts, which wraps this and adds typed shapes + the SEC UA) AND
-// the .mjs build/discovery runners (which import it directly). ONE implementation, so
-// the ~10 fetch sites cannot diverge into aligned copies again — the exact duplicated-
-// and-diverged defect D1 + D3 exist to kill. browserless.ts re-exports BrowserlessError
-// so `e instanceof BrowserlessError` is the SAME class across the TS and .mjs worlds.
-//
-// TRANSPORT HOLD GATE (item 6, 2026-07-06): every fetch through this single primitive is gated by the scrape
-// hold — assertFetchAllowed() throws FetchHoldError while SCRAPE_HOLD is engaged, so "scrape hold LIVE, zero
-// fetches" is mechanical (not silent key-absence). Because this is THE single home, gating it gates all ~10
-// call sites at once (enforced by fitness F16).
 import { assertFetchAllowed } from "./fetch-hold.mjs";
 
 export class BrowserlessError extends Error {

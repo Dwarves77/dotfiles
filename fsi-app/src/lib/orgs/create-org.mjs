@@ -1,27 +1,3 @@
-// create-org.mjs: self-service organisation creation with the onboarding profile (lane AUTH-2, 2026-10-06).
-//
-// WHY. Signup collects only email and password. The specs need more per user and per organisation
-// (spec 05: role, sector, region; Community component 9: sector_profile seeded at workspace creation;
-// ADR-034: organisation size as a profile dimension), so the question is asked once, at organisation
-// creation, on the no-workspace onboarding page (NoWorkspaceLanding), never before email confirmation
-// (that would create organisations for addresses that never confirm).
-//
-// WHAT IT WRITES, every column already exists (no migration):
-//   organisations + owner membership   create_org_for_self() RPC (migration 076), caller becomes owner
-//   workspace_settings.sector_profile  chosen sector ids (the column OnboardingWizard writes too)
-//   workspace_settings.profile.org_size.headcount_band   ADR-034 band (profile-contract.mjs), merged
-//                                      into the existing profile jsonb, sibling keys kept
-//   profiles.region                    spec 05 region codes (community/profile-policy.mjs REGIONS)
-//   profiles.job_title                 the user's own job role, read by the spec 05 pseudonymous display
-//
-// WHAT IT NEVER TAKES FROM THE REQUEST: an organisation id, a user id, or a role. The only organisation
-// touched is the id the RPC returns for the caller, the RPC takes no role (the creator is owner by
-// construction), and joining an existing organisation is by invitation only (accept_invitation grants
-// the role the inviter chose). parseCreateOrgInput builds its result from a fixed allowlist, so any other
-// key in the body is dropped.
-//
-// DEPENDENCIES ARE INJECTED (supabase client, ensureProfile) so the tests run with no database.
-
 import { findBand, parseOrgProfile, PROFILE_JSON_KEYS } from "../profile/profile-contract.mjs";
 import { REGIONS } from "../community/profile-policy.mjs";
 

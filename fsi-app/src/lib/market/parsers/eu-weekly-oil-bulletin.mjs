@@ -1,32 +1,3 @@
-// Parser for the EU Weekly Oil Bulletin (WO-16's first market_series producer).
-//
-// SCOPE OF THIS LANE, STATED HONESTLY. This module parses a NORMALIZED CSV extract of the bulletin —
-// week_ending;product_slug;price_eur;n_member_states — into market_series rows. It does NOT itself fetch
-// the live publication from the European Commission (energy.ec.europa.eu); that fetch/extract step is
-// now BUILT, as scripts/producers/market/fetch-oil-bulletin.mjs (2026-08-30), against the live workbook
-// structure verified by two GitHub-runner inspection runs that actually downloaded the file — see that
-// script's and src/lib/market/oil-bulletin-workbook.mjs's own headers for the citation and the parsing
-// contract. This module and its CLI caller (scripts/producers/market/eu-weekly-oil-bulletin.mjs) still
-// work from `--input <path>` (or stdin) — fetch-oil-bulletin.mjs's stdout IS that input, piped straight
-// in — and remain fully testable against the committed fixture independent of the live fetch.
-//
-// THE PRODUCT LINE (public knowledge, not fabricated — the Bulletin's own published product set):
-// Euro-Super 95, automotive gas oil (diesel), heating gas oil and LPG motor fuel are quoted in EUR per
-// 1000 litres; residual/heavy fuel oil grades are quoted in EUR per tonne. PRODUCTS below is the closed
-// vocabulary this parser recognises; an unrecognised product_slug is a WARNING (skipped, not thrown —
-// a single bad row must never sink an entire week's upsert), never a silently-accepted guess at a unit.
-//
-// EVERY ROW GETS THE FULL ENVELOPE (WO-16 executor brief: "Every row it produces must carry a full
-// envelope AND origin_class from day one"): derivation='observed' (these are the primary reported
-// national-survey prices, not a calculation), origin_class='official' (European Commission publication).
-// source_key names the registry's producer entry (src/lib/market/series-registry.mjs), a REGISTERED
-// public.data_sources row since 2026-08-30 (CC BY 4.0, Decision 2011/833/EU — see the registry entry's
-// note). Every row this parser emits carries it, so any future de-registration fails closed at the FK,
-// never by this parser silently omitting provenance.
-//
-// PLAIN ESM, ZERO DEPENDENCIES. Pure — no fs, no fetch, no clock read (asAtDate/referencePeriod come
-// straight from the input's own week_ending column, never from `new Date()`).
-
 import { producerFor } from "../series-registry.mjs";
 
 const REGISTRY_ENTRY = producerFor("eu-oil-bulletin");

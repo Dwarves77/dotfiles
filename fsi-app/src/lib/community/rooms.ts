@@ -1,21 +1,3 @@
-/**
- * Community Template 11 — canonical regional ROOM vocabulary + the
- * jurisdiction→room classifier.
- *
- * The mock's unit is a fixed regional room (7 rooms). We realize each as ONE
- * canonical public `community_groups` row keyed by a stable slug (seeded
- * 2026-07-07 by scripts/seed-community-regional-rooms.mjs, since deleted —
- * F25 module-liveness, lane W71-C 2026-09-05: the seeding already ran and the
- * rows exist; the record of the run lives in git history. CANONICAL_ROOM_SLUGS
- * below is the durable record of that seed's slugs). Region-vocabulary
- * reconciliation (schema HK/MEA
- * vs mock APAC/MEAF) lives HERE, at the presentation layer — no migration.
- *
- * The classifier reuses the Map surface's region vocabulary
- * (REGION_CHIP_TO_JURS in MapPageView) so the two surfaces agree on which
- * jurisdictions fall in which region.
- */
-
 export type RoomKey = "GLOBAL" | "EU" | "US" | "UK" | "APAC" | "LATAM" | "MEAF";
 
 export interface RoomDef {

@@ -1,36 +1,4 @@
 #!/usr/bin/env node
-// emit-producers-artifact.mjs -- the `producers` family's own harness-run artifact writer (lane M9d,
-// 2026-09-20, build plan section 6.1 row M9, brief-m9d Amendment 1 item C.4; follow-on from lane M5,
-// docs/runbooks/PROPAGATION-DRAIN-RUNBOOK.md "Tracing edge authorship": "no market/regional producer
-// family is registered ... registering one is a separate, deliberate act ... out of this lane's write
-// set" -- this lane is that act). Modelled on scripts/turns/emit-downstream-chain-artifact.mjs (read
-// before writing this file): reuse writeRunArtifact/claimRunId/hashHarnessVersion, never a second copy.
-//
-// ONE ARTIFACT PER WORKFLOW RUN, not one writeRunArtifact call per producer (lane M9d's own brief,
-// Amendment 1 section C: "eleven call sites would be eleven copies of the same block and eleven run ids
-// per firing"). Every producer script producers.yml runs with --apply calls writeProducerSummary
-// (scripts/producers/lib/producer-summary.mjs) once on its own exit path, writing
-// `<PRODUCER_SUMMARY_DIR>/<producer>.json`. This script is producers.yml's own last step: it reads back
-// every summary this firing wrote (zero when a run had nothing armed to fire, or fired but wrote nothing)
-// and folds them into ONE `producers-run-NNN.json`.
-//
-// loop_run_id IS DELIBERATELY NULL, WITH A NAMED REASON (not an omission): every other family's own
-// emitter (see emit-downstream-chain-artifact.mjs, run-propagation-drain.mjs) reads a loop_run_id that
-// CHAINED down from an upstream firing (loop-run-id.mjs's resolveLoopRunId). Producers has no upstream in
-// this loop -- producers.yml runs on workflow_dispatch only (ADR-023, build-mode: no schedule while the
-// site is being built), never as a workflow_run consumer of anything else in this repo's loop -- so it is
-// the loop's OWN HEAD for this hop, not a link in a chain with a loop_run_id to inherit. Named ADR-031
-// per the coordinator's Amendment 1 (that ADR had not yet been read/found in docs/decisions/ at the time
-// this file was written; see this lane's own report for the flag).
-//
-// Reads its configuration from environment variables (PR_*), set by producers.yml's own "Record this
-// run's own harness-run artifact (producers family)" step -- same posture as DC_* in
-// emit-downstream-chain-artifact.mjs. No CLI flags: exactly one caller, every value already a workflow
-// step output/env var.
-//
-// Exit 0 on a successful write. Throws (non-zero exit) on a schema-invalid artifact (writeRunArtifact's
-// own fail-closed validation) or an id-claim collision after 50 attempts (claimRunId) -- both real
-// conditions a coordinator should see, not swallow.
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";

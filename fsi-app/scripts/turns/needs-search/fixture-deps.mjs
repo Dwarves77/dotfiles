@@ -1,12 +1,3 @@
-// fixture-deps.mjs: the in-memory database the needs export and URL apply run over with --fixture <corpus.json>
-// (lane G5-SEARCH). Built on the question-answers fixture database (reads, guardedInsert, guardedUpdateByIds over a
-// plain { tables: { name: [rows] } } object), adding the three things the needs flow uses that it does not have: a
-// `like` filter on reads (the flywheel-gap namespace read), registerSource (idempotent by institution key, the
-// way scripts/lib/db.mjs registerSource is) and the portal candidate upsert (keyed on url).
-//
-// It does NOT model RLS, triggers or snapshots. The tests use it too, so what the CLIs do under --fixture is what
-// the tests prove.
-
 import { fixtureDeps as baseFixtureDeps } from "../question-answers/fixture-deps.mjs";
 import { institutionKey, hostOf } from "../../lib/institution-key.mjs";
 

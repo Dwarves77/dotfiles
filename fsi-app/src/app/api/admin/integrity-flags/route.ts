@@ -1,23 +1,3 @@
-// SHARED-WRITER: integrity_flags
-// /api/admin/integrity-flags
-//
-// This route serves TWO surfaces, distinguished by the ?platform=1 query:
-//
-//   1. (default, no platform flag) — Per-brief integrity flags from
-//      migration 035: intelligence_items.agent_integrity_flag rows.
-//      Powers the existing IntegrityFlagsView component.
-//
-//   2. (?platform=1)               — Platform-level integrity_flags
-//      table from migration 048: design_drift, data_quality,
-//      source_issue, coverage_gap, data_integrity, surface_concern.
-//      Powers PlatformIntegrityFlagsView.
-//
-// Methods:
-//   GET   — list rows (both surfaces)
-//   PATCH — update status (platform surface only)
-//
-// Auth: requireAuth + admin role gate. Rate-limited.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";

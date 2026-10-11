@@ -1,30 +1,3 @@
-/**
- * extract-sections.ts
- *
- * Parser utility for the regulation detail Summary tab's "operational
- * briefing" tier (Tier 2 in the intelligence-depth layering).
- *
- * Pulls the first 2-3 paragraphs of three always-present sections out of
- * a `regulatory_fact_document` `full_brief` markdown payload at render
- * time, without touching the agent contract or the database. Mapping per
- * docs/BRIEF-STRUCTURE-AUDIT.md section 6:
- *
- *   1. Issues Requiring Immediate Action
- *   2. What This Regulation Is and Why It Applies to the Workspace
- *   3. How the Workspace Sits in the Compliance Chain
- *
- * Heading matching is tolerant: H1 and H2, case-insensitive, and a
- * leading numeric prefix ("1. ", "12. ") is stripped before comparison
- * so the ACF-style `## N. Section Name` outlier (per audit section 2)
- * still resolves cleanly. The parser also stops the section body at the
- * next H1 OR H2 — ACF emits the body sections as H2, so an H2-bounded
- * section ends at the next H2 not the next H1.
- *
- * Implemented as a line-state machine rather than a multi-line regex —
- * markdown headings inside fenced code blocks are skipped, and a single
- * pass over the lines is enough.
- */
-
 type ExtractedSection = {
   /** Heading text as it appeared in the source, with the numeric prefix
    * stripped and surrounding whitespace trimmed. */

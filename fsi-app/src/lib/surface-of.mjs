@@ -1,31 +1,3 @@
-// Single classification source-of-truth: (item_type, domain) -> customer-facing surface.
-//
-// WHY THIS FILE EXISTS (binding 3, count-integrity build 2026-07-02).
-// Surface classification was expressed in TWO homes that could drift across a language boundary:
-//   - JS: `classifyItem` in src/lib/dashboard/surface-coverage.ts (its own REGULATION_ITEM_TYPES /
-//     MARKET_ITEM_TYPES sets) drove the dashboard rail.
-//   - SQL: the surface pages restated the mapping as per-page scope arrays (MARKET_SCOPE, RESEARCH_SCOPE)
-//     passed to get_workspace_intelligence_aggregates_scoped (migration 069).
-// Migration #170 killed exactly this drift class inside domains.ts; the count-integrity RPC (migration
-// 148 `surface_of`) would have RE-CREATED it in SQL. This module is the one home both sides derive from:
-// `surfaceOf()` is the runtime authority for JS; `renderSurfaceOfSql()` emits the SQL CASE body that
-// migration 148 embeds verbatim. The vocab-drift guard (.discipline/vocab-drift-guard.test.mjs) imports
-// this file, regenerates the SQL, and fails the build if migration 148 diverges by a single byte — so
-// the mapping cannot drift between the two languages without tripping CI.
-//
-// PLAIN ESM, ZERO DEPENDENCIES. The drift guard runs in the depless discipline CI (no tsc / no bundler),
-// so this must be importable as-is by `node --test`. Do not add imports of .ts modules here.
-//
-// The four intelligence surfaces are the ratified five-surface model minus Community (which is NOT an
-// intelligence_items query — it is groups/threads, counted separately). See caros-ledge-platform-intent.
-//
-// PRECEDENCE (first matching rule wins). Regulation item_types win outright (a regulation stays on
-// /regulations even if its domain is stale or null); then the post-#170 domain is authoritative
-// (domain is the routing SoT that domainForItemType writes at ingest); then item_type is the fallback
-// for rows whose domain is null or legacy-5. Anything unmatched is 'uncategorized' — a defect signal,
-// never a customer surface (binding 4).
-
-/** The four customer-facing intelligence surfaces surface_of can assign. */
 export const SURFACES = /** @type {const} */ (["regulations", "market", "operations", "research"]);
 
 /** Returned for any (item_type, domain) that matches no rule. Never rendered customer-side. */

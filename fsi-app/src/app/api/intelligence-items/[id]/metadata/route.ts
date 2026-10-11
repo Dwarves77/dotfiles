@@ -1,15 +1,3 @@
-// GET /api/intelligence-items/[id]/metadata
-//
-// Read-only — returns the intersection-readiness metadata for one item:
-// topic_tags, operational_scenario_tags, compliance_object_tags,
-// related_items (resolved to title + legacy_id), intersection_summary,
-// severity, urgency_tier, format_type, last_regenerated_at,
-// regeneration_skill_version, sources_used count.
-//
-// Lightweight surface for the per-item display strip (used in
-// IntelligenceBrief context). One query plus an in-list lookup for
-// related_items resolution. ~50ms.
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";

@@ -1,28 +1,4 @@
 #!/usr/bin/env node
-// generate-migrations-inventory.mjs -- writes docs/inventories/migrations.md from the migration files
-// (plan 6.8, Rule A, lane N5, coordinator amendment 1 item 3). Every fsi-app/supabase/migrations/*.sql
-// file carries a `-- subject: <text>` line (after an optional leading `/* fitness-allow */` line) as its
-// own single source of truth for its Subject cell; this script derives the "## Migrations" table from
-// those lines plus each file's own name, byte-for-byte for the subject text (re-escaping a literal `|`
-// as `\|` for the markdown table, the inverse of how the subject line itself carries an UNescaped `|`).
-//
-// WHY A SUBJECT LINE IN THE FILE, NOT A MECHANICAL DERIVATION FROM THE MIGRATION'S OWN HEADER COMMENT:
-// [CONFIRMED by lane N5, 2026-09-19] measured against all 296 on-disk migration files, the cleanest
-// mechanical rule (first `--` comment line, truncated to 80 chars) reproduces only about 95 of 296 rows
-// exactly; the remaining ~201 carry hand-authored prose beyond the header (e.g. migration 099's stored
-// subject names fields the header text never mentions). The Subject column was never a pure function of
-// the header comment; moving it INTO the migration file (once, by a scratch script, never by hand) makes
-// it a fact the file itself carries, so the page can be a real derivation of the tree again (plan 6.8
-// Rule A: "one entry, one file") without inventing or guessing content. The applied schema is UNCHANGED
-// by this: the Supabase CLI tracks migrations by filename/version, never by content, and a `-- subject:`
-// line is a SQL comment, not DDL.
-//
-// The "## Related" section (hand-authored cross-links, not migration facts) is preserved byte-for-byte
-// from whatever is currently committed -- this generator only derives the "## Migrations" table and its
-// own header; it never invents or edits the Related section.
-//
-// Usage: `node fsi-app/scripts/inventories/generate-migrations-inventory.mjs [--write]`
-//   --write   writes docs/inventories/migrations.md (default: prints the derived page to stdout, dry).
 
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';

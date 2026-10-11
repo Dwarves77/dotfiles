@@ -1,21 +1,3 @@
-// entity-id.mjs — the entity spine's id builder (docs/specs/08-flywheel-design.md §1.1, §1.2) and
-// kind vocabulary. Every `entities.entity_id` value in this system is minted by `entityId()` below,
-// never hand-assembled at a call site — the same "one constructor, many callers" discipline
-// `cl_corridor_id()` (migration 258) applies at the SQL layer for the corridor case specifically; this
-// module is the JS-layer equivalent for ALL twelve kinds (the eleven of migration 282 and `material` of migration 357).
-//
-// FORMAT: `cl:<kind>:<16 lowercase hex>` — 16 hex characters (the first 16 of a sha256 hex digest, 8
-// bytes of the 32-byte digest), matching the length migration 258's `cl_corridor_id()` already uses and
-// the CHECK `entity_id LIKE 'cl:' || kind::text || ':%'` migration 282 enforces at the DB layer.
-// DETERMINISTIC: the same (kind, seed) always mints the same id, with no coordination between two
-// independent callers (spec §1.2's corridor rationale, generalised to every kind) — this is what makes
-// the backfill idempotent (scripts/entities/backfill-entities.mjs re-running never mints a second row
-// for an entity it already created).
-//
-// PLAIN ESM, ZERO DEPENDENCIES beyond node:crypto and the shared mode vocabulary
-// (src/lib/contracts/vocabularies.mjs, itself plain-ESM/zero-dependency) — importable by a fitness
-// function, a script, or a component with no npm install.
-
 import { createHash } from "node:crypto";
 import { normaliseMode } from "../contracts/vocabularies.mjs";
 import { hostFromUrl } from "./host-from-url.mjs";

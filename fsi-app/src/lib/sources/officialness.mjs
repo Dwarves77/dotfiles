@@ -1,47 +1,4 @@
 // @ts-check
-// ════════════════════════════════════════════════════════════════════════════
-// 4d — THE OFFICIALNESS GATE  (clean past-nav body read -> path a vs path b)
-// Design: docs/design/4d-officialness-gate-design.md. Pure (no I/O, no LLM, no
-// fetch), so the property is unit-testable red-then-green under `node --test`.
-// ════════════════════════════════════════════════════════════════════════════
-//
-// NAMING CAVEAT (design §caveat): this REMEDIATION-PIPELINE "4d" (the officialness gate) is DISTINCT from
-// floor-attribution.mjs:17's SYSTEM-PROMPT "4d" (the wrong-language original-span rule). Two different
-// numberings that happen to collide; keep them apart. This module is the officialness gate ONLY.
-//
-// WHAT IT SOLVES (§1). 4b (reattributeToFloor) re-homes a FACT to a floor source that verbatim-CONTAINS its
-// span, matched by `.includes()` against canonical-fetch's stripText output — which drops <script>/<style>/
-// <tags> but KEEPS every visible string: nav menus, breadcrumbs, cookie banners, footer link-lists. So a
-// span can "match" a floor source's NAVIGATION CHROME (fabricated provenance), and a slot span can be
-// extracted from nav-menu-only text (a topical-looking FACT with no instrument body). 4d inserts a
-// CLEAN-BODY read so the span-match (4b) and the primary-FACT decision run against the INSTRUMENT BODY, not
-// the chrome — then routes:
-//   • path 'a' — official primary instrument past the nav  -> may serve as a primary FACT at its floor tier.
-//   • path 'b' — portal / explainer / chrome body          -> NON-PRIMARY (corroborate or 4c-label), NEVER a
-//                                                              primary FACT, NEVER a floor re-home target.
-//
-// THE MOAT (§5), enforced in code below + at the wire:
-//   • Never PROMOTE a non-official page to primary because grounding wants a FACT or topical fit is high.
-//     Officialness = HOST authority + INSTRUMENT identity, never subject relevance. (path b on missing markers.)
-//   • Never DOWNGRADE a real instrument for having chrome. EUR-Lex pages are nav-heavy — we find the body
-//     PAST the nav (structural strip + block-density), not "absence of chrome". The test is PRESENCE of an
-//     instrument body, not the absence of navigation.
-//   • Never fabricate a floor stamp. A span absent from the CLEAN body keeps its honest attribution (the
-//     caller walls / relabels) — this module removes the chrome the span could have falsely matched.
-//
-// PURITY / DEPENDENCY-INJECTION. Host authority-origin tier is INJECTED (opts.hostTier), not derived here:
-// deriving it would need host-authority.ts, and a pure .mjs cannot import a relative .ts (glob-portability
-// bans it — it breaks the no-npm-ci discipline CI job). The CALLER owns the canonical resolver / host-
-// authority and passes the already-resolved tier + the item's authority floor. This mirrors primary-
-// fallback.mjs's dep-injection and keeps 4d a pure function of its inputs.
-//
-// GRACEFUL DEGRADATION. §2 wants RAW html (stripText already lost the structure that identifies chrome).
-// When 4d is given raw html it runs the full structural strip + per-block link/text-density drop. When it is
-// given ALREADY-FLATTENED text (the stored-excerpt reality at the wire, where the pool carries stripText
-// output, not html), there is no structure to strip, so cleanBody ~= the text — and the PATH decision still
-// runs on host tier + cleanLen + instrument markers, which survive flattening (a portal / nav-only body
-// carries no Article/shall markers either way). The chrome-strip is the bonus that engages when html is in
-// hand; the marker+host+length gate is the primary defense and is representation-independent.
 
 import { STUB_MIN_CHARS } from "./primary-fallback.mjs"; // reuse the ONE real-content floor (=200), on the CLEAN body
 

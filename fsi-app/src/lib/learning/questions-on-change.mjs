@@ -1,39 +1,3 @@
-// questions-on-change.mjs, lane L4-A (l4a-questions-on-change), 2026-10-05, ADR-044 decision 1, ADR-043
-// (propagation_events is append-only and is not touched), learning-loop-design-2026-09-25.md section 1.
-//
-// WHAT THIS IS. Until now a question was raised only when an item was minted or touched. When a value the
-// system holds CHANGES (a derived value is revised, an emission factor is superseded, a statutory
-// computation moves) nothing asked what that change means for the items that depend on it. This module is
-// the change side: for each outbox row the drain just processed, it names the event type, finds the
-// verified items linked to the changed row's entity, and raises the same four product questions per
-// item and surface through the SAME generator (trigger-questions.mjs generateTriggerQuestions), the SAME
-// flag row builder and the SAME dedup rule (no duplicate while an open row exists for the same
-// subject_ref and created_by). It answers nothing; answering is the session-batch lane (ADR-044).
-//
-// EVENT MAPPING (pure). propagation_events has NO event_type column (migration 284 carries change_kind
-// insert/update/delete/supersede), so the TRIGGER_EVENT_TYPES in constants.mjs are derived here from
-// the outbox row's (table_name, change_kind). Every table that attaches propagation_outbox_trg today is
-// mapped, and questions-on-change.test.mjs parses the migrations and fails when a new emitting table has
-// no mapping.
-//
-// The table-to-event mapping is one JSON file per emitting table under emitting-tables/ (lane QOC-1,
-// 2026-10-09): a new outbox-emitting table adds one file there and never edits this module, so two lanes
-// adding tables cannot conflict. EMITTING_TABLE_EVENT_MAP is built from that directory once at module load.
-// confidence_decayed and source_frozen are reserved: no table that emits outbox events today corresponds
-// to them, so nothing maps to them.
-//
-// ENTITY TO ITEM LINK (the EXISTING one, read in reverse; no new table). migration 283: an item names an
-// entity through `intelligence_items.instrument_entity_id` (single-valued) and through `entity_refs`
-// (ref_table='intelligence_items', ref_id=<item id>, entity_id=<entity>, role open text, today
-// 'jurisdiction'). src/app/api/notices/resolve-watched-entities.ts reads the item-to-entity direction;
-// this module reads the entity-to-item direction over the same two paths. An outbox row carries an
-// entity_id only for derived_values, statutory_computations and estimated_values (migration 284); a row
-// from emission_factors, market_series or regional_data_facts has a NULL entity_id today and so reaches no
-// item (counted as events_no_entity, never guessed).
-//
-// BOUNDED. At most MAX_ITEMS_PER_EVENT items per event raise questions (items sorted by id, so the choice
-// is deterministic); the count dropped is reported as items_dropped_by_cap, never silent.
-
 import { readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

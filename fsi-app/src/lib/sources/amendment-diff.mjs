@@ -1,16 +1,4 @@
 // @ts-check
-// FETCH-ALIGN-DIFF ENGINE — the deterministic core (Wave-β B3, operator amendment 2 to the holdings
-// audit, 2026-07-14). Given TWO captures of the same instrument (an old/incomplete one and a newer/fuller
-// re-collection, or two temporal versions), it:
-//   1. SEGMENTS each document into provisions by publisher shape (structural alignment).
-//   2. ALIGNS provisions by a stable key (provision number) + a normalized content hash (span-match).
-//   3. EXTRACTS the delta: unchanged / added / removed / changed (with a sentence-level change diff).
-//   4. ROUTES the delta to timeline-event candidates (the pure transform; DB persistence is the caller's,
-//      a write that rides the pass — kept OUT of this $0 deterministic core).
-//
-// Strategic frame (operator): the incomplete scraping-era corpus is this engine's test set — every
-// re-collection heals the corpus AND exercises the amendment-tracking the customer buys. NO LLM, NO fetch:
-// pure, node-testable, $0. Publisher-shape detection + clean-text extraction are reused from holdings-audit.
 
 import { detectPublisherShape, extractCleanText } from "./holdings-audit.mjs";
 

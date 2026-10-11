@@ -1,13 +1,3 @@
-// POST /api/admin/sources/[id]/fetch-now
-//
-// Manual on-demand fetch for a single source. Bypasses the cooldown logic in
-// /api/data/fetch-source (explicit admin action) but, as of Phase 0.1 (2026-06-28),
-// HONORS the global processing hold: a fetch while paused returns 503; the operator
-// lifts system_state.global_processing_paused to proceed. (Was "bypasses pause state"
-// — superseded; see src/lib/api/pause.ts. Operator override = lift the hold first.)
-// Returns a content preview and a hash so the operator can sanity-check
-// what was retrieved without paging through the full body.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";

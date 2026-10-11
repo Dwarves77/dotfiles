@@ -1,19 +1,3 @@
-// Shared notification fan-out helper. Wired at each event-origin point
-// (reply, invite, moderation, future: mention) to insert a row
-// into the per-user `notifications` table that the bell + list components
-// read at /api/community/notifications.
-//
-// Why service-role: notifications.INSERT is service-role-only by RLS
-// (migration 032). User-session clients cannot write to other users'
-// inboxes; this is the only legitimate insert path the schema allows.
-// Keep the surface narrow: one helper, called intentionally.
-//
-// Failures are returned (not thrown). Notification dispatch is a
-// side-effect of the originating operation; if it fails we want the
-// originating route to log + continue rather than abort the user-facing
-// operation (a successful reply or invitation must persist even if the
-// recipient's notification fails to write).
-
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Kinds are a subset of the notifications_kind_check CHECK constraint. 'promote' is retired from code

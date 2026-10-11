@@ -3,7 +3,6 @@
   "registered": "2026-10-07",
   "registered_by": "lane G5-SEARCH",
   "governing_files": [
-    "../.github/workflows/needs-search.yml",
     "scripts/turns/export-needs-for-search.mjs",
     "scripts/turns/apply-need-urls.mjs",
     "scripts/turns/needs-search/schema.mjs",

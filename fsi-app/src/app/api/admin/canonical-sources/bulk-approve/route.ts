@@ -1,25 +1,3 @@
-// SHARED-WRITER: intelligence_items
-// POST /api/admin/canonical-sources/bulk-approve
-//
-// Batch approve a list of candidate IDs. Each candidate is processed
-// sequentially through the same logic as /decide approve, with one
-// optimization: existing-source matches are pre-resolved upfront so the
-// per-candidate path skips the existence check.
-//
-// New-source creation in batch context: each candidate carries its own
-// AI-recommended classification (cached from
-// /recommend-classification, or null). When a candidate has no cached
-// classification AND its URL isn't in the registry, this endpoint
-// rejects the candidate from the batch and returns it under
-// `requires_individual_review` — bulk-approve does not silently call
-// the recommender for thousands of items.
-//
-// Auth: requireAuth + isPlatformAdmin gate via profiles.is_platform_admin
-// (OBS-17, Sprint 2 Build 6). Prior comment claimed an org_memberships
-// admin gate, but none was actually wired; only requireAuth ran. Rate-limited.
-//
-// Returns a per-candidate result so the UI can surface partial successes.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

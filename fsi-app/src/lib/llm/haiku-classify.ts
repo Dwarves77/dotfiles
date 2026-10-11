@@ -1,13 +1,3 @@
-// Shared Haiku SOURCE-verification module (D1 header fix, 2026-07-19: the
-// former haikuClassify content classifier was removed 2026-05-11 - content
-// classification lives in src/lib/llm/first-fetch-classify.ts).
-//
-// One export:
-//   - haikuVerifyCandidate  used by src/lib/sources/verification.ts to
-//                           triage discovered candidate URLs into the
-//                           H/M/L verification tiers (relevance, freight
-//                           score, trust tier).
-
 import Anthropic from "@anthropic-ai/sdk";
 // htmlToText - THE ONE body (Lane LEDGER-TEXT, 2026-09-04). This module's own copy had zero production
 // callers (haikuClassify, its only caller, was removed 2026-05-11 - see the note near __internals below);

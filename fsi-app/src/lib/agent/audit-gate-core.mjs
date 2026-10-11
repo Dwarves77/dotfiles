@@ -1,12 +1,3 @@
-// Pure cores for the Layer B cross-item audit gate — DEPENDENCY-FREE .mjs so the no-npm-ci discipline
-// test job can unit-test them WITHOUT jiti / .ts loading (the same reason scripts/lib/db.mjs is importable
-// without node_modules). The typed wrappers + DB readers live in audit-gate.ts, which binds the real
-// institution.ts host helpers + resolver to these via dependency injection. NO logic lives only here that
-// isn't exercised through audit-gate.ts.
-
-/** A data-audit block is dispositioned (allowed to proceed) only by an explicit, non-expired dated waiver.
- *  Time alone never clears red. Pure. MIRRORED IN SQL by migration 240's guard_data_audit_block (the
- *  intelligence_items BEFORE INSERT gate) -- any semantic change here must change there too (no-logic-drift). */
 export function hasValidWaiver(block, now) {
   if (!block) return false;
   const acts = Array.isArray(block.recommended_actions) ? block.recommended_actions : [];

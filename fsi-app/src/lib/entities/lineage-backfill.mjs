@@ -1,25 +1,3 @@
-// lineage-backfill.mjs — pure partition/upgrade-decision logic for the WO-28 phase D $0 backfill
-// (scripts/entities/backfill-lineage-edges.mjs). Extracted into its own module (rather than left inline in
-// the script) because this is the ONE piece of the backfill that carries real decision logic — everything
-// else in the script is I/O orchestration (load rows, call the runtime's own planLinkWrites, print a
-// report). Pure + dep-injected (no DB import here) so it is unit-tested without a database, mirroring how
-// entity-resolve.mjs itself stays pure and dep-injected.
-//
-// THE DECISION THIS MAKES: item_cross_references is unique on (source_item_id, target_item_id), ONE row
-// per ordered pair shared across every origin (manual / agent_semantic / entity_extraction /
-// provenance_discovery — migration 252's CHECK). This backfill and the linkStep runtime BOTH write
-// origin='entity_extraction' (planLinkWrites hardcodes it — see entity-resolve.mjs). A pair already carrying
-// entity_extraction is OURS: re-running the same planner over it may now produce a MORE SPECIFIC typed
-// relationship (implements/amends/depends_on) than the untyped 'related' an earlier entity-extraction pass
-// left behind — WO-28 phase 1's whole point — so it gets UPGRADED (relationship + basis). A pair absent
-// entirely gets INSERTED. A pair owned by any OTHER origin (manual/agent_semantic/provenance_discovery) is
-// a different subsystem's edge. SUPERSEDED 2026-10-04 (lane s2a-typed-edges, coordinator ruling): the
-// function below now implements ADR-022 as written (specificity wins, additively), with 'manual' rows
-// never changed; read the function's own doc comment, which is the current contract. A pair already entity_extraction AND already
-// carrying the SAME relationship+basis this run would produce is UNCHANGED — no write, idempotent re-runs.
-
-// The origin THIS backfill (and the linkStep runtime) writes. Pairs at this origin are "ours" and may be
-// upgraded; every other origin value is foreign and must never be touched by this module.
 export const LINEAGE_BACKFILL_ORIGIN = "entity_extraction";
 
 // lane G7-CORR: an admin-removed connection (item_corrections tombstone, migration 356) is never re-created.

@@ -1,9 +1,3 @@
-// profile.ts, the workspace profile the read-time contextualization layer consumes (Option B, mig 251).
-//
-// Shared briefs stay role-generic; this profile is applied per-viewer at READ time (never at generation).
-// Assembles the full profile from workspace_settings: sector_profile (cargo verticals) + jurisdiction_weights
-// (already present) + the mig-251 `profile` jsonb (roles, transport modes, trade lanes, products, baseline).
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeItemRelevance } from "@/lib/workspace/relevance.mjs";
 import { ALL_SECTORS } from "@/lib/constants";

@@ -1,27 +1,3 @@
-// antitrust.mjs — the write-time antitrust guard for the Community surface (spec 05 §1, required
-// component 12). PURE. No database, no I/O, no Date.now() read internally except where a caller
-// explicitly wants "now" defaulted — every function takes its inputs explicitly, same discipline
-// src/lib/propagation/effective-confidence.mjs and aggregate-safeguards.mjs state for themselves.
-//
-// WHY THIS EXISTS ALONGSIDE migration 287 / src/lib/propagation/aggregate-safeguards.mjs. Migration 287
-// (spec 08 section 5, lane DP-ENGINE) ships a DB-enforced k-anonymity/dominance/freeze/forward-looking
-// gate (`publish_aggregate()`). The Community benchmark that fed it was removed by ADR-042 (2026-10-03),
-// so this module no longer points an author at any aggregate route.
-//
-// This module answers a narrower decision than `publish_aggregate()`:
-// "is this attempted community POST (a title+body write to community_posts) allowed to assert a
-// commercially sensitive figure at all." A single free-text post can never itself satisfy k >= 5
-// distinct organisations (k-anonymity is a property of a POOL, not of one post), so
-// `evaluateAntitrustGuard` refuses every individual point disclosure of a sensitive field outright and
-// allows a post that already carries a pool-cleared aggregate (k-anonymity, dominance cap and
-// three-month lag all satisfied) through. `kAnonymity`, `dominanceCap` and `threeMonthLag` are exported
-// standalone so the three named checks (spec 05 section 1) are independently unit-tested, mirroring the
-// same POOL shape `publish_aggregate()` consumes (`member_ids` / `member_values` / a period date).
-//
-// Dominance-share arithmetic reuses `computeDominanceShare` from aggregate-safeguards.mjs rather than
-// re-deriving it (repo convention: "no duplication of an existing module" — COMMON lane contract §Quality
-// bar) — the SAME max-share formula this repo already ships and tests.
-
 import { computeDominanceShare } from "../propagation/aggregate-safeguards.mjs";
 
 /** Sum per-organisation values from a pool of `{organisationKey, value}` rows into the

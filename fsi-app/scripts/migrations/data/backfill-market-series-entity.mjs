@@ -1,31 +1,4 @@
 #!/usr/bin/env node
-// backfill-market-series-entity.mjs -- the DATA step that goes with migration 373 (lane L4-E, 2026-10-08;
-// CLAUDE.md standing rule 3: schema DDL applies first, data migrations commit with their consumer code and run
-// after merge). Migration 373 adds market_series.entity_id; producers stamp it on rows they write from now on
-// (the registry entry's entity_id, handed to the producer as PRODUCER_ENTITY_ID). This script stamps the rows
-// that already exist.
-//
-// THE MAP. A registry entry (scripts/producers/registry/<name>.json) that declares an entity_id owns the
-// market_series rows of its namespace. The series namespace is NOT the entry name (entry
-// "eu-weekly-oil-bulletin" writes series_key "eu-oil-bulletin:..."), so the join goes through the producer
-// script both registries name: the registry entry's `script` equals series-registry.mjs's `producerScript`, and
-// that row's `keyPrefix` is the series_key prefix. An entry with an entity_id whose script no series-registry
-// row names is reported and stops the run (a mapping that cannot be resolved is not guessed).
-//
-// WHAT IT WRITES. entity_id on rows where it IS NULL and series_key starts with `<keyPrefix>:`. A row that
-// already has an entity is never touched, whatever it holds (an administrator's or an earlier run's value is
-// not overwritten). Idempotent: a second run finds nothing to do.
-//
-// DRY BY DEFAULT. `--apply` writes through the one sanctioned writer, the definer function
-// backfill_market_series_entity(p_entity_id, p_ids) (migration 373): it refuses an entity with no entities row, stamps
-// only rows whose entity_id IS NULL, and declares the transaction-local backfill marker, so the outbox trigger writes NO
-// propagation_events row for these rows (a backfill is not a value change; a producer write still emits). Reversal needs no
-// snapshot because only NULL rows are ever written: `entity_id = <id>` over the series prefix is the exact set.
-// Nothing in CI or any workflow runs this; it is dispatched by hand after the build layers are complete (operator ruling
-// 2026-10-04: no data population until every build layer is done), and only after migration 373 is applied.
-//
-// Usage (cwd fsi-app):  node scripts/migrations/data/backfill-market-series-entity.mjs [--apply]
-// Exit 0 done, 1 unresolvable mapping, 2 no DB credentials (self-skip, never crash).
 
 import { readAll, readClient } from "../../lib/db.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";

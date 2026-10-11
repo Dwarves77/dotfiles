@@ -1,17 +1,3 @@
-// Multi-person assignment of an intelligence item, with notification (lane S8-A, 2026-10-07; migration 359
-// item_assignments). Handlers for /api/workspace/items/[id]/assignments. Contract and the cross-org rule: see
-// item-collab-shared.mjs.
-//
-// RULES (the same as migration 359's RLS and guard trigger, enforced here in code):
-//   read     any member of the caller's org; the response also carries the org roster for the picker
-//   assign   owner, admin or member; every assignee must be a member of the CALLER'S org (never another org) and
-//            must hold the role member, admin or owner (a viewer is readable-only and is not assignable)
-//   state    open or done; the assignee, whoever assigned, or an owner or admin
-//   remove   the same three parties
-// Each newly assigned member other than the caller gets one notification of kind `assignment`, through the
-// existing Community notification machinery (dispatchNotification, migration 032/235/359). A notification that
-// fails to write never undoes the assignment; the response reports how many were delivered.
-
 import { itemDetailHref } from "../item-links.ts";
 import {
   MAX_ASSIGNEES_PER_REQUEST,

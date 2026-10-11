@@ -1,19 +1,3 @@
-// GET    /api/community/groups/[id]/members
-// DELETE /api/community/groups/[id]/members   (leave the group)
-//
-// GET returns the member roster for a group. The community_group_members
-// SELECT policy already gates visibility: rank-and-file members see only
-// their own row; admins and moderators see the full roster. This route
-// returns whatever rows RLS exposes to the caller, joined to profile
-// metadata for display (name, headshot).
-//
-// DELETE removes the caller's own membership row (leave the group). The
-// community_group_members DELETE policy permits self-delete, so we run
-// the mutation under the caller's RLS-aware client.
-//
-// Auth:    cookie session via requireCommunityAuth.
-// Limits:  60 req/min/user via checkRateLimit.
-
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";

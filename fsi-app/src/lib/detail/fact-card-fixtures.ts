@@ -1,23 +1,3 @@
-// src/lib/detail/fact-card-fixtures.ts
-//
-// Lane w10-factcard-b (2026-09-20), Amendment 1 section B.2: "/admin/parts is the one home for every
-// part lane's sign-off picture ... rendering every kind and form, the no-lead case, the matrix
-// density, a long claim, and a card with no provenance, from static fixture models (no database
-// read)." This module is that fixture set. Pure data, no I/O, no database read - imported by
-// src/app/admin/parts/fact-card/page.tsx, which is the only production importer (F25 module
-// liveness).
-//
-// Operator sign-off 2026-09-22 (lane W10-FactCard-e), correction 2: "NO GENERIC TEXT IN ANY
-// FIXTURE ... replace with real records from the database, as the artboard does ... Fixtures read
-// from a frozen real record, never from invented strings." The provenance below is no longer
-// hand-typed: it is read from src/components/ui/__fixtures__/panel-21c-frozen-records.json, a
-// SELECT-only snapshot of two live intelligence_items/regional_data_facts rows (see that file's own
-// `_frozen` header for the exact queries and the freeze date). The claim SENTENCES on each kind
-// fixture stay hand-composed reference prose (the part's own anatomy is what this page teaches, not
-// a live brief render - see ItemGroup.tsx's own header for why hand-authored group/action copy is
-// legitimate here), but every quoted regulatory fact and every provenance field (source, org, link,
-// accessed date, tier) traces to the frozen record, never to an invented string.
-
 import type { FactCardModel } from "@/lib/detail/fact-card-model";
 import { toClaimNodes } from "@/lib/detail/fact-card-model";
 import frozen from "@/components/ui/__fixtures__/panel-21c-frozen-records.json";
