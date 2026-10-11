@@ -849,7 +849,7 @@ export async function getWorkspaceAggregates(): Promise<WorkspaceAggregates> {
 // nothing when p_org_id IS NULL — the by_priority/by_severity/etc tallies collapse to the item's own
 // priority/is_archived (the platform "no override" default), the same degenerate case
 // get_workspace_intelligence_slim_public (migration 306) already returns. So this call is genuinely
-// safe with a NULL org_id at the DB level; only fetchSurfaceCounts' OWN `!orgId → null` guard (a
+// safe with a NULL org_id at the DB level; only the org-scoped fetcher's (deleted, DEAD-1d) OWN `!orgId → null` guard (a
 // caller-side choice, not a DB requirement) and this function's own resolveOrgIdFromCookies() call
 // stood in the way of a cookie-free read.
 //
@@ -864,7 +864,7 @@ export async function getWorkspaceAggregates(): Promise<WorkspaceAggregates> {
 // inaccuracy, and every existing consumer already treats these counts as a fail-soft estimate
 // (`aggregates.totalItems || rows.length` fallback pattern throughout the four index pages).
 // NOTE (PERF-10, root-cause fix, same day): this must call fetchPublicSurfaceCounts, NOT
-// fetchSurfaceCounts(null, surface) — fetchSurfaceCounts has its own `!orgId → return null` guard
+// an org-scoped fetcher with a null org (that fetcher was deleted in DEAD-1d); it had its own `!orgId → return null` guard
 // (supabase-server.ts) that would silently short-circuit every call here to null before the RPC ever
 // ran, permanently collapsing every public masthead/tile count to the zero-filled fallback below. A
 // real defect this lane found and fixed while proving the build — see fetchPublicSurfaceCounts' own
@@ -912,7 +912,7 @@ export type { ResearchPipelineRow };
 // so cookies() is not invoked from within unstable_cache (Next.js does
 // not allow it).
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): org-independent counterpart to
-// getResearchPipeline above. See fetchPublicResearchPipelineRows's header (supabase-server.ts) for
+// getResearchPipeline above. The deleted fetchPublicResearchPipelineRows wrapper (DEAD-1d) documented
 // why this is safe — orgId was already unused by the underlying query; only this function's own
 // cookies() read + the cached wrapper's `!orgId → empty` gate stood in the way. No orgId in the
 // cache key (one shared entry for the whole app). Tagged PUBLIC_ITEMS_TAG, not APP_DATA_TAG.

@@ -15,12 +15,25 @@
 //          body: GitHub honours the token in either). The accepted tokens are the ones GitHub documents:
 //          [skip ci], [ci skip], [no ci], [skip actions], [actions skip], and the `skip-checks: true` trailer.
 //          A normal subject with no token passes.
+// Cutoff:  the rule applies only to commits made after it landed (lane CI-MIN-0b, 2026-10-11). In per-commit CI
+//          mode a commit whose COMMITTER date is before RULE_024_LANDED is SKIPPED with the reason `commit
+//          predates the rule`: every pull request open when PR 1102 merged carried `WIP ` commits authored the
+//          day before the rule existed, and judging them failed validate-commits on the first update-branch
+//          (PR 1097 run 38106594677: three FAIL [024]). commit-msg (local) mode is unchanged: a proposed commit
+//          has no sha, is always after the cutoff, and is always judged. The whole-range squash-parity pass has
+//          no sha either and is unchanged.
 // Scope:   whole-commit (a message is a property of one commit; a squash merge does not re-judge it). A pull
 //          request merges by squash and GitHub's default squash body lists every commit subject, so the squash
 //          commit on master can carry the token of a WIP commit; that commit is created by GitHub, not by a
 //          local commit-msg hook or a PR range, and is out of this rule's reach (reported on the lane PR).
 
-import { pass, fail } from '../lib/result.mjs';
+import { execFileSync } from 'node:child_process';
+import { pass, fail, skip } from '../lib/result.mjs';
+import { getRepoRoot } from '../lib/context.mjs';
+
+// The merge time of PR 1102 (CI-MIN-0, merged as ab3dcaa87), the instant rule 024 landed on master.
+export const RULE_024_LANDED = '2026-10-11T02:52:00Z';
+export const PREDATES_REASON = 'commit predates the rule';
 
 const TOKEN_RES = [
   /\[skip ci\]/i,
@@ -40,6 +53,25 @@ export function isWipSubject(subject) {
   return WIP_RE.test(String(subject));
 }
 
+// The committer date (epoch ms) of the commit under judgement, or null when there is none to read: a proposed
+// commit (commit-msg mode) and the whole-range context carry no sha, and an unreadable sha is judged, never
+// skipped (a lookup failure must not switch the rule off). A test may set ctx.commitDate (ISO string) directly.
+export function committerTime(ctx) {
+  let iso = ctx.commitDate || null;
+  if (!iso && ctx.commitSha) {
+    try {
+      iso = execFileSync('git', ['-C', getRepoRoot(), 'log', '-1', '--format=%cI', ctx.commitSha], {
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch {
+      return null;
+    }
+  }
+  const t = iso ? Date.parse(iso) : NaN;
+  return Number.isNaN(t) ? null : t;
+}
+
 export const rule = {
   id: '024',
   name: 'WIP commit carries [skip ci], and only a WIP commit does',
@@ -52,6 +84,11 @@ export const rule = {
   },
 
   check(ctx) {
+    const when = committerTime(ctx);
+    if (when !== null && when < Date.parse(RULE_024_LANDED)) {
+      console.log(`024 skip: ${PREDATES_REASON}`);
+      return skip(PREDATES_REASON);
+    }
     const subject = ctx.commitSubject || '';
     if (isWipSubject(subject)) {
       if (hasSkipToken(subject)) return pass();
