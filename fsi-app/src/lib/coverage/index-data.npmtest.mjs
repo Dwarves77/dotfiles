@@ -113,3 +113,35 @@ test("the generated matrix turns those two fields into the mode axis and the as-
   assert.deepEqual(matrix.modeTagging, { tagged: 1, total: 2 });
   assert.equal(matrix.dataAsOf, "2026-10-05T00:00:00Z");
 });
+
+// ── Lane DATA-3a (2026-10-11, backlog B-0054): the verified-brief count is read WITH its error ──
+//
+// loadCoverage read `{ count: verifiedBriefs }` and dropped `error`, so a failed count published "0 verified
+// briefs" beside a populated index. It now follows the census read's contract (throw), and getCoverageIndex
+// (fail-soft by contract) turns the throw into its `_error` state. RED against the unchanged source: both resolve
+// with a zero count and no error.
+function clientWithFailingCount() {
+  const census = {
+    select() { return census; }, eq() { return census; }, contains() { return census; }, order() { return census; },
+    range() { return Promise.resolve({ data: [], error: null }); },
+  };
+  const items = { select() { return items; }, eq() { return items; }, not() { return Promise.resolve({ count: null, error: { message: "boom" } }); } };
+  return { from: (t) => (t === "census_worklist" ? census : items) };
+}
+
+test("DATA-3a: getCoverageEntries rejects when the verified-brief count read fails", async () => {
+  globalThis.__indexDataClient = clientWithFailingCount();
+  await assert.rejects(() => getCoverageEntries(), /boom/);
+});
+
+test("DATA-3a: getCoverageIndex reports its _error state, never a zero brief count, when the count read fails", async () => {
+  globalThis.__indexDataClient = clientWithFailingCount();
+  const original = console.warn;
+  console.warn = () => {};
+  try {
+    const res = await getCoverageIndex();
+    assert.equal(res._error, "Coverage index temporarily unavailable.");
+  } finally {
+    console.warn = original;
+  }
+});

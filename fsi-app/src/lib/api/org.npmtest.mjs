@@ -24,6 +24,18 @@ const {
   resolveViewerIdentityFromCookies,
 } = await jiti.import("./org.ts");
 
+/** Run `fn` with console.warn captured (DATA-3a: the fail-soft reads now log why they degraded). */
+async function withWarnings(fn) {
+  const warns = [];
+  const original = console.warn;
+  console.warn = (...a) => warns.push(a.map(String).join(" "));
+  try {
+    return { result: await fn(), warns };
+  } finally {
+    console.warn = original;
+  }
+}
+
 /** Minimal fake Supabase client covering exactly the calls
  *  resolveOrgIdFromAuthenticatedClient issues: auth.getClaims(), then
  *  .from("org_memberships").select(...).eq(...).order(...).limit(...).maybeSingle(). */
@@ -126,14 +138,15 @@ test("symmetric-secret fallback shape (claims sourced from getUser() internally 
 // ── the query-error branch (membership lookup itself fails) — resolveOrgIdFromAuthenticatedClient does
 // not check membershipError explicitly (mirrors the pre-existing resolveOrgIdFromCookies contract: a
 // failed read degrades to "no membership", the caller renders the public/seed view) ──
-test("membership query error → null (fail-soft, matches pre-existing contract)", async () => {
+test("membership query error → null (fail-soft, matches pre-existing contract) AND the failure is logged, not silent (DATA-3a, B-0052)", async () => {
   const supabase = fakeSupabase({
     claimsData: { claims: { sub: "user-789" } },
     membershipData: null,
     membershipError: { message: "connection reset" },
   });
-  const orgId = await resolveOrgIdFromAuthenticatedClient(supabase);
+  const { result: orgId, warns } = await withWarnings(() => resolveOrgIdFromAuthenticatedClient(supabase));
   assert.equal(orgId, null);
+  assert.ok(warns.some((w) => w.includes("resolveOrgIdFromAuthenticatedClient membership read failed") && w.includes("connection reset")), JSON.stringify(warns));
 });
 
 // ── resolveOrgIdFromCookies (the cache()-wrapped, cookie-driven wrapper): outside a Next.js request
@@ -186,14 +199,15 @@ test("viewer identity: claims with no sub → { userId: null, orgId: null }, no 
   assert.deepEqual(identity, { userId: null, orgId: null });
 });
 
-test("viewer identity: membership query error → { userId, orgId: null } (fail-soft, matches resolveOrgIdFromAuthenticatedClient's contract)", async () => {
+test("viewer identity: membership query error → { userId, orgId: null } (fail-soft, matches resolveOrgIdFromAuthenticatedClient's contract) AND is logged (DATA-3a, B-0052)", async () => {
   const supabase = fakeSupabase({
     claimsData: { claims: { sub: "user-789" } },
     membershipData: null,
     membershipError: { message: "connection reset" },
   });
-  const identity = await resolveViewerIdentityFromAuthenticatedClient(supabase);
+  const { result: identity, warns } = await withWarnings(() => resolveViewerIdentityFromAuthenticatedClient(supabase));
   assert.deepEqual(identity, { userId: "user-789", orgId: null });
+  assert.ok(warns.some((w) => w.includes("resolveViewerIdentityFromAuthenticatedClient membership read failed") && w.includes("connection reset")), JSON.stringify(warns));
 });
 
 test("resolveViewerIdentityFromCookies outside a request context → fails soft to { userId: null, orgId: null }, never throws", async () => {

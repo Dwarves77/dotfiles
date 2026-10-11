@@ -113,3 +113,20 @@ test("malformed bearer token (not a JWT), no cookie session → 401 Authenticati
 test("isCommunityAuthError narrows correctly for a success shape", () => {
   assert.equal(isCommunityAuthError({ userId: "user-1", supabase: {} }), false);
 });
+
+// ── DATA-3a (B-0051): an infrastructure exception in either auth branch is logged with its site before it falls
+// through, so "the auth layer threw" is told apart in the log from "not signed in". ──
+
+test("cookie-session branch throwing (no request scope) is logged with its site, then falls through to 401", async () => {
+  const warns = [];
+  const original = console.warn;
+  console.warn = (...a) => warns.push(a.map(String).join(" "));
+  try {
+    const result = await requireCommunityAuth(requestWithAuth(undefined));
+    assert.ok(isCommunityAuthError(result));
+    assert.equal(result.status, 401);
+  } finally {
+    console.warn = original;
+  }
+  assert.ok(warns.some((w) => w.includes("[api/community-auth] cookie-session auth threw")), JSON.stringify(warns));
+});

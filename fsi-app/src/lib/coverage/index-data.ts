@@ -174,11 +174,14 @@ async function loadCoverage(
     if (page.length < PAGE) break;
   }
 
-  const { count: verifiedBriefs } = await sb
+  const { count: verifiedBriefs, error: briefsError } = await sb
     .from("intelligence_items")
     .select("id", { count: "exact", head: true })
     .eq("provenance_status", "verified")
     .not("full_brief", "is", null);
+  // Same contract as the census read above: throw. A failed count must not publish "0 verified briefs" beside the
+  // index (getCoverageIndex turns the throw into its _error state, getCoverageEntries into the route's status).
+  if (briefsError) throw new Error(briefsError.message);
 
   const entries: CoverageEntry[] = all.map((r) => {
     const softPass = softPassOf(r.notes);

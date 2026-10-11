@@ -168,12 +168,21 @@ export async function readCustomerInferences(supabase, itemId, readCitedTitles) 
     .in("method_id", [...CUSTOMER_INFERENCE_METHOD_IDS])
     .order("computed_at", { ascending: false })
     .limit(INFERENCE_READ_CAP);
-  if (error || !Array.isArray(rows) || rows.length === 0) return null;
-  const { data: successors } = await supabase
+  if (error) {
+    console.warn(`[inference-view] inference_records read failed (the section renders nothing): ${error.message}`);
+    return null;
+  }
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  const { data: successors, error: successorsError } = await supabase
     .from("inference_records")
     .select("supersedes")
     // fitness-allow: F39 (ids.length <= INFERENCE_READ_CAP, bounded by the .limit() above)
     .in("supersedes", rows.map((r) => r.inference_id));
+  if (successorsError) {
+    // Without the supersedes lookup a replaced inference would pass as current, so nothing is shown rather than a stale claim.
+    console.warn(`[inference-view] inference_records supersedes read failed (the section renders nothing): ${successorsError.message}`);
+    return null;
+  }
   const superseded = new Set((successors ?? []).map((r) => r.supersedes));
   const claims = selectCurrentInferences(rows, superseded);
   if (claims.length === 0) return null;

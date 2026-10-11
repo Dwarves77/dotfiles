@@ -113,8 +113,9 @@ export async function requireCommunityAuth(
     if (userId) {
       return { userId, supabase: cookieClient as unknown as SupabaseClient };
     }
-  } catch {
-    // fall through to Bearer
+  } catch (e) {
+    // Fall through to Bearer, but say why: an infrastructure failure here reads to the caller as "not signed in".
+    console.warn(`[api/community-auth] cookie-session auth threw (falling through to Bearer): ${e instanceof Error ? e.message : String(e)}`);
   }
 
   // ── Path B: Authorization: Bearer <jwt> ──────────────────────────
@@ -129,8 +130,9 @@ export async function requireCommunityAuth(
       if (userId) {
         return { userId, supabase: tokenClient };
       }
-    } catch {
-      // fall through to 401
+    } catch (e) {
+      // Fall through to 401, but say why: an infrastructure failure here reads to the caller as "not signed in".
+      console.warn(`[api/community-auth] bearer auth threw (falling through to 401): ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

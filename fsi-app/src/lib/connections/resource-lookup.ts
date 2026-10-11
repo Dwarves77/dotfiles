@@ -30,7 +30,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  *  already treat a null uuid as "skip this block"). */
 export async function resolveItemUuid(supabase: SupabaseClient, id: string): Promise<string | null> {
   if (UUID_RE.test(id)) return id;
-  const { data } = await supabase.from("intelligence_items").select("id").eq("legacy_id", id).maybeSingle();
+  const { data, error } = await supabase.from("intelligence_items").select("id").eq("legacy_id", id).maybeSingle();
+  if (error) {
+    console.warn(`[resource-lookup] resolveItemUuid read failed (caller skips the uuid-keyed block): ${error.message}`);
+    return null;
+  }
   return data?.id ?? null;
 }
 
@@ -66,14 +70,19 @@ export async function buildResourceLookup(
     }
     const results = await Promise.all(queries);
     for (const result of results) {
+      if (result.error) {
+        console.warn(`[resource-lookup] buildResourceLookup read failed (those ids render with the raw-id fallback): ${result.error.message}`);
+        continue;
+      }
       for (const row of (result.data ?? []) as Array<{ id: string; legacy_id: string | null; title: string; priority: string }>) {
         const uiId = row.legacy_id || row.id;
         lookup[uiId] = { id: uiId, title: row.title, priority: row.priority };
       }
     }
-  } catch {
+  } catch (e) {
     // Fail-soft — connections/supersessions render with a raw-id fallback (or are dropped, per
-    // buildConnectionRows) rather than the page failing.
+    // buildConnectionRows) rather than the page failing. Logged so the miss is not silent.
+    console.warn(`[resource-lookup] buildResourceLookup threw (connections render with the raw-id fallback): ${e instanceof Error ? e.message : String(e)}`);
   }
   return lookup;
 }

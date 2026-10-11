@@ -120,7 +120,7 @@ test("pickVisibleInferences: the injected gate decides, newest first, bounded", 
 });
 
 // ── the customer read (fake service-role client, no network) ─────────────────────────────────────────
-function fakeClient({ rows = [], successors = [], error = null } = {}) {
+function fakeClient({ rows = [], successors = [], error = null, successorsError = null } = {}) {
   const calls = [];
   const client = {
     calls,
@@ -136,7 +136,7 @@ function fakeClient({ rows = [], successors = [], error = null } = {}) {
         limit(n) { call.limit = n; return chain; },
         then(resolve) {
           // The first read is the rows citing the item (has a limit); the second is the supersedes lookup.
-          resolve(call.limit != null ? { data: error ? null : rows, error } : { data: successors, error: null });
+          resolve(call.limit != null ? { data: error ? null : rows, error } : { data: successorsError ? null : successors, error: successorsError });
         },
       };
       return chain;
@@ -193,6 +193,39 @@ test("readCustomerInferences: nothing, an error, or only citations the customer 
   assert.equal(await readCustomerInferences(fakeClient({ error: { message: "boom" } }), ITEM, titlesOf({})), null);
   assert.equal(await readCustomerInferences(fakeClient({ rows: [row()] }), ITEM, titlesOf({})), null, "no cited item is visible");
   assert.equal(await readCustomerInferences(fakeClient({ rows: [row({ method_id: "pool-adjusted-position" })] }), ITEM, titlesOf({ [ITEM]: "x" })), null, "a hidden method never shows even if the query returned it");
+});
+
+// ── DATA-3a (B-0055): a failed read is logged with its site, and a failed supersedes lookup shows nothing ──
+async function warned(fn) {
+  const warns = [];
+  const original = console.warn;
+  console.warn = (...a) => warns.push(a.map(String).join(" "));
+  try {
+    return { result: await fn(), warns };
+  } finally {
+    console.warn = original;
+  }
+}
+
+test("readCustomerInferences: a failed inference_records read gives null AND says so", async () => {
+  const { result, warns } = await warned(() => readCustomerInferences(fakeClient({ error: { message: "boom" } }), ITEM, titlesOf({})));
+  assert.equal(result, null);
+  assert.ok(warns.some((w) => w.includes("inference_records read failed") && w.includes("boom")), JSON.stringify(warns));
+});
+
+test("readCustomerInferences: a failed supersedes lookup shows nothing, never a replaced inference as if it were current", async () => {
+  const sb = fakeClient({
+    rows: [row({ inference_id: "old" }), row({ inference_id: "new", supersedes: "old", computed_at: "2026-10-06T00:00:00Z" })],
+    successorsError: { message: "boom" },
+  });
+  const { result, warns } = await warned(() => readCustomerInferences(sb, ITEM, titlesOf({ [ITEM]: "A regulation" })));
+  assert.equal(result, null);
+  assert.ok(warns.some((w) => w.includes("supersedes read failed") && w.includes("boom")), JSON.stringify(warns));
+});
+
+test("readCustomerInferences: no rows and a healthy read log nothing", async () => {
+  const { warns } = await warned(() => readCustomerInferences(fakeClient({ rows: [] }), ITEM, titlesOf({})));
+  assert.deepEqual(warns, []);
 });
 
 // ── the one current-row rule, shared with /admin/inferences ──────────────────────────────────────────
