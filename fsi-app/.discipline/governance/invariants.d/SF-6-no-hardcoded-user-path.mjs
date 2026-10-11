@@ -8,5 +8,4 @@ export const invariant = {
     section: 'Post-slim engine state (Rule 012)',
     text: 'No hardcoded operator user-home path (Windows Users dir, POSIX home, or Git-Bash drive-mount forms) in code files; use getRepoRoot()/os.homedir()/os.tmpdir().',
     anchor: 'Rule 012 (hardcoded user-home path)',
-    enforcedBy: ['rule:012'],
   };

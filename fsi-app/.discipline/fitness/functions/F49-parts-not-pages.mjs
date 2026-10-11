@@ -25,8 +25,10 @@
 
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
+import { isTestFile } from './F25-module-liveness.mjs';
 
-const SCOPE_GLOBS = ['fsi-app/src/app/**/page.tsx'];
+const SCOPE_GLOBS = ['fsi-app/src/**/*.tsx'];
+const PAGE_RE = /^fsi-app\/src\/app\/(?:.*\/)?page\.tsx$/;
 
 /** How many lines a two-literal pattern (card shell, fact card edge, chip, state note) may span and
  *  still be recognised as one shell. Matches F42's own WINDOW for the same reason: the repo's widest
@@ -110,28 +112,122 @@ const PATTERN_LABEL = {
   'state-note-edge': 'a state note edge (borderLeft: "3px solid with borderRadius: "0 6px 6px 0")',
 };
 
-export const fitnessFunction = {
-  id: 'F49',
-  name: 'parts-not-pages',
-  description:
-    'A route\'s page.tsx under src/app/** may not contain the literal styles that define a shared part: ' +
-    'an Anton title, a card border + radius 10, a 3px rule, a fact card edge/band, chip padding, or a ' +
-    'state note edge (site-wide parts brief, docs/design/parts-brief-2026-09-18.md, rule 1.2). Pages ' +
-    'import parts. Mark a site `// fitness-allow: F49 (reason)` only when no existing part renders the ' +
-    'same result; there is no other allowlist and no expiry.',
-  source:
-    'docs/design/parts-brief-2026-09-18.md section 1.2, "Fitness F44" (landed as F49 per the coordinator\'s ' +
-    'note: F44 is taken by F44-broken-main-guard.mjs); the literal patterns are the brief\'s own six words.',
+// Facet A, formerly F42 (absorbed by REG-1, 2026-10-11): card-shell-outside-SectionCard (lane cardrule, 2026-09-08).
+//
+// THE DEFECT CLASS, CONFIRMED BY THE OPERATOR. Item A1 of the 2026-09-08 UI fix round, verbatim:
+// "The 3px graduated rule at the top of every card is MISSING on all pages except the band blocks.
+// It is part of the card component, not a decoration". The cause was structural rather than
+// per page: there was NO card component. The same five declarations
+//
+//     background: var(--card); border: 1px solid var(--line-1);
+//     border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden
+//
+// were retyped in fifteen files and each caller then mounted `<SectionRule/>` by hand. What that
+// bought, measured on train/wave61-2026-09-08 before this lane:
+//
+//   - CommunityRooms.tsx's local `CARD` object: border-radius **8** (design says 10) and **no
+//     box-shadow at all**, on the Global room card, the New post card and three rail cards.
+//   - AccountPrimitives.tsx's `AccountCard`, ProvisionalReviewTable.tsx and two AdminDashboard
+//     cards: **no box-shadow**.
+//   - UserProfilePage.tsx's stat card: the shadow typed out as a literal instead of the token, and
+//     **no rule**.
+//   - MarketSignalDetailSurface.tsx's notes card and OperationsLedger.tsx's by-state card: **no
+//     rule**.
+//
+// None of that is visible to tsc, to the rendering guard, or to a source read: every one of those
+// files "looks" like it draws a card. The fix is to make the card a component (SectionCard.tsx,
+// which mounts the rule unconditionally) and to close the class here, so a card assembled by hand
+// again is RED rather than silently ruleless.
+//
+// WHAT THIS GATE DOES. For every .tsx under src/, it looks for a style object that carries all
+// three of a card BACKGROUND (`var(--card)` / `var(--surface)`), a card BORDER
+// (`1px solid var(--line-1)` / `var(--color-border)` / the literal `rgba(0,0,0,.12)`) and a card
+// RADIUS (`var(--radius-card)` / a bare `10`) inside one nine-line window. That combination is a
+// card shell and belongs to SectionCard.
+//
+// THE EXEMPTIONS ARE NAMED, NEVER GLOBAL. Three things in this product share the card's border and
+// radius without being a section card, and each carries a `// fitness-allow: F42 (reason)` marker
+// at its own site rather than a whole-file pass:
+//   - the NAV CARD (Sidebar.tsx), whose 3px cap is the BAND-coloured rule, one of ruling 5.2's
+//     three sanctioned places for it, so it must NOT carry SectionRule;
+//   - SKELETONS (Skeleton.tsx), which hold a card's geometry open while it loads and draw no rule;
+//   - undesigned OVERLAYS (the two "create" modals), which ruling R7 and the operator's own
+//     overlays list say are not to be invented, and the auth frame's inner note panels, which
+//     artboard 16 does not draw as cards.
+//
+// NO ALLOWLIST, NO EXPIRY: a new card is a `SectionCard` or it names, at its own site, why it is
+// not a card.
 
-  enumerate() {
-    return globFiles(SCOPE_GLOBS);
-  },
+/** The one file allowed to declare the card shell: the card component itself. */
+const CARD_COMPONENT = 'src/components/ui/SectionCard.tsx';
 
-  check(filepath, content) {
+const CARD_BACKGROUND = /background:\s*"var\(--(?:card|surface)\)"/;
+const SHELL_BORDER =
+  /border:\s*"1px solid var\(--(?:line-1|color-border)\)"|border:\s*"1px solid rgba\(0,\s*0,\s*0,\s*\.12\)"/;
+// The `\b` belongs to the NUMERIC alternative only: after `"var(--radius-card)"` the next character
+// is a comma, and a quote followed by a comma is not a word boundary, so a trailing `\b` on the whole group silently
+// matched nothing but the bare `10` form. Caught by attack (the gate found 2 of 9 known shells).
+const SHELL_RADIUS = /borderRadius:\s*(?:"var\(--radius-card\)"|10\b)/;
+
+/** Every line index (0-based) at which a card shell starts. Exported for the test. */
+export function cardShellLines(content) {
+  const lines = content.split(/\r?\n/);
+  const hits = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const win = lines.slice(i, i + WINDOW).join('\n');
+    if (CARD_BACKGROUND.test(win) && SHELL_BORDER.test(win) && SHELL_RADIUS.test(win)) {
+      hits.push(i);
+      i += WINDOW - 1;
+    }
+  }
+  return hits;
+}
+
+/** The marker may sit anywhere in the shell's own window or in the WINDOW lines above it. Above,
+ *  not only adjacent: the reader looks for the reason at the top of the style object or in the JSX
+ *  comment over the opening tag, and a card shell's own five declarations are frequently preceded
+ *  by several layout ones (the nav card's `alignSelf`/`margin` block is six lines deep). */
+export function isCardShellMarked(lines, start) {
+  const from = Math.max(0, start - WINDOW);
+  return lines
+    .slice(from, start + WINDOW)
+    .some((l) => /fitness-allow:\s*F42\b/.test(l));
+}
+
+
+/** Facet A (formerly F42): violations for a card shell assembled outside SectionCard. */
+export function checkCardShell(filepath, content) {
+    if (filepath.endsWith(CARD_COMPONENT)) return [];
+    const lines = content.split(/\r?\n/);
+    const out = [];
+    for (const start of cardShellLines(content)) {
+      if (isCardShellMarked(lines, start)) continue;
+      out.push(
+        violation(
+          start + 1,
+          'Card shell assembled by hand (card background + card border + card radius in one style ' +
+            'object). The card shell is `SectionCard` (src/components/ui/SectionCard.tsx), which ' +
+            'owns the border, the radius, the shadow and the 3px graduated rule; a shell typed ' +
+            'here can be built without any of them, which is exactly how eighteen card types ' +
+            'shipped with no rule (operator item A1, 2026-09-08). Render `<SectionCard>`, or mark ' +
+            'this site `// fitness-allow: F42 (reason)` if it is genuinely not a section card ' +
+            '(the nav card carries the BAND rule per ruling 5.2; skeletons draw no rule; ' +
+            'undesigned overlays are not cards).'
+        )
+      );
+    }
+    return out;
+}
+
+/** Facet B (the original F49): violations for a literal part style typed into a route's page.tsx. */
+export function checkPartsNotPages(filepath, content, shellWindowsAlreadyReported = []) {
     const lines = content.split(/\r?\n/);
     const out = [];
     for (const hit of literalHits(content)) {
       if (isMarked(lines, hit.line)) continue;
+      // The card-border + radius pattern is the looser form of facet A's card shell: a site facet A already
+      // reported is one finding, not two.
+      if (hit.pattern === 'card-border-radius-10' && shellWindowsAlreadyReported.some((st) => hit.line >= st && hit.line < st + WINDOW)) continue;
       out.push(
         violation(
           hit.line + 1,
@@ -141,6 +237,37 @@ export const fitnessFunction = {
             'existing part renders the same result (the brief\'s only allowlist condition).'
         )
       );
+    }
+    return out;
+}
+
+export const fitnessFunction = {
+  id: 'F49',
+  name: 'shared-parts-not-retyped',
+  description:
+    'Shared-part literals outside the shared components. Facet A (formerly F42): a style object carrying a ' +
+    'card background + card border + card radius is a card shell, and it lives only in ' +
+    'src/components/ui/SectionCard.tsx (mark a site `// fitness-allow: F42 (reason)` when it is not a section ' +
+    'card). Facet B: a route\'s page.tsx under src/app/** may not contain the literal styles that define a shared part: ' +
+    'an Anton title, a card border + radius 10, a 3px rule, a fact card edge/band, chip padding, or a ' +
+    'state note edge (site-wide parts brief, docs/design/parts-brief-2026-09-18.md, rule 1.2). Pages ' +
+    'import parts. Mark a site `// fitness-allow: F49 (reason)` only when no existing part renders the ' +
+    'same result; there is no other allowlist and no expiry.',
+  source:
+    'docs/design/parts-brief-2026-09-18.md section 1.2, "Fitness F44" (landed as F49 per the coordinator\'s ' +
+    'note: F44 is taken by F44-broken-main-guard.mjs); the literal patterns are the brief\'s own six words.',
+
+  enumerate() {
+    // Facet A scans every non-test, non-archive .tsx; facet B applies to route page.tsx files only (PAGE_RE).
+    return globFiles(SCOPE_GLOBS).filter((f) => !isTestFile(f) && !f.includes('/_archive/'));
+  },
+
+  check(filepath, content) {
+    const out = [...checkCardShell(filepath, content)];
+    if (PAGE_RE.test(filepath)) {
+      const lines = content.split(/\r?\n/);
+      const reported = out.length ? cardShellLines(content).filter((st) => !isCardShellMarked(lines, st)) : [];
+      out.push(...checkPartsNotPages(filepath, content, reported));
     }
     return out;
   },

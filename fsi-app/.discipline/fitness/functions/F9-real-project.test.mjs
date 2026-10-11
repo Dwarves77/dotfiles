@@ -6,7 +6,7 @@
 //   1. an `exclude` entry in tsconfig.json that hides a real file from the compiler;
 //   2. a `@ts-nocheck` directive at the top of a real source file.
 // The compiler half (a type error in a real file turns the real F9 red) needs the installed app and runs in CI:
-// scripts/verify/attacks/f9-real-project-attack.mjs, wired by .github/workflows/gate-step-attacks.yml.
+// scripts/verify/attacks/f9-real-project-attack.mjs, wired by .github/workflows/ci.yml (the static job, lane PIPE-1).
 //
 // Reads files only; writes nothing. Node built-ins and relative imports, so it runs in the no-npm suite.
 

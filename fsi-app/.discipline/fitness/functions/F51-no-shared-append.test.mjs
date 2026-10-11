@@ -169,7 +169,7 @@ test('check 2 RED: a zero ceiling with no dated allowlist entry is a violation',
 test('check 2 GREEN: a zero ceiling with a dated allowlist entry passes (the two real F46/F47 cases)', () => {
   const files = [
     { path: 'fsi-app/.discipline/fitness/functions/F46-external-host-home.mjs', text: 'export const MULTI_HOME_CEILING = 0;\n' },
-    { path: 'fsi-app/.discipline/fitness/functions/F47-db-object-reference.mjs', text: 'export const UNREFERENCED_TABLES_CEILING = 0;\nexport const UNREAD_TABLES_CEILING = 0;\n' },
+    { path: 'fsi-app/.discipline/fitness/functions/F14-producer-consumer-orphan.mjs', text: 'export const UNREFERENCED_TABLES_CEILING = 0;\nexport const UNREAD_TABLES_CEILING = 0;\n' },
   ];
   assert.deepEqual(scanStoredMeasurements(files, { allowlist: ZERO_CEILING_ALLOWLIST }), []);
 });

@@ -75,9 +75,13 @@ test("the fixture markup uses the class names and the part variant ListRow.tsx r
   assert.equal((html.match(/class="cl-list-row"/g) ?? []).length, 8);
 });
 
-test("the design-audit workflow runs the attack after the upload step, in fsi-app, with no swallowed failure", () => {
-  const text = readFileSync(resolve(ROOT, ".github", "workflows", "design-audit.yml"), "utf8");
-  const steps = text.split(/^\s{6}- name: /m).slice(1);
+test("the CI workflow runs the attack in the app job after the upload step, in fsi-app, with no swallowed failure", () => {
+  const text = readFileSync(resolve(ROOT, ".github", "workflows", "ci.yml"), "utf8");
+  const lines = text.split("\n");
+  const start = lines.findIndex((l) => l === "  app:");
+  assert.ok(start >= 0, "ci.yml has no app job");
+  const end = lines.findIndex((l, i) => i > start && /^ {2}[A-Za-z0-9_-]+:\s*$/.test(l));
+  const steps = lines.slice(start, end < 0 ? undefined : end).join("\n").split(/^\s{6}- name: /m).slice(1);
   const at = steps.findIndex((s) => /forbid/i.test(s.split("\n")[0]));
   assert.ok(at >= 0, "no step names the forbid attack");
   const upload = steps.findIndex((s) => /^Upload the audit result/.test(s));

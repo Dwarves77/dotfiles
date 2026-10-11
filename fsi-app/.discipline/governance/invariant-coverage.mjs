@@ -45,6 +45,7 @@ import { isExecutionWired } from './execution-wiring.mjs';
 import { rules } from '../manifest.mjs';
 import { recordGateFirings } from '../lib/gate-firings.mjs';
 import { fitnessFunctions } from '../fitness/manifest.mjs';
+import { REGISTRY_ROWS } from '../registry.mjs';
 import { consistencyChecks } from '../consistency/manifest.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -401,10 +402,16 @@ export function runInvariantCoverage() {
     problems.push(...markerProblems);
   }
 
-  // 5: no orphan mechanism (every rule/fitness/consistency mapped by ≥1 invariant).
-  for (const id of ruleIds) if (!referenced.rule.has(id)) problems.push(`ORPHAN MECHANISM: rule ${id} is in the manifest but no invariant references it (map it or remove it).`);
-  for (const id of fitnessIds) if (!referenced.fitness.has(id)) problems.push(`ORPHAN MECHANISM: fitness ${id} exists but no invariant references it.`);
-  for (const id of consistencyIds) if (!referenced.consistency.has(id)) problems.push(`ORPHAN MECHANISM: consistency ${id} exists but no invariant references it.`);
+  // 5: no orphan mechanism (every rule/fitness/consistency is the enforcer of >=1 registry row). REG-1 (2026-10-11): the
+  // registry (../registry.mjs) is the one home of enforcement, so a mechanism is referenced when a row names it, whether or
+  // not that row carries an invariant (a boundary row such as F71 carries none).
+  for (const row of REGISTRY_ROWS) {
+    const [type, ...rest] = String(row.enforcer).split(':');
+    if (referenced[type]) referenced[type].add(rest.join(':'));
+  }
+  for (const id of ruleIds) if (!referenced.rule.has(id)) problems.push(`ORPHAN MECHANISM: rule ${id} is in the manifest but no registry row names it as its enforcer (add the row or remove the rule).`);
+  for (const id of fitnessIds) if (!referenced.fitness.has(id)) problems.push(`ORPHAN MECHANISM: fitness ${id} exists but no registry row names it as its enforcer.`);
+  for (const id of consistencyIds) if (!referenced.consistency.has(id)) problems.push(`ORPHAN MECHANISM: consistency ${id} exists but no registry row names it as its enforcer.`);
 
   // 6: every rule ships with a committed fire-test (the "everything built is wired" floor for rules —
   // the class that left 015-018 untested). For each rules/NNN-*.mjs there must be a sibling .test.mjs.

@@ -8,6 +8,5 @@ export const invariant = {
     section: 'Worktree path convention',
     text: 'Worktrees live under .worktrees/ (FaDB-recognized); live worktrees match the worktrees inventory.',
     anchor: 'Worktree path convention',
-    enforcedBy: ['consistency:C4'],
     residual: 'C4 proves live worktrees == inventory; the .worktrees/ path convention itself is operator discipline at worktree-creation.',
   };

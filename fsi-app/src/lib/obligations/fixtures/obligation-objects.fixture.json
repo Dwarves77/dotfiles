@@ -3,21 +3,25 @@
   "captures": [
     {
       "fixture_key": "countemissions-eu",
+      "capture_id": "00000000-0000-4000-8000-0000000000b1",
       "instrument_item_id": "00000000-0000-4000-8000-0000000000a1",
       "result_content": "FIXTURE CAPTURE TEXT for CountEmissions EU. FIXTURE TEXT: a transport service organiser that publishes a greenhouse gas emissions figure for a transport service must calculate it with the prescribed method. End of fixture capture."
     },
     {
       "fixture_key": "cbam-indirect-customs-representative",
+      "capture_id": "00000000-0000-4000-8000-0000000000b2",
       "instrument_item_id": "00000000-0000-4000-8000-0000000000a2",
       "result_content": "FIXTURE CAPTURE TEXT for CBAM. FIXTURE TEXT: importers or their indirect customs representatives must apply for authorised CBAM declarant status. End of fixture capture."
     },
     {
       "fixture_key": "empowering-consumers",
+      "capture_id": "00000000-0000-4000-8000-0000000000b3",
       "instrument_item_id": "00000000-0000-4000-8000-0000000000a3",
       "result_content": "FIXTURE CAPTURE TEXT for Empowering Consumers. FIXTURE TEXT: a trader must not make a generic environmental claim about its own services without recognised excellent environmental performance. End of fixture capture."
     },
     {
       "fixture_key": "ppwr",
+      "capture_id": "00000000-0000-4000-8000-0000000000b4",
       "instrument_item_id": "00000000-0000-4000-8000-0000000000a4",
       "result_content": "FIXTURE CAPTURE TEXT for PPWR. FIXTURE TEXT: a user of transport packaging and an importer of record must meet the empty space and reuse requirements. End of fixture capture."
     }

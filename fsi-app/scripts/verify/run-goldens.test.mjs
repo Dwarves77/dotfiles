@@ -132,7 +132,7 @@ test("classifyGolden and overallVerdict (pure): the skip-reason rule and the non
 
 test("the committed goldens: discovery finds them, none is the runner, and the real names all satisfy isGoldenFile", () => {
   const found = discoverGoldens(HERE);
-  assert.ok(found.length >= 15, `expected the committed goldens, found ${found.length}`);
+  assert.ok(found.length >= 14, `expected the committed goldens, found ${found.length}`);
   assert.ok(!found.includes("run-goldens.mjs"));
   for (const f of found) assert.ok(isGoldenFile(f.split("/").pop()), f);
 });

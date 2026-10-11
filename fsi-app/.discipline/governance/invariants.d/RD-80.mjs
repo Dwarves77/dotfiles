@@ -41,9 +41,6 @@ export const invariant = {
     'page identically.',
   anchor:
     "### Section 4 - category 49: the Rendering guard measures the site's real fonts, not the OS fallback",
-  enforcedBy: [
-    'selftest:fsi-app/.discipline/rendering/rd-80-real-fonts.npmtest.mjs',
-  ],
   residual:
     'The enforcer is an `*.npmtest.mjs` (playwright is a real chromium dependency, not portable to ' +
     'the no-npm-ci glob) that self-skips, diagnosably, wherever playwright is not installed in ' +

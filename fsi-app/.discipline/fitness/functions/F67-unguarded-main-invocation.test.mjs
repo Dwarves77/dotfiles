@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { fitnessFunction, findUnguardedMainInvocations } from './F67-unguarded-main-invocation.mjs';
+import { fitnessFunction, findUnguardedMainInvocations, findBrokenMainGuards, checkBrokenMainGuard } from './F67-unguarded-main-invocation.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
 
@@ -80,11 +80,13 @@ test('test files are excluded from enumeration (a fixture constructing the ungua
   }
 });
 
-test('_archive/ and /fixtures/ (/fixtures-dash/) paths are excluded from enumeration', () => {
-  for (const f of fitnessFunction.enumerate()) {
-    assert.doesNotMatch(f, /^fsi-app\/scripts\/_archive\//);
-    assert.doesNotMatch(f, /\/fixtures(?:-dash)?\//);
+test('facet B skips _archive/ and /fixtures/ (/fixtures-dash/) paths; facet A still scans them', () => {
+  const unguarded = ['async function main() {}', 'main().catch(() => {});', ''].join('\n');
+  for (const f of ['fsi-app/scripts/_archive/old.mjs', 'fsi-app/scripts/lib/fixtures/x.mjs', 'fsi-app/scripts/lib/fixtures-dash/x.mjs']) {
+    assert.deepEqual(fitnessFunction.check(f, unguarded), [], f);
   }
+  const broken = 'if (import.meta.url === `file://${process.argv[1]}`) {}';
+  assert.equal(fitnessFunction.check('fsi-app/scripts/_archive/old.mjs', broken).length, 1);
 });
 
 test('enumerate() reaches into fsi-app/.discipline/** too (round 3 widening), not only fsi-app/scripts/**', () => {
@@ -116,6 +118,73 @@ test('findUnguardedMainInvocations: multiple unguarded instances in one file are
 const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
 
 test('LIVE: the whole scoped tree (fsi-app/scripts, excluding _archive) passes F67 clean as of lane R20', LIVE_TREE, () => {
+  const problems = [];
+  for (const f of fitnessFunction.enumerate()) {
+    const content = readFileSync(resolve(REPO_ROOT, f), 'utf8');
+    const v = fitnessFunction.check(f, content);
+    if (v.length) problems.push(`${f}: ${v.map((x) => `${x.line}: ${x.message}`).join(' | ')}`);
+  }
+  assert.deepEqual(problems, []);
+});
+
+// ---- Facet A, formerly F44 (REG-1, 2026-10-11): the former F44 test file, moved here with its function. ----
+
+// The broken idiom is built from parts at test time so this file itself never carries the literal
+// text (which would make it, unhelpfully, an instance of its own fixture).
+const BROKEN_LITERAL = 'import.meta.url === `file://${process.argv[1]}`';
+
+test('RED: the bare broken idiom in an `if` guard is flagged with file:line', () => {
+  const src = `if (${BROKEN_LITERAL}) {\n  main();\n}`;
+  const v = checkBrokenMainGuard('fsi-app/scripts/new-script.mjs', src);
+  assert.equal(v.length, 1);
+  assert.equal(v[0].line, 1);
+  assert.match(v[0].message, /isMainModule/);
+});
+
+test('RED: the broken idiom with a trailing endsWith fallback is still flagged', () => {
+  const src = `if (${BROKEN_LITERAL} || process.argv[1]?.endsWith('new-script.mjs')) {`;
+  const v = checkBrokenMainGuard('fsi-app/scripts/new-script.mjs', src);
+  assert.equal(v.length, 1);
+});
+
+test('RED: the assignment-to-variable shape is also flagged', () => {
+  const src = `const isMain = Boolean(process.argv[1]) && ${BROKEN_LITERAL};`;
+  const v = checkBrokenMainGuard('fsi-app/.discipline/governance/new-map.mjs', src);
+  assert.equal(v.length, 1);
+});
+
+test('GREEN: isMainModule(import.meta.url) is never flagged', () => {
+  const src = 'if (isMainModule(import.meta.url)) {\n  main();\n}';
+  assert.deepEqual(checkBrokenMainGuard('fsi-app/scripts/new-script.mjs', src), []);
+});
+
+test('GREEN: the inlined pathToFileURL/resolve idiom (the .discipline/governance carve-out) is never flagged', () => {
+  const src = 'if (Boolean(process.argv[1]) && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {';
+  assert.deepEqual(checkBrokenMainGuard('fsi-app/.discipline/governance/new-map.mjs', src), []);
+});
+
+test('a comment mentioning the broken idiom (documenting history) is never flagged, only live code', () => {
+  const src = `// the old bug used ${BROKEN_LITERAL} here\nconst x = 1;`;
+  assert.deepEqual(checkBrokenMainGuard('fsi-app/scripts/new-script.mjs', src), []);
+});
+
+test('findBrokenMainGuards: multiple instances in one file are each reported', () => {
+  const src = `if (${BROKEN_LITERAL}) {}\nif (${BROKEN_LITERAL}) {}`;
+  const lines = findBrokenMainGuards(src);
+  assert.deepEqual(lines, [1, 2]);
+});
+
+test('test files are excluded from enumeration (a fixture constructing the broken idiom as a literal string is not a live call site)', () => {
+  for (const f of fitnessFunction.enumerate()) {
+    assert.doesNotMatch(f, /\.(?:test|selftest|npmtest)\.mjs$/);
+  }
+});
+
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+
+test('LIVE: the whole scoped tree (fsi-app/scripts + fsi-app/.discipline) passes F67 clean (both facets) as of task 0.3b', LIVE_TREE, () => {
   const problems = [];
   for (const f of fitnessFunction.enumerate()) {
     const content = readFileSync(resolve(REPO_ROOT, f), 'utf8');

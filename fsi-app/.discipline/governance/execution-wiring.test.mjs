@@ -15,9 +15,9 @@ import { isExecutionWired } from './execution-wiring.mjs';
 test('execution-wiring: each surface resolves a known-wired file', () => {
   const wired = [
     'fsi-app/scripts/verify/mint-gates.golden.mjs',          // surface 3: run-goldens (.golden.mjs)
-    'fsi-app/scripts/verify/funded-pass-lock-golden.mjs',    // surface 3: run-goldens (-golden.mjs)
+    'fsi-app/scripts/verify/target-match.golden.mjs',        // surface 3: run-goldens (.golden.mjs, a second file)
     'fsi-app/scripts/verify/one-tier-per-host-audit.mjs',    // surface 4: data-audit lane
-    'fsi-app/scripts/verify/rls-credential-parity.mjs',      // surface 4: data-audit lane (newly wired)
+    'fsi-app/scripts/verify/claims-tier-audit.mjs',          // surface 4: data-audit lane
     'fsi-app/src/lib/trust.selftest.mjs',                    // surface 5: fitness sentinel (F11 spawn)
     'fsi-app/src/lib/sources/source-growth.selftest.mjs',    // surface 5: fitness sentinel (F10 spawn)
     'fsi-app/src/lib/agent/floor-attribution.test.mjs',      // surface 1: no-npm suite glob
@@ -59,7 +59,7 @@ test('execution-wiring B7-20 B7-21: the sentinel and workflow surfaces are read 
   const { readFileSync } = await import('node:fs');
   const src = readFileSync(new URL('./execution-wiring.mjs', import.meta.url), 'utf8');
   assert.match(src, /codeAndStrings\(readFileSync\(join\(dir, f\)/);
-  assert.match(src, /workflowInvocationText\(readRepo\('\.github\/workflows\/discipline\.yml'\)\)/);
+  assert.match(src, /workflowInvocationText\(readRepo\('\.github\/workflows\/ci\.yml'\)\)/);
   const { workflowInvocationText } = await import('../fitness/lib/yml-read.mjs');
   const yml = '      # fsi-app/src/lib/ghost.test.mjs is run here\n      - run: node --test fsi-app/src/lib/real.test.mjs # and fsi-app/src/lib/trailing.test.mjs\n      - run: echo fsi-app/src/lib/echoed.test.mjs\n';
   const text = workflowInvocationText(yml);

@@ -1,5 +1,8 @@
 /** Mutation attacks on the stack workflows' shape tests (lane TESTS-2, 2026-10-10; AUD-AT-5 OWED-1 and OWED-8;
- *  CLAUDE.md rule 15: a guard is proven by attack, not by presence).
+ *  CLAUDE.md rule 15: a guard is proven by attack, not by presence). Lane PIPE-1 (2026-10-11): the migration-proof, route
+ *  and view, and gate-step workflows are now jobs and steps of .github/workflows/ci.yml, so their three suites mutate ci.yml
+ *  (anchors inside the schema job and the static job) and the same shape tests read it; every mutation of the old suites
+ *  has its counterpart here.
  *
  *  migration-proof-workflow.test.mjs and chain-proof-workflow.test.mjs read the committed workflow text and assert its
  *  contract. A shape test that passes is only a proof if it FAILS when the contract is broken, so this file breaks the
@@ -44,8 +47,6 @@ function childEnv() {
 
 /** Run a copied shape test against `workflowText`. Returns { code, tail }. */
 function runShapeTest(shapeTest, workflowFile, workflowText, actionText = readAction()) {
-  // a shape test may read a sibling workflow (gate-step-attacks-workflow.test.mjs reads discipline.yml): copy it unmutated
-  writeFileSync(join(SCRATCH, ".github", "workflows", "discipline.yml"), readFileSync(join(REPO, ".github", "workflows", "discipline.yml"), "utf8"));
   writeFileSync(join(SCRATCH, ".github", "workflows", workflowFile), workflowText);
   writeFileSync(join(SCRATCH, ".github", "actions", "local-stack", "action.yml"), actionText);
   const r = spawnSync(process.execPath, ["--test", join(SCRATCH, "fsi-app", "scripts", "proof", shapeTest)], { encoding: "utf8", timeout: 120_000, env: childEnv() });
@@ -90,20 +91,25 @@ function suite(label, shapeTest, workflowFile, mutations) {
   }
 }
 
-suite("migration-proof.yml", "migration-proof-workflow.test.mjs", "migration-proof.yml", [
-  ["a secret reference", (t) => replaceOnce(t, "    timeout-minutes: 30\n", "    timeout-minutes: 30\n    env:\n      LEAK: ${{ secrets.SUPABASE_DB_PASSWORD }}\n")],
-  ["a workflow_dispatch trigger", (t) => replaceOnce(t, "      - master\n", "      - master\n  workflow_dispatch:\n")],
-  ["a path filter on the trigger", (t) => replaceOnce(t, "    branches:\n      - master\n", "    branches:\n      - master\n    paths:\n      - 'fsi-app/supabase/**'\n")],
-  ["contents: write", (t) => replaceOnce(t, "permissions:\n  contents: read", "permissions:\n  contents: write")],
-  ["the replay step losing its scope condition", (t) => dropLine(t, "if: steps.scope.outputs.touched == 'true'", "- name: Replay the applied migration files onto the stack")],
-  ["the apply step losing its preflight", (t) => dropLine(t, "node scripts/proof/preflight.mjs", "- name: Apply every pending migration on the stack")],
+suite("ci.yml schema job (migration proof)", "migration-proof-workflow.test.mjs", "ci.yml", [
+  ["a secret reference", (t) => replaceOnce(t, "    env:\n      NEXT_TELEMETRY_DISABLED: '1'\n    # NEVER TOUCHES PRODUCTION.", "    env:\n      NEXT_TELEMETRY_DISABLED: '1'\n      LEAK: ${{ secrets.SUPABASE_DB_PASSWORD }}\n    # NEVER TOUCHES PRODUCTION.")],
+  ["a schedule trigger", (t) => replaceOnce(t, "  workflow_dispatch:\n", "  workflow_dispatch:\n  schedule:\n    - cron: '0 3 * * *'\n")],
+  ["a path filter on the trigger", (t) => replaceOnce(t, "  pull_request:\n    branches:\n      - master\n", "  pull_request:\n    branches:\n      - master\n    paths:\n      - 'fsi-app/supabase/**'\n")],
+  ["contents: write on the workflow", (t) => replaceOnce(t, "permissions:\n  contents: read\n\nconcurrency:", "permissions:\n  contents: write\n\nconcurrency:")],
+  ["contents: write on the schema job", (t) => replaceOnce(t, "    timeout-minutes: 40\n", "    timeout-minutes: 40\n    permissions:\n      contents: write\n")],
+  ["the job-level skip removed (a required check that always runs the stack, or never reports)", (t) => replaceOnce(t, "    if: github.event_name == 'pull_request' && needs.inputs.outputs.schema == 'true'\n", "")],
+  ["an in-job scope step reintroduced beside the classifier", (t) => replaceOnce(t, "      - name: Note the stack's scratch paths\n", "      - name: Did this pull request touch a migration\n        id: scope\n        run: echo touched=true >> \"$GITHUB_OUTPUT\"\n\n      - name: Note the stack's scratch paths\n")],
   ["the replay step losing its preflight", (t) => dropLine(t, "node scripts/proof/preflight.mjs", "- name: Replay the applied migration files onto the stack")],
+  ["the apply step losing its preflight", (t) => dropLine(t, "node scripts/proof/preflight.mjs", "- name: Apply every pending migration on the stack")],
+  ["the matrix step losing its preflight", (t) => dropLine(t, "node scripts/proof/preflight.mjs", "- name: Run the RLS persona matrix")],
   ["the apply running before the replay", (t) => swapSteps(t, "- name: Replay the applied migration files onto the stack", "- name: Apply every pending migration on the stack")],
   ["the catalog step moved before the replay", (t) => swapSteps(t, "- name: Replay the applied migration files onto the stack", "- name: Run the schema catalog query on the replayed stack")],
-  ["the stop step losing always()", (t) => replaceOnce(t, "        if: always() && steps.scope.outputs.touched == 'true'\n        run: |\n          if [ -d", "        if: steps.scope.outputs.touched == 'true'\n        run: |\n          if [ -d")],
-  ["the env file no longer deleted", (t) => dropLine(t, "rm -f", "- name: Stop the local stack and delete the env file")],
-  ["the time limit removed", (t) => replaceOnce(t, "    timeout-minutes: 30\n", "")],
-  ["the concurrency group removed", (t) => replaceOnce(t, "  cancel-in-progress: true\n", "  cancel-in-progress: false\n")],
+  ["the matrix running before the pending apply", (t) => swapSteps(t, "- name: Apply every pending migration on the stack", "- name: Run the RLS persona matrix")],
+  ["a second stack started for the matrix", (t) => replaceOnce(t, "      - name: Run the RLS persona matrix", "      - name: Start the local stack again for the matrix\n        uses: ./.github/actions/local-stack\n        with:\n          stack_dir: ${{ env.SC_STACK }}\n          env_file: ${{ env.SC_ENV }}\n\n      - name: Run the RLS persona matrix")],
+  ["the stop step losing always()", (t) => replaceOnce(t, "        if: always()\n        run: |\n          if [ -f", "        run: |\n          if [ -f")],
+  ["the env file no longer deleted", (t) => dropLine(t, "rm -f", "- name: Stop the app, stop the local stack and delete the env file")],
+  ["the time limit removed", (t) => replaceOnce(t, "    timeout-minutes: 40\n", "")],
+  ["the concurrency cancel removed", (t) => replaceOnce(t, "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n", "  cancel-in-progress: false\n")],
   ["the stack inlined instead of the shared composite action", (t) => replaceOnce(t, "        uses: ./.github/actions/local-stack\n", "        run: supabase start\n")],
 ]);
 
@@ -128,17 +134,17 @@ suite("chain-proof.yml", "chain-proof-workflow.test.mjs", "chain-proof.yml", [
   ["the stack stop losing always()", (t) => replaceOnce(t, "if: always()\n        run: |\n          set -euo pipefail\n          docker rm", "if: success()\n        run: |\n          set -euo pipefail\n          docker rm")],
 ]);
 
-suite("route-and-view-attacks.yml", "route-and-view-attacks-workflow.test.mjs", "route-and-view-attacks.yml", [
-  ["a secret reference", (t) => replaceOnce(t, "    timeout-minutes: 60\n", "    timeout-minutes: 60\n    env:\n      LEAK: ${{ secrets.SUPABASE_DB_PASSWORD }}\n")],
-  ["a workflow_dispatch trigger", (t) => replaceOnce(t, "      - master\n", "      - master\n  workflow_dispatch:\n")],
-  ["a path filter on the trigger", (t) => replaceOnce(t, "    branches:\n      - master\n", "    branches:\n      - master\n    paths:\n      - 'fsi-app/src/app/**'\n")],
-  ["contents: write", (t) => replaceOnce(t, "permissions:\n  contents: read", "permissions:\n  contents: write")],
-  ["a GitHub Environment", (t) => replaceOnce(t, "    runs-on: ubuntu-latest\n", "    runs-on: ubuntu-latest\n    environment: production\n")],
+suite("ci.yml schema job (route and view attacks)", "route-and-view-attacks-workflow.test.mjs", "ci.yml", [
+  ["a secret reference", (t) => replaceOnce(t, "    env:\n      NEXT_TELEMETRY_DISABLED: '1'\n    # NEVER TOUCHES PRODUCTION.", "    env:\n      NEXT_TELEMETRY_DISABLED: '1'\n      LEAK: ${{ secrets.SUPABASE_DB_PASSWORD }}\n    # NEVER TOUCHES PRODUCTION.")],
+  ["a schedule trigger", (t) => replaceOnce(t, "  workflow_dispatch:\n", "  workflow_dispatch:\n  schedule:\n    - cron: '0 3 * * *'\n")],
+  ["a path filter on the trigger", (t) => replaceOnce(t, "  pull_request:\n    branches:\n      - master\n", "  pull_request:\n    branches:\n      - master\n    paths:\n      - 'fsi-app/src/app/**'\n")],
+  ["contents: write", (t) => replaceOnce(t, "permissions:\n  contents: read\n\nconcurrency:", "permissions:\n  contents: write\n\nconcurrency:")],
+  ["a GitHub Environment", (t) => replaceOnce(t, "  schema:\n    name: schema\n    needs: inputs\n", "  schema:\n    name: schema\n    environment: production\n    needs: inputs\n")],
   ["the stack inlined instead of the shared composite action", (t) => replaceOnce(t, "        uses: ./.github/actions/local-stack\n", "        run: supabase start\n")],
   ["the route attack losing its preflight", (t) => dropLine(t, "node scripts/proof/preflight.mjs", "- name: Attack every route method")],
   ["the view attack losing its preflight", (t) => dropLine(t, "node scripts/proof/preflight.mjs", "- name: Attack the views and the system-only functions")],
   ["the build losing its preflight", (t) => dropLine(t, "node scripts/proof/preflight.mjs", "- name: Build the app against the stack")],
-  ["the route attack losing its scope condition", (t) => dropLine(t, "if: steps.scope.outputs.touched == 'true'", "- name: Attack every route method")],
+  ["the route attack made conditional on something other than always()", (t) => replaceOnce(t, "      - name: Attack every route method as anon, the viewer, the other-org member, the org member and the platform admin\n", "      - name: Attack every route method as anon, the viewer, the other-org member, the org member and the platform admin\n        if: false\n")],
   ["the app bound to every interface", (t) => replaceOnce(t, "next start -H 127.0.0.1 -p 3100", "next start -H 0.0.0.0 -p 3100")],
   ["the route attack pointed at a public host", (t) => replaceOnce(t, "--base-url http://127.0.0.1:3100", "--base-url https://app.example.com")],
   ["the route attack running before the app starts", (t) => swapSteps(t, "- name: Start the app with next start", "- name: Attack every route method")],
@@ -146,26 +152,27 @@ suite("route-and-view-attacks.yml", "route-and-view-attacks-workflow.test.mjs", 
   ["one definer attack dropped from the run", (t) => replaceOnce(t, "sec4-accept-invitation-keeps-role,", "")],
   ["the stack-step attack losing its forbidden-name refusal", (t) => dropLine(t, "if VERCEL_ATTACK=1", "- name: Attack the stack steps themselves")],
   ["the stack-step attack losing its production-host refusal", (t) => dropLine(t, "if DATABASE_URL=", "- name: Attack the stack steps themselves")],
-  ["the stop step losing always()", (t) => replaceOnce(t, "        if: always() && steps.scope.outputs.touched == 'true'\n        run: |\n          if [ -f", "        if: steps.scope.outputs.touched == 'true'\n        run: |\n          if [ -f")],
-  ["the upload step losing always()", (t) => replaceOnce(t, "        if: always() && steps.scope.outputs.touched == 'true'\n        uses: actions/upload-artifact@v4", "        if: steps.scope.outputs.touched == 'true'\n        uses: actions/upload-artifact@v4")],
-  ["the time limit removed", (t) => replaceOnce(t, "    timeout-minutes: 60\n", "")],
+  ["the stop step losing always()", (t) => replaceOnce(t, "        if: always()\n        run: |\n          if [ -f", "        run: |\n          if [ -f")],
+  ["the upload step losing always()", (t) => replaceOnce(t, "        if: always()\n        uses: actions/upload-artifact@v4\n        with:\n          name: schema-report", "        uses: actions/upload-artifact@v4\n        with:\n          name: schema-report")],
+  ["the time limit removed", (t) => replaceOnce(t, "    timeout-minutes: 40\n", "")],
 ]);
 
-suite("gate-step-attacks.yml", "gate-step-attacks-workflow.test.mjs", "gate-step-attacks.yml", [
-  ["a secret reference", (t) => replaceOnce(t, "    timeout-minutes: 25\n", "    timeout-minutes: 25\n    env:\n      LEAK: ${{ secrets.SUPABASE_DB_PASSWORD }}\n")],
-  ["a workflow_dispatch trigger", (t) => replaceOnce(t, "      - master\n", "      - master\n  workflow_dispatch:\n")],
-  ["a path filter on the trigger", (t) => replaceOnce(t, "    branches:\n      - master\n", "    branches:\n      - master\n    paths:\n      - 'fsi-app/package-lock.json'\n")],
-  ["contents: write", (t) => replaceOnce(t, "permissions:\n  contents: read", "permissions:\n  contents: write")],
+suite("ci.yml static job (gate step attacks)", "gate-step-attacks-workflow.test.mjs", "ci.yml", [
+  ["a secret reference", (t) => replaceOnce(t, "    permissions:\n      contents: read\n      actions: read\n", "    permissions:\n      contents: read\n      actions: read\n    env:\n      LEAK: ${{ secrets.SUPABASE_DB_PASSWORD }}\n")],
+  ["a schedule trigger", (t) => replaceOnce(t, "  workflow_dispatch:\n", "  workflow_dispatch:\n  schedule:\n    - cron: '0 3 * * *'\n")],
+  ["a path filter on the trigger", (t) => replaceOnce(t, "  pull_request:\n    branches:\n      - master\n", "  pull_request:\n    branches:\n      - master\n    paths:\n      - 'fsi-app/package-lock.json'\n")],
+  ["contents: write", (t) => replaceOnce(t, "    permissions:\n      contents: read\n      actions: read\n", "    permissions:\n      contents: write\n      actions: read\n")],
   ["the lint attack losing the max-warnings flag from the control", (t) => replaceOnce(t, "npm run lint -- --max-warnings=0 src/lib/__eslint_control.ts", "npm run lint -- src/lib/__eslint_control.ts")],
   ["the warning attack no longer required to be refused", (t) => replaceOnce(t, "ATTACK NOT REFUSED: the lint command passes a file with a warning (max-warnings 0 is not gating)", "warning attack passed")],
   ["the error attack removed", (t) => replaceOnce(t, "ATTACK NOT REFUSED: the lint command passes a file with an error", "error attack passed")],
   ["the npm ci sync attack no longer required to be refused", (t) => replaceOnce(t, "ATTACK NOT REFUSED: npm ci accepted a package.json that is out of sync with the lockfile", "sync attack passed")],
-  ["the missing-lockfile attack dropped", (t) => replaceOnce(t, "rm -f package-lock.json\n", "")],
+  ["the missing-lockfile attack dropped", (t) => replaceOnce(t, "          rm -f package-lock.json\n", "")],
   ["the attack files left in the tree when the compiler half runs", (t) => replaceOnce(t, "          trap 'rm -f src/lib/__eslint_control.ts src/lib/__eslint_warning_attack.ts src/lib/__eslint_error_attack.ts' EXIT\n", "")],
   ["the F9 step no longer marked as a disposable checkout", (t) => replaceOnce(t, "          GATE_ATTACK_DISPOSABLE_CHECKOUT: '1'\n", "")],
-  ["the clean-up step losing always()", (t) => replaceOnce(t, "        if: always() && steps.scope.outputs.touched == 'true'\n        working-directory: fsi-app\n        run: rm -f", "        if: steps.scope.outputs.touched == 'true'\n        working-directory: fsi-app\n        run: rm -f")],
+  ["the clean-up step losing always()", (t) => replaceOnce(t, "        if: always() && needs.inputs.outputs.code == 'true'\n        working-directory: fsi-app\n        run: rm -f", "        if: needs.inputs.outputs.code == 'true'\n        working-directory: fsi-app\n        run: rm -f")],
   ["a failure swallowed with continue-on-error", (t) => replaceOnce(t, "      - name: F9 on the real app, the clean tree passes and one type error is refused (the compiler half)\n", "      - name: F9 on the real app, the clean tree passes and one type error is refused (the compiler half)\n        continue-on-error: true\n")],
-  ["the lint command changed from discipline.yml's form", (t) => replaceOnce(t, "npm run lint -- --max-warnings=0 src/lib/__eslint_warning_attack.ts; then", "npx eslint src/lib/__eslint_warning_attack.ts; then")],
-  ["the scope gate removed from the install", (t) => dropLine(t, "if: steps.scope.outputs.touched == 'true'", "- name: DS23 control")],
-  ["the time limit removed", (t) => replaceOnce(t, "    timeout-minutes: 25\n", "")],
+  ["the lint command changed from the ESLint step's form", (t) => replaceOnce(t, "npm run lint -- --max-warnings=0 src/lib/__eslint_warning_attack.ts; then", "npx eslint src/lib/__eslint_warning_attack.ts; then")],
+  ["the code gate removed from the install", (t) => replaceOnce(t, "        if: needs.inputs.outputs.code == 'true'\n        working-directory: fsi-app\n        run: npm ci --prefer-offline --no-audit\n", "        working-directory: fsi-app\n        run: npm ci --prefer-offline --no-audit\n")],
+  ["the attacks moved before the fitness runner", (t) => swapSteps(t, "- name: Run fitness functions", "- name: DS23 attacks")],
+  ["the time limit removed", (t) => replaceOnce(t, "    timeout-minutes: 19\n", "")],
 ]);

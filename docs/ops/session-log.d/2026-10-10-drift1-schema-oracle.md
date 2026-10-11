@@ -73,3 +73,7 @@ Write-set expansion granted for `fsi-app/scripts/proof/apply-schema-dump.mjs` an
 ### NOT done (DRIFT-1b)
 
 - Fire 10 (executor) is the first run of the real path; the grants count it reports replaces the expected 0 above. [WORK: owed]
+
+### DRIFT-1c (2026-10-11): merge of origin/master after PIPE-1
+
+- master deleted `.github/workflows/migration-proof.yml` (PIPE-1: one `ci.yml`, the migration proof is steps of its `schema` job). The branch's modify/delete conflict was resolved by accepting the deletion and moving the 384/385 double-apply step into `ci.yml`'s `schema` job directly after "Apply every pending migration" (same body, `SC_ENV` in place of `MP_ENV`, no step-level scope condition because the job-level classifier decides). `migration-proof-drift1.test.mjs` now reads the `schema` job of ci.yml; its mutation attacks are unchanged in kind. `migration-proof-workflow.test.mjs` (the F52 workflow-shape test) passes on the merged tree.

@@ -124,7 +124,7 @@ const EDIT_FORMS = {
   "A-PT-E6 the rules directory": [{ file_path: `${ABS}/fsi-app/.discipline/rules/012-hardcoded-user-path.mjs` }, {}],
   "A-PT-E6 the hooks directory": [{ file_path: `${ABS}/fsi-app/.discipline/hooks/pre-push` }, {}],
   "A-PT-E6 the engine": [{ file_path: `${ABS}/fsi-app/.discipline/runner.mjs` }, {}],
-  "A-PT-E7 the CI workflow": [{ file_path: `${ABS}/.github/workflows/discipline.yml` }, {}],
+  "A-PT-E7 the CI workflow": [{ file_path: `${ABS}/.github/workflows/ci.yml` }, {}],
   "A-PT-E8 the gate's own map": [{ file_path: `${ABS}/fsi-app/.discipline/governance/skill-map.mjs` }, {}],
 };
 for (const [name, [input, extra]] of Object.entries(EDIT_FORMS)) {
@@ -290,7 +290,7 @@ test("A-PT-S4: a relative file path is resolved against the cwd; a file outside 
   assert.equal(scope("Edit", { file_path: "fsi-app/src/lib/agent/x.ts" }, "/elsewhere"), true);
   assert.equal(scope("Edit", { file_path: "src/lib/agent/x.ts" }, "/sandbox/fsi-app"), true);
   assert.equal(scope("Edit", { file_path: "/tmp/notes.txt" }, "/sandbox/fsi-app"), false);
-  assert.equal(scope("Edit", { file_path: "/sandbox/.github/workflows/discipline.yml" }, "/elsewhere"), true);
+  assert.equal(scope("Edit", { file_path: "/sandbox/.github/workflows/ci.yml" }, "/elsewhere"), true);
   assert.equal(scope("Edit", { file_path: "/home/u/.claude/hooks/pretooluse-fsi-app-scope.mjs" }, "/elsewhere"), false);
 });
 test("A-PT-S5 / A-PT-S6: an MCP write or an Agent dispatch is scoped by the paths it NAMES, then by the cwd", () => {

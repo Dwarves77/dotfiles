@@ -31,10 +31,6 @@ export const invariant = {
     'class of GitHub Actions defects F52\'s five checks do not cover.',
   anchor:
     "### Section 4 - category 46: a loop's own hops are checked as data, not remembered as wired (an edge, a family, and a fired-from-upstream artifact are three separate facts)",
-  enforcedBy: [
-    'fitness:F52',
-    'selftest:fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.test.mjs',
-  ],
   residual:
     'F52 is a line-based, indentation-based text scan (no YAML parser is a direct dependency of this ' +
     'repository), not a real parser: it assumes the 2-space block-style indentation every workflow and ' +

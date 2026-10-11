@@ -9,7 +9,20 @@ import { fileURLToPath } from "node:url";
 import { catalogOnly } from "./schema-diff.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const TEXT = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "migration-proof.yml"), "utf8").replace(/\r\n/g, "\n");
+const WF = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "ci.yml"), "utf8").replace(/\r\n/g, "\n");
+
+/** The `schema` job of ci.yml: from its column-2 id line to the next column-2 id line. */
+function jobText(text, id) {
+  const lines = text.split("\n");
+  const start = lines.findIndex((l) => l === `  ${id}:`);
+  if (start < 0) return "";
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^ {2}[A-Za-z0-9_-]+:\s*$/.test(lines[i]) || /^\S/.test(lines[i])) { end = i; break; }
+  }
+  return lines.slice(start, end).join("\n");
+}
+const TEXT = jobText(WF, "schema");
 
 const steps = (text) => text.split(/^\s{6}- name: /m).slice(1).map((p) => ({ name: p.split("\n")[0], body: p }));
 
@@ -22,8 +35,8 @@ export function verify(text) {
   const s = all[i];
   const pending = all.findIndex((x) => /Apply every pending migration/.test(x.name));
   if (!(pending >= 0 && i > pending)) bad.push("it does not run after the pending apply");
-  if (!/if: steps\.scope\.outputs\.touched == 'true'/.test(s.body)) bad.push("not gated on the touched decision");
-  const src = s.body.indexOf('. "$MP_ENV"');
+  if (/\n\s+if: /.test(s.body.split("run:")[0])) bad.push("a step-level condition: the job-level classifier decides, the step runs with the job");
+  const src = s.body.indexOf('. "$SC_ENV"');
   const pre = s.body.indexOf("scripts/proof/preflight.mjs");
   const first = s.body.indexOf("schema-diff.mjs");
   if (!(src >= 0 && pre > src && first > pre)) bad.push("it does not source the env and preflight before it reads the database");
@@ -35,23 +48,23 @@ export function verify(text) {
   if ((s.body.match(/--catalog-only --db-url "\$PROOF_DB_URL" --out "\$RUNNER_TEMP\/catalog-(before|after)\.json"/g) ?? []).length !== 2) bad.push("the catalog is not read before and after");
   if (!/cmp "\$RUNNER_TEMP\/catalog-before\.json" "\$RUNNER_TEMP\/catalog-after\.json"/.test(s.body)) bad.push("the two reads are not compared with cmp");
   if (s.body.indexOf("catalog-before.json") > s.body.indexOf("-f \"$f\"")) bad.push("the before-read comes after the apply");
-  if (/MP_OUT_DIR[^\n]*catalog-(before|after)/.test(s.body)) bad.push("a catalog file is written into the uploaded directory");
+  if (/SC_OUT_DIR[^\n]*catalog-(before|after)/.test(s.body)) bad.push("a catalog file is written into the uploaded directory");
   if (/continue-on-error/.test(s.body)) bad.push("continue-on-error");
   return bad;
 }
 
-test("the migration-proof workflow carries the second-apply step, correctly placed and gated", () => {
+test("the ci.yml schema job carries the second-apply step, correctly placed", () => {
   assert.deepEqual(verify(TEXT), []);
 });
 
 test("ATTACK: the verifier is red against each way the step could be weakened", () => {
   const cut = (re, to = "") => TEXT.replace(re, to);
-  assert.match(verify(cut(/ {6}- name: Apply the schema reconciliation migrations a second time[\s\S]*?(?= {6}- name: Upload)/)).join(";"), /absent/);
+  assert.match(verify(cut(/ {6}- name: Apply the schema reconciliation migrations a second time[\s\S]*?(?= {6}# The RLS attack matrix)/)).join(";"), /absent/);
   assert.match(verify(cut(/cmp "\$RUNNER_TEMP\/catalog-before\.json" "\$RUNNER_TEMP\/catalog-after\.json"\n/)).join(";"), /cmp/);
   assert.match(verify(cut(/ --single-transaction -f "\$f"/, ' -f "$f"')).join(";"), /single-transaction/);
   assert.match(verify(cut(/384_schema_drift_reconcile_production_only\.sql /, "")).join(";"), /384_schema_drift_reconcile_production_only\.sql is not applied twice/);
-  assert.match(verify(cut(/(second time[^\n]*\n)\s+if: steps\.scope\.outputs\.touched == 'true'\n/, "$1")).join(";"), /touched/);
-  assert.match(verify(cut(/\$RUNNER_TEMP\/catalog-after\.json"\n {10}cmp/, '$MP_OUT_DIR/catalog-after.json"\n          cmp')).join(";"), /cmp|uploaded|read before and after/);
+  assert.match(verify(cut(/(second time[^\n]*\n)/, "$1        if: github.event_name == 'push'\n")).join(";"), /step-level condition/);
+  assert.match(verify(cut(/\$RUNNER_TEMP\/catalog-after\.json"\n {10}cmp/, '$SC_OUT_DIR/catalog-after.json"\n          cmp')).join(";"), /cmp|uploaded|read before and after/);
 });
 
 test("catalogOnly hands back the catalog it read (the --out file is that catalog), and nothing on failure", () => {

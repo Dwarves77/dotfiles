@@ -150,6 +150,89 @@ async function visit(ctx, baseUrl, origin, path, kind, viewport, contentChecks =
 }
 
 /**
+ * Throttle handling (lane SMOKE-5, 2026-10-11, run 38110613718): three merges landed within a minute, three smoke runs
+ * started together, and one admin-gate probe was answered 429 by the deployment's rate limit. A 429 says nothing about the
+ * gate, so it is retried after the Retry-After header and, if it persists, the probe is a HOLD (reason throttled), never a
+ * FAIL. THROTTLE bounds the retries: at most `maxAttempts` answers, `defaultWaitMs` when the header is absent or unusable,
+ * and `totalCapMs` of waiting in all.
+ */
+export const THROTTLE = Object.freeze({ maxAttempts: 3, defaultWaitMs: 5000, totalCapMs: 60000 });
+
+const realSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** The wait a Retry-After header asks for, in ms: delta-seconds or an HTTP date; anything else is the default. PURE. */
+export function retryAfterMs(header, now = Date.now()) {
+  const raw = String(header ?? "").trim();
+  if (/^\d+$/.test(raw)) return Number(raw) * 1000;
+  const at = raw ? Date.parse(raw) : NaN;
+  if (Number.isFinite(at) && at > now) return at - now;
+  return THROTTLE.defaultWaitMs;
+}
+
+/**
+ * Run `attempt` (async, returns { status, retryAfter, ...rest }) until it stops answering 429, at most THROTTLE.maxAttempts
+ * times, sleeping the Retry-After between answers without ever exceeding THROTTLE.totalCapMs of waiting. Returns the last
+ * answer with `attempts` and `throttled` (true only when the last answer is still 429). `sleep` is injectable.
+ */
+export async function retryOnThrottle(attempt, { sleep = realSleep } = {}) {
+  let waited = 0;
+  let last;
+  for (let n = 1; n <= THROTTLE.maxAttempts; n++) {
+    last = await attempt();
+    const throttled = Number(last?.status) === 429;
+    if (!throttled || n === THROTTLE.maxAttempts) return { ...last, attempts: n, throttled };
+    const wait = Math.min(retryAfterMs(last.retryAfter), THROTTLE.totalCapMs - waited);
+    if (wait <= 0) return { ...last, attempts: n, throttled };
+    waited += wait;
+    await sleep(wait);
+  }
+  return { ...last, attempts: THROTTLE.maxAttempts, throttled: Number(last?.status) === 429 };
+}
+
+/** GET through an injected fetch-like (`(path, init) => { status, headers: { get } }`) with the 429 retry. A throw is status 0. */
+export function getWithThrottleRetry(fetchFn, path, init, opts) {
+  return retryOnThrottle(async () => {
+    try {
+      const r = await fetchFn(path, init);
+      return { status: Number(r.status), retryAfter: r.headers?.get?.("retry-after") ?? null };
+    } catch {
+      return { status: 0, retryAfter: null };
+    }
+  }, opts);
+}
+
+/**
+ * Findings and holds for a set of admin probes. A probe still answered 429 after the retries (an API probe, or the /admin
+ * page left on /admin with no admin marker) says nothing about the gate, so it is a HOLD with reason `throttled`, in the
+ * SMOKE-3 hold shape; every other probe is judged exactly as before. PURE.
+ */
+export function adminGateOutcome(probes, baseUrl) {
+  const holds = [];
+  const judged = [];
+  for (const p of probes ?? []) {
+    const throttled = Number(p.status) === 429 && !(Number(p.markers) > 0) && (p.kind === "api" || String(p.finalPath ?? "").startsWith("/admin"));
+    if (!throttled) { judged.push(p); continue; }
+    holds.push({
+      state: "hold",
+      invariant: INVARIANTS.ADMIN_GATE,
+      key: `${INVARIANTS.ADMIN_GATE}:${p.path}`,
+      element: p.path,
+      kind: p.kind,
+      reason: `throttled: GET ${p.path} was answered 429 on every one of ${p.attempts ?? THROTTLE.maxAttempts} attempts, so the gate could not be judged this run`,
+    });
+  }
+  return { findings: checkAdminProbes(judged, baseUrl), holds };
+}
+
+/**
+ * The summary lines. A throttled admin-gate HOLD has no candidate count (it is not a conditional invariant), so the
+ * `[candidates=...]` tail the shared formatter appends to every hold is dropped from that line only. PURE.
+ */
+export function summaryLines(findings, holds) {
+  return formatSummary(findings, holds).map((l) => (l.startsWith(`HOLD ${INVARIANTS.ADMIN_GATE} ::`) ? l.replace(/ \[candidates=[^\]]*\]$/, "") : l));
+}
+
+/**
  * The admin-gate attack (read-only GETs only, never POST). Signed in as the smoke user, GET /admin and two admin API
  * routes carrying the user's own bearer token must be refused. The token is read from the session cookie in the page,
  * held in memory and never logged.
@@ -166,7 +249,10 @@ async function probeAdminGate(ctx, baseUrl) {
     } catch { /* leaves the token null */ }
     tokenMissing = !token;
     try {
-      const resp = await page.goto(`${baseUrl}/admin`, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
+      const nav = await retryOnThrottle(async () => {
+        const r = await page.goto(`${baseUrl}/admin`, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
+        return { status: r ? r.status() : null, retryAfter: r?.headers?.()["retry-after"] ?? null };
+      });
       // /admin is gated server-side, but the root loading.tsx streams a 200 shell before the redirect fires, so
       // the status and URL at domcontentloaded are not the verdict. Wait for the URL to leave /admin (a refused
       // account always does), let the page settle, then read the settled URL and look for admin-only markers.
@@ -175,16 +261,21 @@ async function probeAdminGate(ctx, baseUrl) {
       const countMarkers = () => page.evaluate((sels) => sels.filter((s) => document.querySelector(s)).length, [...ADMIN_MARKER_SELECTORS]);
       // A late client redirect can destroy the execution context mid-read; the retry reads the page it landed on.
       const markers = await countMarkers().catch(async () => { await settle(page); return countMarkers(); });
-      probes.push({ kind: "page", path: "/admin", status: resp ? resp.status() : null, finalPath: new URL(page.url()).pathname, markers });
+      probes.push({ kind: "page", path: "/admin", status: nav.status, finalPath: new URL(page.url()).pathname, markers, attempts: nav.attempts });
     } catch {
       probes.push({ kind: "page", path: "/admin", status: null, finalPath: "/admin", markers: 0, error: "navigation failed" });
     }
     for (const path of ADMIN_GATE_API_PATHS) {
       if (tokenMissing) { probes.push({ kind: "api", path, status: null, tokenMissing: true }); continue; }
-      const status = await page.evaluate(async ([p, t]) => {
-        try { return (await fetch(p, { method: "GET", headers: { Authorization: `Bearer ${t}` } })).status; } catch { return 0; }
-      }, [path, token]);
-      probes.push({ kind: "api", path, status });
+      // The page-side fetch reports the status and Retry-After; the retry loop (and its sleep) runs here, in node.
+      const fetchInPage = async (p, init) => {
+        const r = await page.evaluate(async ([u, i]) => {
+          try { const res = await fetch(u, i); return { status: res.status, retryAfter: res.headers.get("retry-after") }; } catch { return { status: 0, retryAfter: null }; }
+        }, [p, init]);
+        return { status: r.status, headers: { get: () => r.retryAfter } };
+      };
+      const r = await getWithThrottleRetry(fetchInPage, path, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+      probes.push({ kind: "api", path, status: r.status, attempts: r.attempts });
     }
   } finally {
     await page.close();
@@ -202,6 +293,8 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
   const findings = [];
   const snapshots = [];
   const hydrationDiagnostics = [];
+  /** Lane SMOKE-5: admin-gate probes the deployment throttled (HOLD reason throttled). */
+  const gateHolds = [];
   /** Lane HYDRA-1: visits of the home page at the phone width, the plan's own visit included. */
   const homeRepeat = { visits: 0, hydrationFailures: 0 };
 
@@ -278,7 +371,9 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
         }
       }
       if (viewport.width === VIEWPORTS[0].width) {
-        findings.push(...checkAdminProbes(await probeAdminGate(ctx, baseUrl), baseUrl));
+        const gate = adminGateOutcome(await probeAdminGate(ctx, baseUrl), baseUrl);
+        findings.push(...gate.findings);
+        gateHolds.push(...gate.holds);
       }
     } finally {
       await ctx.close();
@@ -309,11 +404,12 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
     findings.push(...judged.findings);
     holds = judged.holds;
   }
+  holds = [...holds, ...gateHolds];
 
   const report = buildReport({ baseUrl, pages, findings, holds, candidates });
   report.homeRepeat375 = homeRepeat;
   report.hydrationDiagnostics = hydrationDiagnostics;
-  const lines = formatSummary(findings, holds);
+  const lines = summaryLines(findings, holds);
   const totals = lines.pop(); // the totals line stays last
   lines.push(`home at 375: ${homeRepeat.visits} visit(s), ${homeRepeat.hydrationFailures} with a hydration error`);
   for (const d of hydrationDiagnostics) {

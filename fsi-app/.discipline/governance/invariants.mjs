@@ -81,6 +81,7 @@ export const MARKER_SOURCE =
 
 import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { REGISTRY_ROWS, RETIRED, enforcedByFromRows } from '../registry.mjs';
 
 const INVARIANTS_DIR_URL = new URL('./invariants.d/', import.meta.url);
 
@@ -107,7 +108,7 @@ export function compareInvariantIds(a, b) {
   return 0;
 }
 
-export async function loadInvariantsFromDir(dirUrl = INVARIANTS_DIR_URL) {
+export async function loadInvariantsFromDir(dirUrl = INVARIANTS_DIR_URL, rows = REGISTRY_ROWS) {
   const dirPath = fileURLToPath(dirUrl);
   const files = readdirSync(dirPath).filter((f) => f.endsWith('.mjs')).sort();
   const byId = new Map();
@@ -124,14 +125,20 @@ export async function loadInvariantsFromDir(dirUrl = INVARIANTS_DIR_URL) {
     if (byId.has(inv.id)) {
       throw new Error(`invariants.d: duplicate invariant id '${inv.id}' (${byId.get(inv.id).__file} and ${file}).`);
     }
-    if ('enforcedBy' in inv && !Array.isArray(inv.enforcedBy)) {
-      throw new Error(`invariants.d/${file}: enforcedBy must be an array when present.`);
+    // REG-1 (2026-10-11): enforcement has ONE home, the registry (../registry.mjs). An invariant file holds the
+    // doctrine anchor only; its enforcedBy is derived below from the registry rows that carry it.
+    if ('enforcedBy' in inv) {
+      throw new Error(`invariants.d/${file}: enforcedBy is derived from the registry rows that carry this invariant (registry.mjs 'carries'); remove it from the file.`);
     }
     byId.set(inv.id, { inv, __file: file });
   }
   return [...byId.keys()]
     .sort(compareInvariantIds)
-    .map((id) => byId.get(id).inv);
+    .map((id) => {
+      const inv = byId.get(id).inv;
+      const enforcedBy = enforcedByFromRows(rows, id);
+      return enforcedBy.length > 0 ? { ...inv, enforcedBy } : inv;
+    });
 }
 
 export const INVARIANTS = await loadInvariantsFromDir();
@@ -139,6 +146,12 @@ export const INVARIANTS = await loadInvariantsFromDir();
 // RETIRED INVARIANTS (lane GATE-8, 2026-10-08, AUD-AT-4 B7-15, B7-15b). Deleting an invariant file is a decision, not a
 // tidy-up: invariant-coverage.mjs compares the ids on the merge-base tree to the ids at HEAD and fails on any id that
 // disappeared without an entry here. Each entry is { reason, retiredOn }: why the invariant no longer applies (or which
-// invariant now carries it), and the ISO date. An entry whose id is live again is stale and fails too. Empty today:
-// nothing has been retired since the gate began asking.
-export const RETIRED_INVARIANTS = Object.freeze({});
+// invariant now carries it), and the ISO date. An entry whose id is live again is stale and fails too. Since lane REG-1
+// (2026-10-11) the entries live in the registry's RETIRED map (kind 'invariant'), the one home for every retired id.
+export const RETIRED_INVARIANTS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(RETIRED)
+      .filter(([, v]) => v.kind === 'invariant')
+      .map(([id, v]) => [id, { reason: v.reason, retiredOn: v.retiredOn }]),
+  ),
+);

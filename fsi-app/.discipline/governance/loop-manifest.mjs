@@ -117,7 +117,7 @@ export const LOOP_HOPS = loadLoopHops(LOOP_HOPS_DIR);
 // ---------------------------------------------------------------------------------------------------------
 // FIRING EVIDENCE (lane GATES-1, 2026-10-04). Chained runs land in the `harness_runs` table (migration 331),
 // not as committed artifacts, so F50 could never see a hop fire. These are the pure pieces both the exporter
-// (scripts/verify/export-loop-fired-evidence.mjs), the audit (scripts/verify/loop-fired-evidence-audit.mjs)
+// (the manual exporter, deleted by REG-1 2026-10-11), the audit (scripts/verify/loop-fired-evidence-audit.mjs)
 // and F50 share, kept here so there is one definition of "this row fired this hop".
 // ---------------------------------------------------------------------------------------------------------
 

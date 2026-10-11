@@ -11,5 +11,4 @@ export const invariant = {
     section: 'The Five Customer-Facing Surfaces',
     text: 'There are exactly FIVE customer surfaces (Regulations, Market Intel, Research, Operations, Community); no sixth customer surface without operator authorization.',
     anchor: 'The Five Customer-Facing Surfaces',
-    enforcedBy: ['rule:018'],
   };

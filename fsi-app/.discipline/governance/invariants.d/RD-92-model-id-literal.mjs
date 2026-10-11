@@ -20,11 +20,6 @@ export const invariant = {
     + 'generation-config.ts, three admin classification routes, spot-check/recurring/route.ts, '
     + 'ask/route.ts (x2), and two review-card display fallbacks, for two string constants.',
   anchor: 'Section 4 - category 45: one home per concept, and the count of copied code can only fall (a gate measures the class, a reminder does not)',
-  enforcedBy: [
-    'fitness:F69',
-    'selftest:fsi-app/.discipline/fitness/functions/F69-model-id-literal.test.mjs',
-    'selftest:fsi-app/src/lib/llm/metered-gate.test.mjs',
-  ],
   residual:
     'F69 is a lexical scanner (a quoted-literal regex over file content), the same posture F15/F45/F46 '
     + 'already use; it catches a NEW hardcoded copy of the literal string, it does not catch a caller '

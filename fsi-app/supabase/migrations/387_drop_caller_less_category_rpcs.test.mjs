@@ -5,16 +5,16 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RAW = readFileSync(join(HERE, "387_drop_caller_less_category_rpcs.sql"), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const DROPPED = ["get_operations_items", "get_research_items", "get_technology_items"];
 
-test("header: subject line, states NOT APPLIED, names what it does not do", () => {
+test("header: subject line, applied status as the map says, names what it does not do", () => {
   assert.match(RAW, /^-- subject: Migration 387 /);
-  assert.match(RAW, /^-- NOT APPLIED\./m);
-  assert.doesNotMatch(RAW, /APPLIED \(production ledger version/);
+  assert.deepEqual(headerProblems(RAW, "387_drop_caller_less_category_rpcs.sql"), []);
   assert.match(RAW, /No table, row or column is touched/);
 });
 
