@@ -7,7 +7,8 @@
 //
 // RULE. Every row component in ROW_COMPONENTS (the customer-facing ledger/card rows and the section
 // headers that carry a title beside an aside) MUST be (a) mounted by a UX smoke spec registered in
-// .discipline/rendering/smoke/ux-smoke-specs.mjs, which measures it at 375 × 812 and 1280 × 800 with
+// .discipline/rendering/smoke/ux-smoke-specs.mjs, which measures it at the four UX_VIEWPORTS widths (375, 768,
+// 1024 and 1280 px; smoke/ux-harness.mjs) with
 // ux-assert.mjs (law-2 target floor, squeezed-title wrap, overflow), and (b) carry at least one
 // `data-guard-title` attribute, so the squeezed-title detector has an element to measure (a spec cannot
 // pass by never marking a title). F35 is the COVERAGE half: it proves the measurement is wired to the
@@ -206,7 +207,7 @@ export const fitnessFunction = {
   name: 'row-ux-coverage',
   description:
     'Every customer-facing row/ledger component in ROW_COMPONENTS is mounted by a registered UX smoke spec ' +
-    '(measured at 375 × 812 and 1280 × 800: law-2 target floor, squeezed-title wrap, overflow) and carries a ' +
+    '(measured at four widths, 375, 768, 1024 and 1280 px: law-2 target floor, squeezed-title wrap, overflow) and carries a ' +
     'data-guard-title attribute. 2026-09-03: every ledger page wrapped titles one word per line on a phone and ' +
     'no gate measured a real row at a phone width.',
   source: 'docs/design/ux-laws.md (laws 2, 4, 12); invariant RD-60; operator screenshots docs/plans/mobile-evidence/',

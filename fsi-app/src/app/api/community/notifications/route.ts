@@ -6,7 +6,9 @@
 //
 // Schema reference (migration 032):
 //   notifications(id, user_id, kind, payload, read_at, created_at)
-//   kind ∈ {mention, reply, invite, moderation, archive}
+//   kind ∈ {mention, reply, invite, moderation, archive, assignment}
+//   (the table CHECK of migration 359 still admits a legacy 'promote' value; no code writes it since
+//   C-TOGGLE, PR 963, removed the on_promote preference and the promote kind)
 //
 // Auth:    cookie session via requireCommunityAuth.
 // Limits:  60 req/min/user via checkRateLimit.
