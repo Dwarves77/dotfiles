@@ -255,6 +255,13 @@ export function buildJobInputs(repoRoot) {
 // Classification
 // ---------------------------------------------------------------------------------------------------------------
 
+let readDocsCache = null;
+/** The docs paths the tests and gates read, scanned once per process (the scan reads every tracked test). */
+function defaultReadDocs() {
+  if (!readDocsCache) readDocsCache = loadReadDocPaths(getRepoRoot());
+  return readDocsCache;
+}
+
 /**
  * Which jobs a set of changed files makes the change run. PURE given `map` and `readDocs`.
  * @param {string[]} files repo-relative changed paths (both sides of a rename)
@@ -279,7 +286,7 @@ export function jobsTouched(files, map, readDocs) {
     alwaysOn: [...ALWAYS_ON],
     touched,
     unchanged: everyKey.filter((k) => !touched.includes(k)),
-    code: !isDocsOnlyDiff(list, readDocs ?? loadReadDocPaths(getRepoRoot())),
+    code: !isDocsOnlyDiff(list, readDocs ?? defaultReadDocs()),
     reason: `${list.length} changed file(s)`,
   };
 }
