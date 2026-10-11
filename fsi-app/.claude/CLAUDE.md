@@ -5,7 +5,7 @@
 > per-item status — lives at the live surfaces: the **/admin dashboard**, the **migrations inventory**
 > (`docs/inventories/migrations.md`), the **invariant registry** (`.discipline/governance/invariants.mjs`),
 > and **git log**. If a number or "what's done" claim appears below, it is drift — query the live surface,
-> not this file. (Session history archived at `docs/archive/CLAUDE-session-log-2026-04.md`.)
+> not this file.
 
 ## What This Is
 Sustainability intelligence platform for international freight forwarding. Not a regulation tracker — a
