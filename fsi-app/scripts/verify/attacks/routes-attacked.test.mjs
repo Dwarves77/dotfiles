@@ -7,15 +7,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   parseRegister, parsePageRegister, pageUrlPath, planPageProbes, routeUrlPath, planProbes, personasFor, runProbes, evaluate, expectedOpenProblems, isWriteAttackRow,
   cliMain, REGISTER_PATH, EXPECTED_OPEN_PATH, PLACEHOLDER_ID, MAX_BROKEN,
 } from "./routes-attacked.mjs";
 import { setupRoutePersonas, teardownRoutePersonas, creationStatements, ROUTE_PERSONAS } from "../fixtures/route-personas.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
 
 const MINI = `
 ## 5. Not run, owed

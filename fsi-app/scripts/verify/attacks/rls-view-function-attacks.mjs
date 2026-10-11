@@ -43,15 +43,24 @@ const PERSONA_ROLES = Object.freeze([["anon", "P1"], ["user:viewer_a", "P2"], ["
 const FN_LIST = SYSTEM_ONLY_FUNCTIONS.map((f) => `'${f}'`).join(", ");
 const FN_FROM = `FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace WHERE ns.nspname = 'public' AND p.proname = ANY(ARRAY[${FN_LIST}])`;
 
+const GUARDED_LIST = GUARDED_VIEWS.map((v) => `'${v}'`).join(", ");
+// Postgres stores the reloption in the spelling it was set with: migration 369 sets security_invoker = on (stored as
+// security_invoker=on), earlier migrations set = true. Both mean the same; migration 369 checks the same regular expression.
+const INVOKER_OPT = "EXISTS (SELECT 1 FROM unnest(coalesce(c.reloptions, ARRAY[]::text[])) o WHERE o ~ '^security_invoker=(on|true)$')";
+/** Census, not an invariant: every public view other than the guarded ones that does NOT run as its invoker. Names are catalog
+ *  metadata (a view name), printed so the next lane (SEC-10) decides per view; no row value is ever read. */
+export const OWNER_RUN_VIEWS_SQL = `SELECT c.relname AS name FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v' AND NOT (c.relname = ANY(ARRAY[${GUARDED_LIST}])) AND NOT ${INVOKER_OPT} ORDER BY c.relname`;
+
 export const VIEW_FUNCTION_ATTACKS = Object.freeze([
   {
     id: "rls-vf-views-run-as-invoker",
     persona: "P1",
-    invariant: "Every public view runs as the caller (security_invoker on), so reading or writing through a view never skips the base table's row level security.",
-    expected: "The count of public views whose options do not include security_invoker=true is 0, and the catalog lists at least 3 views so an empty read cannot pass.",
+    invariant: "The two guarded views (the pollution barriers) run as the caller (security_invoker on), so reading or writing through them never skips the base table's row level security. Every other public view is a census line (OWNER_RUN_VIEWS_SQL), not a pass condition, until lane SEC-10 decides per view.",
+    expected: "Both guarded views exist and carry security_invoker (reloption security_invoker=on or =true, the two spellings Postgres stores); the count lacking it is 0.",
     steps: [
       { label: "control: the catalog lists the public views", kind: "control", sql: "SELECT (count(*) >= 3) AS ok FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v'", expect: { equals: { ok: "true" } } },
-      { label: "attack: a public view that runs as its owner", kind: "attack", sql: "SELECT count(*)::int AS n FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v' AND NOT coalesce(c.reloptions @> ARRAY['security_invoker=true'], false)", expect: { equals: { n: "0" } } },
+      { label: "control: both guarded views exist", kind: "control", sql: `SELECT (count(*) = ${GUARDED_VIEWS.length}) AS ok FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v' AND c.relname = ANY(ARRAY[${GUARDED_LIST}])`, expect: { equals: { ok: "true" } } },
+      { label: "attack: a guarded view that runs as its owner", kind: "attack", sql: `SELECT count(*)::int AS n FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace WHERE ns.nspname = 'public' AND c.relkind = 'v' AND c.relname = ANY(ARRAY[${GUARDED_LIST}]) AND NOT ${INVOKER_OPT}`, expect: { equals: { n: "0" } } },
     ],
   },
   {
@@ -106,7 +115,7 @@ export const VIEW_FUNCTION_ATTACKS = Object.freeze([
 
 /** The whole run against a connected client. Always tears the fixtures down. Returns the report. */
 export async function runAll({ client, attacks = VIEW_FUNCTION_ATTACKS, now = () => new Date() }) {
-  const report = { suite: "rls-view-function-attacks", started_at: now().toISOString(), finished_at: null, attacks: [], violations: [] };
+  const report = { suite: "rls-view-function-attacks", started_at: now().toISOString(), finished_at: null, attacks: [], violations: [], owner_run_views: [] };
   try {
     await setupPersonaFixtures(client);
   } catch (e) {
@@ -126,6 +135,13 @@ export async function runAll({ client, attacks = VIEW_FUNCTION_ATTACKS, now = ()
       }
       report.attacks.push({ id: a.id, persona: a.persona, invariant: a.invariant, status: outcome.status, observed: outcome.observed });
       if (outcome.status !== "pass") report.violations.push(`ATTACK ${a.id} did not hold: ${firstLine(outcome.observed, 400)}`);
+    }
+    try {
+      const res = await client.query(OWNER_RUN_VIEWS_SQL);
+      report.owner_run_views = (res?.rows ?? []).map((r) => `public.${r.name}`);
+    } catch (e) {
+      report.owner_run_views = null;
+      report.violations.push(`CENSUS: the owner-run view census could not be read (${firstLine(e.message)})`);
     }
   } finally {
     try { await teardownPersonaFixtures(client); } catch (e) { report.teardown_error = firstLine(e.message); }
@@ -158,6 +174,7 @@ export async function cliMain({
   try {
     const report = await runAll({ client });
     for (const a of report.attacks) log(`${a.status === "pass" ? "HELD  " : "BROKEN"} ${a.id}  ${firstLine(a.observed, 160)}`);
+    for (const v of report.owner_run_views ?? []) log(`owner-run view: ${v}`);
     for (const v of report.violations) log(`VIOLATION ${v}`);
     const outDir = args.outDir ?? env.CP_OUT_DIR ?? env.MP_OUT_DIR ?? null;
     if (outDir) {

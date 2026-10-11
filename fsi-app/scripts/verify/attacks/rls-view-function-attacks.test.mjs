@@ -6,9 +6,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseRole, EXPECT_KEYS, STEP_KINDS } from "../../proof/attacks/attack-engine.mjs";
 import {
-  VIEW_FUNCTION_ATTACKS, GUARDED_VIEWS, SYSTEM_ONLY_FUNCTIONS, runAll, cliMain,
+  VIEW_FUNCTION_ATTACKS, OWNER_RUN_VIEWS_SQL, GUARDED_VIEWS, SYSTEM_ONLY_FUNCTIONS, runAll, cliMain,
 } from "./rls-view-function-attacks.mjs";
 
+const NL = String.fromCharCode(10);
 const DENY = Object.assign(new Error("permission denied"), { code: "42501" });
 const NOT_UPDATABLE = Object.assign(new Error("cannot insert into view"), { code: "55000" });
 
@@ -30,7 +31,9 @@ function fakeDb(world = {}) {
       if (/^(RESET ROLE|ROLLBACK|BEGIN|COMMIT)/.test(text)) { role = "owner"; return { rows: [], rowCount: 0 }; }
       if (/^(SAVEPOINT|RELEASE|ROLLBACK TO)/.test(text) || /^SELECT set_config/.test(text)) return { rows: [], rowCount: 0 };
       if (/count\(\*\) >= 3\) AS ok/.test(text)) return { rows: [{ ok: true }], rowCount: 1 };
-      if (/AS n FROM pg_class c/.test(text) && /NOT coalesce\(c\.reloptions/.test(text)) return { rows: [{ n: world.definerView ? 1 : 0 }], rowCount: 1 };
+      if (/= 2\) AS ok FROM pg_class c/.test(text)) return { rows: [{ ok: true }], rowCount: 1 };
+      if (/AS name FROM pg_class c/.test(text)) return { rows: (world.ownerRun ?? []).map((name) => ({ name })), rowCount: (world.ownerRun ?? []).length };
+      if (/AS n FROM pg_class c/.test(text) && /security_invoker/.test(text)) return { rows: [{ n: world.definerView ? 1 : 0 }], rowCount: 1 };
       if (/^SELECT \* FROM public\./.test(text)) {
         if (role === "service_role") return { rows: [], rowCount: 0 };
         if (world.viewReadable && role === "anon") return { rows: [{ id: "x" }], rowCount: 1 };
@@ -91,7 +94,7 @@ test("on a correct schema every attack holds and the fixtures are set up and tor
 });
 
 const leaks = [
-  ["a view that runs as its owner", { definerView: true }, "rls-vf-views-run-as-invoker"],
+  ["a guarded view that runs as its owner", { definerView: true }, "rls-vf-views-run-as-invoker"],
   ["a guarded view readable by anon", { viewReadable: true }, "rls-vf-views-read-denied"],
   ["a guarded view readable by an org member", { viewReadableBy: "authenticated" }, "rls-vf-views-read-denied"],
   ["a view that accepts a write from anon", { viewWritable: true }, "rls-vf-views-write-denied"],
@@ -109,6 +112,23 @@ for (const [name, world, id] of leaks) {
     assert.ok(report.attacks.filter((a) => a.id !== id).every((a) => a.status === "pass" || a.id !== id), "other attacks are judged on their own");
   });
 }
+
+test("the owner-run census names every non-guarded view that lacks security_invoker, and is a census, not a pass condition", async () => {
+  const report = await runAll({ client: fakeDb({ ownerRun: ["census_rollup_by_surface", "licence_clear_sources"] }) });
+  assert.deepEqual(report.owner_run_views, ["public.census_rollup_by_surface", "public.licence_clear_sources"]);
+  assert.deepEqual(report.violations, [], "an owner-run view outside the guarded two does not fail the attack");
+  const logs = [];
+  const env = { CHAIN_PROOF_LOCAL: "1", SUPABASE_DB_URL: "postgresql://postgres:x@127.0.0.1:54322/postgres", NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321" };
+  const code = await cliMain({ argv: [], env, connect: async () => fakeDb({ ownerRun: ["public_thing"] }), log: (m) => logs.push(m), makeDir: () => {}, writeFile: () => {} });
+  assert.equal(code, 0);
+  assert.ok(logs.includes("owner-run view: public.public_thing"), logs.join(NL));
+});
+
+test("the invoker check accepts both spellings Postgres stores (on and true) and the census query shares it", () => {
+  const sql = VIEW_FUNCTION_ATTACKS.find((a) => a.id === "rls-vf-views-run-as-invoker").steps.map((s) => s.sql).join(NL);
+  assert.ok(sql.includes("security_invoker=(on|true)"));
+  assert.ok(OWNER_RUN_VIEWS_SQL.includes("security_invoker=(on|true)"));
+});
 
 test("a database that cannot create the fixtures reports nothing attacked, not a pass", async () => {
   const db = fakeDb();
