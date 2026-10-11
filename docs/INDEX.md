@@ -1,6 +1,6 @@
 # INDEX  -  Caro's Ledge project memory
 
-One line per living doc.
+One line per living doc. archive/ holds superseded notes and machine evidence and is not indexed.
 
 ## board
 
@@ -156,6 +156,9 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [C7-notifications-spec](./plans/C7-notifications-spec.md)  -  C7  -  Community Notifications Surface
 - [C8-moderation-spec](./plans/C8-moderation-spec.md)  -  C8  -  Community moderation workflow
 - [C9-realtime-spec](./plans/C9-realtime-spec.md)  -  C9  -  Community Realtime Infrastructure
+- [ratifications/2026-09/README](./ratifications/2026-09/README.md)  -  Ratification digests for the four review queues (927 provisional sources, 331 canonical candidates, 1,457 portal links, 91 gap dispositions): what a digest is, how to rule in the JSON, which apply script consumes it
+- [ratifications/2026-09/proposed/README](./ratifications/2026-09/proposed/README.md)  -  The four review-queue `.ruling.json` files with Haiku-drafted `proposed_decision`s (decision still `null`, not yet ruled by the operator) + RULINGS-1/2 summaries with `⚠️ DISAGREE` markers; how a ruled file gets applied
+- [ratifications/2026-09/RULING-2026-09-06](./ratifications/2026-09/RULING-2026-09-06.md)  -  Operator ruling transcription: the four review queues (portal-links/provisional-sources/canonical-candidates/coverage-gaps) plus R-A/R-B/R-E, with counts, DISAGREE evidence, and the R-B mechanism-gap finding
 - [wave2-lanes-2026-09-02](./plans/wave2-lanes-2026-09-02.md)  -  Wave 2 lane contract: nine lanes (OBLIG, CORR, DASH, RSRCH, AXIS, HELD, INTAKE, DESNZ, BUILDGATE) with pairwise-disjoint write sets, the coordinator-only file list, and the build-before-populate ruling
 - [finish-plan-2026-09-02](./plans/finish-plan-2026-09-02.md)  -  Finish plan: the site and the data to done; open rulings R-A…R-H, Sonnet lanes in three waves with disjoint write sets, the coordinator dispatch sequence
 - [SOURCE-TYPE-TAXONOMY-PROPOSAL](./plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md)  -  `source_type` Taxonomy Column  -  Design Proposal
@@ -221,7 +224,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 ## audits
 
 - [2026-10-11-complete-audit/](./audits/2026-10-11-complete-audit/README.md) - THE audit (second pass, 41 registers, 2,272-row backlog); every earlier audit is a prediction it checked
-- [whole-build-audit-2026-10-11](./audits/whole-build-audit-2026-10-11/README.md) - the whole-build audit directory: the ruled fix-it-all plan (README) and five registers (spec-to-runtime traceability, enforcement 2A and 2B, failure ledger, DB schema traceability), every row carrying the disposition token of the lane that closes it.
+- [whole-build-audit-2026-10-11](./audits/whole-build-audit-2026-10-11/README.md) - the whole-build audit directory: the ruled fix-it-all plan (README) and five registers (spec-to-runtime traceability, enforcement 2A and 2B, failure ledger, DB schema traceability), every row carrying the disposition token of the lane that closes it; machine lists live in [archive logs](./archive/logs/whole-build-audit-2026-10-11/owed-list-2026-10-11.md).
 - [audit-consolidated-2026-09-30](./audits/audit-consolidated-2026-09-30.md) - Lane CONSOLIDATE: synthesis of the 2026-09-30 audit wave (A1 through A10, split lanes A2/A2b, A3/A3b/A3c, A4/A4b/A4c, A5/A5b/A5c, A8/A8b/A8c, plus A7 architecture-review and A9 mechanical-checkers). 78 deduplicated findings by class (dead/unwired, broken, unwired, security/RLS, data integrity, duplication, tests/gates, docs drift, process), consolidated ids cite every source-lane id and file:line; confirmed P0/P1 in full sentences; refuted-along-the-way list; honest per-lane coverage statement including a reported, not-followed prompt-injection attempt against lane A5.
 - [f25-wave52-dispositions-2026-09-07](./audits/f25-wave52-dispositions-2026-09-07.md)  -  Lane F25-WAVE52: disposition of all 14 F25 module-liveness allowlist entries whose expiry (wave52) passed when PR #601 landed (master RED, run 34072529126). Per binding operator ruling (never re-grant an F25 expiry), each of 7 `scripts/_reground/*` and 7 `scripts/verify/*` files is WIRED (10: four `run-data-audit-lane.mjs` AUDITS entries, one `maintenance.yml` remediation step, six `_reground/*` operator-CLI tools newly registered in `OUT-OF-REPO-BOUNDARY.md`'s Operator-CLI register  -  Source 7 widened to recognize that path shape) or DELETED (4, incidents already closed/superseded). `node .discipline/fitness/runner.mjs`: F25 0 violations, no expiry-carrying entries remain.
 - [plan-completion-audit-2026-09-05](./audits/plan-completion-audit-2026-09-05/README.md): Six-lane re-verification (read-only, no writes) of the 2026-09-04 build plan against tree `1e6d9e8b`, covering W1/W2 intake+population, W3/W4 sourcing+propagation, W5/W6/W7 surfaces+community+discipline, the loop/harness/flywheel as one unit, skills/rules/doctrine, and the tools inventory. Consolidated "findings the next trains act on" list; two shallow Haiku-lane findings ("three maintenance steps name non-existent files", "two live crons") investigated and REFUTED in place
@@ -339,6 +342,8 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## design
 - [UI audit 2026-09-06](design/audit-2026-09-06/README.md)  -  site-wide UI evidence package: assessment, contact sheet, 110 capture frames. Supersedes `design/redesign/`.
+- [UI system handoff 2026-09-06](design/handoff-2026-09-06/README.md)  -  Claude Design system sheet + 17 page artboards (system sheet, dashboard, 4 lists, 4 details, map, watchlist, community, admin, account, settings, auth, onboarding) that answers the audit above; single token set, one urgency scale, one nav width, one detail architecture. Operator ruling: build pages as the renderings look. Deviations tracked in `handoff-2026-09-06/DEVIATION-LOG.md`.
+- [UI system handoff 2026-09-07](design/handoff-2026-09-07/README.md) - the refreshed Claude Design bundle (canvas, README, screens 00 to 21): adds artboard 20 (mobile 390) and artboard 21 (long-title masthead, merged action card, fact card v2 and item group), the 2026-09-18 impact meter revision, and the seven undrawn-case rulings of 2026-09-20. Operator, 2026-09-20: a live page that does not match it is not correct. Where it and handoff-2026-09-06 disagree, this one wins.
 
 - [decision-package-2026-07-06](./design/decision-package-2026-07-06.md)  -  Decision Package  -  52 live non-verified items (read-only)
 - [design-principles](./design/design-principles.md)  -  Caro's Ledge Design Principles

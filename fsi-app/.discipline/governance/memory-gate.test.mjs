@@ -386,19 +386,18 @@ const SQL_BASE = '-- subject: Migration 380 fixture\n-- 380 -- fixture.\n--\n-- 
 const SQL_FLIPPED = '-- subject: Migration 380 fixture\n-- 380 -- fixture.\n--\n-- APPLIED (production ledger version 20261008999999, as of 2026-10-09). Authored by lane X.\nCREATE TABLE t (id int);\n';
 const SQL_BODY_EDIT = SQL_FLIPPED.replace('CREATE TABLE t (id int);', 'CREATE TABLE t (id int, extra text);');
 
-test('ENGINE-FIX-1 X6: an executor refresh PR (applied-map, ledger export, header flips) and a ledger-export-only PR need no session log', () => {
+test('ENGINE-FIX-1 X6: an executor refresh PR (applied-map, header flips) needs no session log', () => {
   const sql = 'fsi-app/supabase/migrations/380_fixture.sql';
   const headerOnly = (p) => (p === sql ? isHeaderOnlyChange(SQL_BASE, SQL_FLIPPED) : false);
-  const refresh = [sql, 'fsi-app/supabase/migrations/APPLIED-MAP.json', 'fsi-app/.discipline/governance/harness-ledger-export.json', 'docs/inventories/migrations.md'];
+  const refresh = [sql, 'fsi-app/supabase/migrations/APPLIED-MAP.json', 'docs/inventories/migrations.md'];
   assert.equal(memoryGateVerdict(refresh, { headerOnly }).ok, true, 'the refresh shape passes with no log');
-  assert.equal(memoryGateVerdict(['fsi-app/.discipline/governance/harness-ledger-export.json']).ok, true, 'a ledger-export-only PR passes');
   assert.equal(memoryGateVerdict(['fsi-app/supabase/migrations/APPLIED-MAP.json']).ok, true);
 });
 
 test('ENGINE-FIX-1 attack: a code change with no log still fails, with or without refresh files beside it, and a migration body edit is not a header flip', () => {
   const sql = 'fsi-app/supabase/migrations/380_fixture.sql';
   assert.equal(memoryGateVerdict(['fsi-app/src/x.ts']).ok, false);
-  assert.equal(memoryGateVerdict(['fsi-app/src/x.ts', 'fsi-app/supabase/migrations/APPLIED-MAP.json', 'fsi-app/.discipline/governance/harness-ledger-export.json']).ok, false, 'refresh files do not launder a code change');
+  assert.equal(memoryGateVerdict(['fsi-app/src/x.ts', 'fsi-app/supabase/migrations/APPLIED-MAP.json']).ok, false, 'refresh files do not launder a code change');
   assert.equal(isHeaderOnlyChange(SQL_BASE, SQL_FLIPPED), true);
   assert.equal(isHeaderOnlyChange(SQL_BASE, SQL_BODY_EDIT), false, 'a body edit is code');
   assert.equal(isHeaderOnlyChange(null, SQL_FLIPPED), false, 'a new migration is code');
@@ -423,13 +422,13 @@ test('ENGINE-FIX-1 S7: a pre-format log is evidence for its own date when it has
   assert.equal(memoryGateVerdict([code, today], { readMemoryFile: () => oldFormat }).ok, false, 'attack: a log dated today needs the current format');
 });
 
-test('ENGINE-FIX-1: through the real CLI, a header flip plus the applied-map and ledger export exits 0 with no log, a body edit or a source change exits 1', () => {
+test('ENGINE-FIX-1: through the real CLI, a header flip plus the applied-map exits 0 with no log, a body edit or a source change exits 1', () => {
   gateFixture(({ gate, commitFiles }) => {
     const sql = 'fsi-app/supabase/migrations/380_fixture.sql';
     const map = 'fsi-app/supabase/migrations/APPLIED-MAP.json';
     commitFiles({ [sql]: SQL_BASE, [map]: '{}\n' }, 'the migration lands, not applied');
     assert.equal(rangeBase('HEAD~1..HEAD'), 'HEAD~1', 'two-dot form: the left side');
-    commitFiles({ [sql]: SQL_FLIPPED, [map]: '{"20261008999999":{}}\n', 'fsi-app/.discipline/governance/harness-ledger-export.json': '{}\n' }, 'executor refresh');
+    commitFiles({ [sql]: SQL_FLIPPED, [map]: '{"20261008999999":{}}\n' }, 'executor refresh');
     const flip = gate('--range=HEAD~1..HEAD');
     assert.equal(flip.status, 0, flip.stdout + flip.stderr);
     commitFiles({ [sql]: SQL_BODY_EDIT }, 'a body edit');

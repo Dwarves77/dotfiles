@@ -522,18 +522,6 @@ export const LEGACY_ALLOWLIST = [
   // COMMENT or a prose mention named their path (AUD-AT-4 B4-17: a comment is not a dispatch root). None has a
   // production importer or a real dispatch line.
   {
-    file: 'fsi-app/scripts/harness-runs/append-dispatch-ledger.mjs',
-    reason: 'Retired writer: its only caller, the maintenance.yml "Append this run\'s dispatch-ledger row" step, was removed by R22 (2026-10-02) and closure-gate now reads harness-ledger-export.json instead. Dormant and awaiting deletion together with its test (a deletion lane; this gate then reds the entry as STALE until it is removed).',
-    reviewByPhase: 'dead-code deletion lane (append-dispatch-ledger.mjs and its test)',
-    reviewBy: '2026-12-31',
-  },
-  {
-    file: 'fsi-app/scripts/lib/export-harness-ledger.mjs',
-    reason: 'Credentialed operator CLI: regenerates fsi-app/.discipline/governance/harness-ledger-export.json from harness_runs (docs/runbooks/fleet-budget-control.md, "The refresh"). It needs the production read credential, so no workflow runs it; the committed export is what the gates read.',
-    reviewByPhase: 'F28 stale-export check names this refresh command; keep while the export exists',
-    reviewBy: '2026-12-31',
-  },
-  {
     file: 'fsi-app/scripts/maintenance/lib/extract-worklist-seed.mjs',
     reason: 'Coordinator hand tool: turns a provenance-heal dry-run summary.json into the {item_id, token} seed the attach-found-sources browser lane fills (usage line in scripts/maintenance/attach-found-sources.mjs). Run by hand per dispatch, never by a workflow.',
     reviewByPhase: 'ATTACH-SOURCES worklist flow (W3.1); review when attach-found-sources is retired',
