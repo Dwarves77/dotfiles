@@ -2212,26 +2212,8 @@ async function runCategoryRpcCore(
   }
 }
 
-// Internal helper. Calls the category-routing RPC; projects rows to
-// Resource[]. The RPC body itself enforces routing via sources.category
-// (migration 084); no src-side filtering needed.
-async function runCategoryRpc(
-  orgId: string | null,
-  rpcName:
-    | "get_market_intel_items"
-    | "get_research_items"
-    | "get_operations_items"
-    | "get_technology_items",
-  opts: { enrichCitations?: boolean; enrichBiasTags?: boolean } = {}
-): Promise<CategoryRoutedResult> {
-  if (!isSupabaseConfigured() || !orgId) {
-    return { resources: [], total: 0 };
-  }
-  return runCategoryRpcCore(rpcName, { p_org_id: orgId }, opts);
-}
-
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
-// counterpart to runCategoryRpc — calls the zero-argument `_public` sibling RPC (migration 306:
+// counterpart to the deleted org-scoped runCategoryRpc (DEAD-1d, no caller) — calls the zero-argument `_public` sibling RPC (migration 306:
 // get_market_intel_items_public / get_operations_items_public / get_research_items_public), which
 // carries no `_assert_org_membership` call and no workspace_item_overrides join. This is what lets
 // /market, /operations, /research read their category-routed row set with NO cookies() dependency
@@ -2268,58 +2250,6 @@ export async function fetchPublicResearchItems(): Promise<CategoryRoutedResult> 
 
 export async function fetchPublicOperationsItems(): Promise<CategoryRoutedResult> {
   return runCategoryRpcPublic("get_operations_items_public", { enrichCitations: true, enrichBiasTags: true });
-}
-
-// ── Per-source citation stats (Build 7, Q9 chip mounts) ───────
-//
-// Build 8.1 added get_source_citation_stats reads inside
-// fetchResearchPipelineRows (per-row pipeline fetcher). Market Intel
-// consumes Resource[] from the category-routed fetcher above, so the
-// citation stats lookup lives outside the routing call and is decorated
-// onto the Resource list by the caller (the /market route).
-//
-// This helper accepts a list of source_ids (already deduplicated by the
-// caller) and returns a Map<source_id, { count, recency }>. Failure is
-// non-fatal: callers receive an empty Map and the UI degrades to no
-// citation chips (consistent with Build 8.1 ResearchView behavior).
-//
-// The RPC body (migration 098) reads from the intelligence_item_citations
-// edge table; same data plane as /research.
-export interface SourceCitationStat {
-  count: number;
-  recency: string | null;
-}
-
-export async function fetchSourceCitationStatsByIds(
-  sourceIds: string[]
-): Promise<Map<string, SourceCitationStat>> {
-  const out = new Map<string, SourceCitationStat>();
-  if (!isSupabaseConfigured() || sourceIds.length === 0) return out;
-  try {
-    // SEC-8 (migration 382): the function is SECURITY INVOKER over sources and source_citations, which anon can no
-    // longer read.
-    const supabase = getServiceSupabase();
-    const { data, error } = await supabase
-      .rpc("get_source_citation_stats", { source_ids: sourceIds });
-    if (error) {
-      console.error("[market] get_source_citation_stats error:", describeSupabaseError(error));
-      return out;
-    }
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        if (row && typeof row.source_id === "string") {
-          out.set(row.source_id, {
-            count: typeof row.citation_count === "number" ? row.citation_count : 0,
-            recency: row.recency ?? null,
-          });
-        }
-      }
-    }
-    return out;
-  } catch (e) {
-    console.error("[market] fetchSourceCitationStatsByIds failed:", e);
-    return out;
-  }
 }
 
 // ── Market list-page price stat (WO-13 B4 re-point) ───────────
@@ -5049,24 +4979,4 @@ export async function fetchCoverageGaps(
     console.error("fetchCoverageGaps failed, returning empty:", e);
     return [];
   }
-}
-
-// Inline platform-admin check (avoids importing from src/lib/auth/admin.ts
-// mirror of src/lib/auth/admin.ts's platform-admin check: kept, deliberate self-containment (reason on the next line).
-// to keep this module self-contained; mirrors that helper exactly).
-// Updated 2026-05-18 (Sprint 2 Build 6 / OBS-17) to read
-// profiles.is_platform_admin instead of org_memberships.role; was conflating
-// workspace-membership role with the platform-layer staff flag.
-async function isPlatformAdminInline(
-  userId: string,
-  supabase: ReturnType<typeof getServiceSupabase>
-): Promise<boolean> {
-  if (!userId) return false;
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("is_platform_admin")
-    .eq("id", userId)
-    .maybeSingle();
-  if (error || !data) return false;
-  return data.is_platform_admin === true;
 }
