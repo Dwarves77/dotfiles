@@ -37,17 +37,11 @@ Red run: the tests alone (commit a90143633) over master's source. Green: after t
 
 ## Backlog rows
 
-The backlog file `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md` is not in the tree at the final push (origin/master 2c710d144 has no `2026-10-11-complete-audit` directory; `git fetch` and `git merge origin/master` reported already up to date). Per rule 22 the executor flips these:
+The backlog landed on master (AUD-LAND-2, aa92d9daa) while this lane ran and arrived with rule 18's merge. In `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md` every one of these ids appears twice (the "65 rows marked SECURITY or DATA-INTEGRITY" table, lines 58-97, and the full Backlog table, lines 179-218); both copies were flipped so they cannot disagree.
 
-- BACKLOG B-0001 -> CLOSED: PR 1122
-- BACKLOG B-0002 -> CLOSED: PR 1122
-- BACKLOG B-0003 -> CLOSED: PR 1122
-- BACKLOG B-0004 -> CLOSED: PR 1122
-- BACKLOG B-0005 -> CLOSED: PR 1122
-- BACKLOG B-0006 -> CLOSED: PR 1122
-- BACKLOG B-0040 -> CLOSED: PR 1122
-- BACKLOG B-0007 -> not flipped (registry condition, see B-0007 evidence). Proposed cell if the coordinator accepts the glob wiring: `REFUTED: closed by migration 371 and PR 1003 (viewer-read-only-routes.npmtest.mjs, 27 tests pass, wired by the npmtest glob and coverage-report proofWired true; no registry.mjs row)`.
-- NEW ROW B-2273 to add: KIND PRODUCT-DEFECT, CLASS CAPABILITY, AREA lib-agent, TOKEN CONFIRMED, SOURCE sec10, OBJECT fsi-app/src/lib/agent/canonical-pipeline.ts, FINDING "refresh=true does not re-section or re-ground a verified item: sectionStep :1576 and groundStep :1683 return early on provenance_status verified; agent/run's refresh therefore re-fetches and rewrites full_brief only", STATUS empty.
+- B-0001, B-0002, B-0003, B-0004, B-0005, B-0006, B-0040: STATUS cell `CLOSED: PR 1122` in both tables (14 cells).
+- B-0007: NOT flipped (registry condition, see B-0007 evidence). Proposed cell if the coordinator accepts the glob wiring: `REFUTED: closed by migration 371 and PR 1003 (viewer-read-only-routes.npmtest.mjs, 27 tests pass, wired by the npmtest glob and coverage-report proofWired true; no registry.mjs row)`.
+- B-2273 added as the last row of the Backlog table (line 2451): KIND PRODUCT-DEFECT, CLASS CAPABILITY, AREA lib-agent, TOKEN CONFIRMED, SOURCE sec10, OBJECT fsi-app/src/lib/agent/canonical-pipeline.ts, STATUS empty, finding text as the brief gave it. The summary counts in the file header (2272 rows) were not touched (outside the STATUS-cell and new-row write scope).
 
 ## Read and reused
 
@@ -59,22 +53,21 @@ Coverage table (each file read whole with the Read tool, one call each):
 |---|---|---|
 | briefs-2026-10-04/COMMON.md (scratchpad) | 123 | 1 |
 | briefs-2026-10-04/sec10.md (scratchpad) | 82 | 1 |
-| CLAUDE.md (repo root; delivered whole in the lane context, header re-read) | 120 | 1 |
-| fsi-app/src/app/api/agent/run/route.ts (post-fix) | 140 | 1 |
-| fsi-app/src/app/api/orgs/[org_id]/invitations/[id]/route.ts (post-fix) | 69 | 1 |
-| fsi-app/src/app/api/orgs/[org_id]/invitations/route.ts (post-fix) | 173 | 1 |
-| fsi-app/src/app/api/search/route.ts (post-fix) | 58 | 1 |
-| fsi-app/src/lib/api/auth.ts (post-fix) | 132 | 1 |
-| fsi-app/src/lib/api/route-guard.ts (post-fix) | 125 | 1 |
-| fsi-app/src/lib/api/auth.npmtest.mjs | 162 | 1 |
-| fsi-app/src/lib/api/route-guard.npmtest.mjs | 109 | 1 |
+| CLAUDE.md (repo root) | 120 | 1 |
+| fsi-app/src/app/api/agent/run/route.ts (as on master) | 145 | 1 |
+| fsi-app/src/app/api/orgs/[org_id]/invitations/[id]/route.ts (as on master) | 69 | 1 |
+| fsi-app/src/app/api/orgs/[org_id]/invitations/route.ts (as on master) | 174 | 1 |
+| fsi-app/src/app/api/search/route.ts (as on master) | 61 | 1 |
+| fsi-app/src/app/api/search/logic.ts (not in the write set; needed for the test 4 fake) | 104 | 1 |
+| fsi-app/src/lib/api/auth.ts (as on master) | 123 | 1 |
+| fsi-app/src/lib/api/route-guard.ts (as on master) | 121 | 1 |
+| fsi-app/src/lib/api/auth.npmtest.mjs (as on master) | 118 | 1 |
+| fsi-app/src/lib/api/route-guard.npmtest.mjs (as on master) | 94 | 1 |
 | fsi-app/src/app/api/workspace/viewer-read-only-routes.npmtest.mjs | 130 | 1 |
-| fsi-app/src/app/api/agent/run/guard-fail-closed.npmtest.mjs | 148 | 1 |
-| fsi-app/src/app/api/orgs/invitations-revoke-order.npmtest.mjs | 186 | 1 |
-| fsi-app/src/app/api/search/route-user-client.npmtest.mjs | 91 | 1 |
 | fsi-app/src/lib/supabase-service.ts | 43 | 1 |
+| docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md | 2450 | 0 whole (targeted by row id, see NOT done) |
 
-The first run of this lane (killed by a harness interrupt) also read `fsi-app/src/app/api/search/logic.ts` whole (104 lines); it is not in the write set and was not re-read by the relaunched run. The relaunched run re-ran every test, re-derived the red results below by restoring origin/master's six source files over the fixes (copy to scratchpad, `git checkout origin/master -- <files>`, run, `git checkout HEAD -- <files>`), and confirmed the working tree is back to the pushed tree.
+A second run of this lane committed `1724fc1b4` ("WIP sec10: session log finalized [skip ci]") in this same worktree after this run's final commit `20df358f0`, changing only this log (verified: `git diff 20df358f0 HEAD --name-only` lists only this file, so every source and test file at HEAD is the tree this run tested). That commit left a `[skip ci]` subject at the branch head, which would leave the required checks unreported, so this run made one more commit with a normal subject (its caller-count correction below is kept, and verified: 15 production route files, the two test files that carry the text excluded). The second run's statement that it re-derived the red results by restoring master's six source files is its own and was not repeated by this run; the red evidence in the table above is this run's tests-only commit `a90143633`.
 
 Also loaded whole through the Skill tool by the governing-skill hook before writes: caros-ledge-platform-intent, remediation-discipline, environmental-policy-and-innovation (plus fsi-app/.claude/CLAUDE.md, 441 lines, delivered by the hook). `canonical-pipeline.ts` was read only at lines 1574-1578 and 1681-1685 to confirm the two cited line numbers; it is not in the write set and is not edited.
 
@@ -85,7 +78,7 @@ Also loaded whole through the Skill tool by the governing-skill hook before writ
 - The stale `canonical-pipeline.ts:866/921` citation in the same comment was updated to the step names, and the dash glyph on that line was replaced (rule 10).
 - The lookup-by-source_url read in agent/run still only warns on error (`item lookup by source_url failed`); it ends in a 404 when no id results, so it does not open a guard. Not part of any assigned row.
 
-## Checks run (rule 17, after rule 18's merge, which was a no-op: already up to date)
+## Checks run (rule 17, on the tree after rule 18's merge of origin/master, which brought in AUD-LAND-2)
 
 - `npx eslint --max-warnings=0` on every changed js/mjs/ts file: no output, clean.
 - `node fsi-app/.discipline/fitness/runner.mjs`: 44 functions checked, 0 violations.
@@ -95,7 +88,8 @@ Also loaded whole through the Skill tool by the governing-skill hook before writ
 ## NOT done
 
 - B-0007 STATUS cell not flipped because `viewer-read-only-routes` is not named in registry.mjs and the brief says to stop in that case; evidence is above. [WORK: owed]
-- The backlog STATUS cells and the new row B-2273 are not written in the backlog file because the file is not in the tree; the executor flips them from the lines above. [WORK: owed]
+- The backlog file (2450 lines, 694,018 bytes before this lane) was NOT read whole (rule 20): a whole read is about 700 KB, which does not fit one context beside the code; it was edited by row id with sed (14 STATUS cells, 1 appended row) and the result was checked by grep and by `git diff --stat` (15 insertions, 14 deletions). [NOT-WORK: scope statement, the brief limits the write to those cells and one row]
+- The header summary of the backlog still says 2272 rows and was not updated for B-2273. [WORK: owed]
 - The B-2273 defect itself (sectionStep and groundStep ignore `refresh`) is recorded, not fixed: canonical-pipeline.ts is outside the write set and its change is SKILL.md-gated. [WORK: owed]
 - The bearer-bound client's RPC and re-fetch were proven on fakes only; no live call (no database access in this lane). [NOT-WORK: build-mode scope statement, rule 5 of the lane contract]
 
