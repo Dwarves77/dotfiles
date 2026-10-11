@@ -8,6 +8,8 @@
 - `fsi-app/.discipline/consistency/override-check.mjs`: a `Consistency-Override` is valid only when the rationale is a sentence (3 words, 20 characters) that names the invariant (the check id, or a distinctive word of the check's manifest name via `invariantTerms`) and the deadline is today to 30 days out (`MAX_DEADLINE_DAYS`). `because` with a 2030 date and `x` with 2099 are refused.
 - Tests: `pretooluse-skill-gate.test.mjs` (+70 cases: write forms deny with no skill and allow with it, quiet forms, same resolver as Edit, relative cwd, backslash branch moves, scope) and `override-check.test.mjs` (+10 cases; three existing fixtures updated to a valid rationale and a deadline inside 30 days).
 
+- `fsi-app/.discipline/skill-slim.test.mjs` (write-set expansion GRANTED by the coordinator, limited to this entry): `ACKNOWLEDGED_LINE_CHANGES["sprint-followups-discipline"]` records the two pre-split lines (Override, Worked example) verbatim from 023d47588 after the advertised override text was corrected. CI run 38098634772 CONSERVATION failed on exactly those 2 lines; locally red (1 fail) without the entry, green (15 pass, 0 fail) with it.
+
 ## Read and reused
 
 - Read: CLAUDE.md, COMMON, batch2 GATE-FIX-2 section, the `[WORK: GATE-FIX-2]` rows with 10 lines of context, the gate (`scanArgv`, `gitInvocations`, `isolationAsk`, `evaluateCore`, `gateWrite`), `pretooluse-scope.mjs`, `skill-map.mjs` (`skillsForFile`, `canonPath`), `override-check.mjs`, the consistency manifest.
