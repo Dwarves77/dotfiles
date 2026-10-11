@@ -24,8 +24,17 @@ import {
   parseNeedsIds,
   stepIdsInJob,
   stepOutputReferencesInJob,
+  checkWorkflowFileValidity,
+  checkChainedDryGuard,
+  hasMasterBatchPush,
+  extractUploadArtifactSteps,
+  evaluateArtifactBudget,
+  listUploadWorkflowFiles,
+  checkActionsArtifactBudget,
 } from './F52-workflow-file-validity.mjs';
 import { SCOPED, SCOPED_KEYS } from '../../governance/job-inputs.mjs';
+import { readFile } from '../lib/file-content.mjs';
+import { getRepoRoot } from '../../lib/context.mjs';
 
 // ── fixture harness: a temp repo root with .github/workflows and/or .github/actions files ──────────
 
@@ -67,7 +76,7 @@ test('RED (a): a workflow with no jobs. block at all is caught', () => {
     { 'nojobs.yml': 'name: No jobs\non:\n  workflow_dispatch: {}\n' },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.ok(messagesMatching(out, 'F52a').some((v) => v.message.includes("defines no job")));
     },
   );
@@ -81,7 +90,7 @@ test('RED (a): a workflow whose only job has neither runs-on nor uses is caught'
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.ok(messagesMatching(out, 'F52a').some((v) => v.message.includes('no job has')));
     },
   );
@@ -95,7 +104,7 @@ test('GREEN (a): a minimal valid workflow produces no F52a violation', () => {
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52a'), []);
     },
   );
@@ -103,7 +112,7 @@ test('GREEN (a): a minimal valid workflow produces no F52a violation', () => {
 
 test('RED (a): an action.yml missing using: under runs: is caught', () => {
   withTempRepo(null, { 'bad-action': 'name: Bad action\ndescription: x\nruns:\n  steps:\n    - run: echo hi\n' }, () => {
-    const out = fitnessFunction.check();
+    const out = checkWorkflowFileValidity();
     assert.ok(messagesMatching(out, 'F52a').some((v) => v.message.includes("no 'using:' value")));
   });
 });
@@ -116,7 +125,7 @@ test('GREEN (a): a valid composite action.yml produces no F52a violation', () =>
         'name: Good action\ndescription: x\nruns:\n  using: composite\n  steps:\n    - shell: bash\n      run: echo hi\n',
     },
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52a'), []);
     },
   );
@@ -140,7 +149,7 @@ test('RED (b): the M9d line itself, verbatim - a job-level env: referencing runn
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       const hits = messagesMatching(out, 'F52b');
       assert.ok(hits.length >= 1, 'expected the M9d line to be caught');
       assert.ok(hits.some((v) => v.message.includes("'runner.'")));
@@ -158,7 +167,7 @@ test('RED (b): a workflow-level env: referencing steps. is caught', () => {
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.ok(messagesMatching(out, 'F52b').some((v) => v.message.includes('workflow-level') && v.message.includes("'steps.'")));
     },
   );
@@ -175,7 +184,7 @@ test('GREEN (b): a job-level env: referencing only secrets/github/inputs produce
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52b'), []);
     },
   );
@@ -193,7 +202,7 @@ test('RED (c): a job-level if: referencing steps.foo.outputs is caught', () => {
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.ok(messagesMatching(out, 'F52c').some((v) => v.message.includes("'steps.'")));
     },
   );
@@ -209,7 +218,7 @@ test('GREEN (c): a job-level if: referencing github.event_name produces no F52c 
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52c'), []);
     },
   );
@@ -226,7 +235,7 @@ test('RED (d): needs: names a job that does not exist', () => {
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.ok(messagesMatching(out, 'F52d').some((v) => v.message.includes("needs 'nonexistent'")));
     },
   );
@@ -243,7 +252,7 @@ test('RED (d): steps.<id>.outputs references a step id that does not exist in th
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.ok(messagesMatching(out, 'F52d').some((v) => v.message.includes('steps.wrongid.outputs')));
     },
   );
@@ -263,7 +272,7 @@ test('GREEN (d): needs: an existing job and steps.<id>.outputs naming a real ste
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52d'), []);
     },
   );
@@ -280,7 +289,7 @@ test('RED (e): a workflow_run trigger names a workflow that does not exist in th
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.ok(messagesMatching(out, 'F52e').some((v) => v.message.includes('Nonexistent producer')));
     },
   );
@@ -296,7 +305,7 @@ test('GREEN (e): a workflow_run trigger naming a real workflow (by its own name:
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52e'), []);
     },
   );
@@ -318,7 +327,7 @@ test('RED (f): the gate-a-rescan.yml line itself, verbatim - a run: step pipes a
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       const hits = messagesMatching(out, 'F52f');
       assert.ok(hits.length >= 1, 'expected the un-guarded tee pipe to be caught');
       assert.ok(hits.some((v) => v.message.includes('pipefail')));
@@ -340,7 +349,7 @@ test('GREEN (f): the same step with set -o pipefail added first produces no F52f
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52f'), []);
     },
   );
@@ -362,7 +371,7 @@ test('RED (f): pipefail set in a DIFFERENT step does not protect this step\'s ow
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.ok(messagesMatching(out, 'F52f').length >= 1, 'pipefail in an earlier, unrelated step must not suppress this one');
     },
   );
@@ -377,7 +386,7 @@ test('GREEN (f): a run: step with no tee pipe at all produces no F52f violation'
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52f'), []);
     },
   );
@@ -400,7 +409,7 @@ test('RED (g): the propagation-drain.yml class, verbatim shape - git rebase with
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       const hits = messagesMatching(out, 'F52g');
       assert.ok(hits.length >= 1, 'expected the shallow-checkout rebase to be caught');
       assert.ok(hits.some((v) => v.message.includes('fetch-depth')));
@@ -424,7 +433,7 @@ test('GREEN (g): the same job with fetch-depth: 0 on its checkout step produces 
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52g'), []);
     },
   );
@@ -441,7 +450,7 @@ test('GREEN (g): a job with no git rebase at all produces no F52g violation rega
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52g'), []);
     },
   );
@@ -464,7 +473,7 @@ test('RED (h): a step that git-adds only scripts/harness-runs/<family> then push
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       const hits = messagesMatching(out, 'F52h');
       assert.ok(hits.length >= 1, 'expected the artifact-branch push to be caught');
       assert.ok(hits.some((v) => v.message.includes('artifact branch')));
@@ -486,7 +495,7 @@ test('GREEN (h): a step that ALSO stages other real content alongside the harnes
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52h'), []);
     },
   );
@@ -506,7 +515,7 @@ test('GREEN (h): a step that pushes with no git add of a harness-runs path at al
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52h'), []);
     },
   );
@@ -523,7 +532,7 @@ test('GREEN (h): deliver-artifact-branch.sh with no git add/push at all is not f
     },
     null,
     () => {
-      const out = fitnessFunction.check();
+      const out = checkWorkflowFileValidity();
       assert.deepEqual(messagesMatching(out, 'F52h'), []);
     },
   );
@@ -592,15 +601,15 @@ test('listWorkflowAndActionFiles lists both workflow and action files, sorted', 
 // step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
 const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
 
-test('LIVE: fitnessFunction.check() over the real committed tree returns zero violations', LIVE_TREE, () => {
-  const result = fitnessFunction.check();
+test('LIVE: checkWorkflowFileValidity() over the real committed tree returns zero violations', LIVE_TREE, () => {
+  const result = checkWorkflowFileValidity();
   assert.deepEqual(result, [], `expected 0 violations, got: ${JSON.stringify(result, null, 2)}`);
 });
 
-test('enumerate() returns exactly one sentinel path (holistic pattern, same as F23/F25/F27/F50)', () => {
-  assert.deepEqual(fitnessFunction.enumerate(), [
-    'fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.mjs',
-  ]);
+test('enumerate() leads with the one sentinel path for the tree-wide facets, then lists each workflow file for facet B', () => {
+  const files = fitnessFunction.enumerate();
+  assert.equal(files[0], 'fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.mjs');
+  assert.ok(files.slice(1).every((f) => /^\.github\/workflows\/[^/]+\.yml$/.test(f)));
 });
 
 // ── GATE-4 (lane gate4-ci): the shape of the real discipline.yml, asserted as workflow-validity facts ──
@@ -1308,4 +1317,362 @@ test('CI-MIN-1: every setup-node step in a workflow or action restores the npm c
     });
   }
   assert.ok(steps > 40, `${steps} setup-node steps checked`);
+});
+
+// ---- Facet B, formerly F61 (REG-1, 2026-10-11): the former F61 test file, moved here with its function. ----
+
+const WORKFLOW_RUN_YML = `
+on:
+  workflow_run:
+    workflows: ["Source sweep"]
+    types: [completed]
+jobs:
+  x:
+    steps:
+      - run: |
+          mode="apply"
+`;
+
+// ── ATTACK: an apply-capable workflow_run workflow with no gate call at all ─────────────────────────
+
+test('ATTACK: workflow_run + "apply" literal + no chained-dry-guard.mjs call = 2 violations (script AND output both missing)', () => {
+  const out = checkChainedDryGuard('.github/workflows/fixture.yml', WORKFLOW_RUN_YML);
+  assert.equal(out.length, 2);
+  assert.match(out[0].message, /never calls chained-dry-guard\.mjs/);
+  assert.match(out[1].message, /never reads CHAINED_FORCED_DRY/);
+});
+
+test('ATTACK: the gate script is called but its output is never consulted (called-and-ignored)', () => {
+  const yml = WORKFLOW_RUN_YML.replace(
+    'mode="apply"',
+    'node scripts/lib/chained-dry-guard.mjs --event x --requested-mode apply >> "$GITHUB_ENV"\n          mode="apply"',
+  );
+  const out = checkChainedDryGuard('.github/workflows/fixture.yml', yml);
+  assert.equal(out.length, 1);
+  assert.match(out[0].message, /never reads CHAINED_FORCED_DRY/);
+});
+
+// ── CONTROL: fully wired workflow reports zero violations ──────────────────────────────────────────
+
+test('CONTROL: gate called AND its output consulted -- zero violations', () => {
+  const yml = WORKFLOW_RUN_YML.replace(
+    'mode="apply"',
+    'node scripts/lib/chained-dry-guard.mjs --event x --requested-mode apply >> "$GITHUB_ENV"\n' +
+      '          mode="apply"\n' +
+      '          if [ "$CHAINED_FORCED_DRY" = "true" ]; then mode="dry"; fi',
+  );
+  assert.deepEqual(checkChainedDryGuard('.github/workflows/fixture.yml', yml), []);
+});
+
+// ── CONTROL: no workflow_run trigger at all -- not this gate's concern ──────────────────────────────
+
+test('CONTROL: a workflow with no workflow_run trigger is skipped entirely, even with a bare "apply" literal', () => {
+  const yml = `
+on:
+  workflow_dispatch:
+jobs:
+  x:
+    steps:
+      - run: mode="apply"
+`;
+  assert.deepEqual(checkChainedDryGuard('.github/workflows/fixture.yml', yml), []);
+});
+
+// ── CONTROL: workflow_run trigger but no "apply" literal at all (a read-only export) ────────────────
+
+test('CONTROL: workflow_run trigger with no "apply" literal anywhere is skipped (nothing to guard)', () => {
+  const yml = `
+on:
+  workflow_run:
+    workflows: ["Population turn"]
+    types: [completed]
+jobs:
+  x:
+    steps:
+      - run: echo "read only, no write path"
+`;
+  assert.deepEqual(checkChainedDryGuard('.github/workflows/fixture.yml', yml), []);
+});
+
+// ── CONTROL: null/undefined content (file vanished) never throws ───────────────────────────────────
+
+test('CONTROL: null content is skipped, not thrown on', () => {
+  assert.deepEqual(checkChainedDryGuard('.github/workflows/fixture.yml', null), []);
+});
+
+// ── LIVE: the real tree, today, reports zero violations (this lane's own fix) ───────────────────────
+
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+
+test('LIVE: every real .github/workflows/*.yml file reports zero violations', LIVE_TREE, () => {
+  const files = fitnessFunction.enumerate().filter((f) => f.startsWith('.github/workflows/'));
+  assert.ok(files.length > 0, 'enumerate() found no workflow files -- check getRepoRoot()/.github/workflows path');
+  let violations = [];
+  for (const f of files) {
+    const content = readFile(f);
+    violations = violations.concat(checkChainedDryGuard(f, content));
+  }
+  assert.deepEqual(
+    violations,
+    [],
+    `expected 0 violations, got: ${JSON.stringify(violations, null, 2)}`,
+  );
+});
+
+// ── ATTACK (lane CHAINED-DRY-GUARD-2, 2026-09-29, coordinator-directed): a machine dispatch requesting
+// apply under cadence off must resolve dry -- the live proof run found propagation-drain.yml's guard
+// call reachable via downstream-chain.yml's OWN machine-fired workflow_dispatch (the F60 explicit-
+// dispatch fallback) without a --chained marker, so the force-dry branch never fired for that path;
+// the workflow ran dry only because the caller's own -f mode input happened to say so. This is the
+// runtime proof (pure resolveChainedRunMode, in scripts/lib/chained-dry-guard.test.mjs) mirrored here
+// as a static content check on the one file known to be reachable that way today.
+
+test('ATTACK: propagation-drain.yml, the one workflow reachable via a machine-fired workflow_dispatch (downstream-chain.yml\'s F60 fallback), wires --chained into its own guard call', () => {
+  const dir = join(getRepoRoot(), '.github', 'workflows');
+  const text = readFileSync(join(dir, 'propagation-drain.yml'), 'utf8');
+  assert.match(
+    text,
+    /chained-dry-guard\.mjs --event "\$\{\{ github\.event_name \}\}" --requested-mode "\$\{\{ inputs\.mode \|\| 'apply' \}\}" --chained/,
+    'expected the guard call to pass --chained (derived from inputs.chain_upstream_run_id being ' +
+      'non-empty) and the mode input expression (lane CHAIN-1: the real requested mode, never a hardcoded apply), so a machine-fired workflow_dispatch is treated like workflow_run for the force-dry ' +
+      'decision, not merely trusted to have arrived already-dry from its caller.'
+  );
+});
+
+test('enumerate() finds every .yml file directly under .github/workflows/', () => {
+  const dir = join(getRepoRoot(), '.github', 'workflows');
+  const expectedCount = readdirSync(dir).filter((f) => f.endsWith('.yml')).length;
+  assert.equal(fitnessFunction.enumerate().filter((f) => f.startsWith('.github/workflows/')).length, expectedCount);
+});
+
+// ── lane G6-DRAIN (2026-10-06): a push to master on a committed batch path is machine-triggered too ────────
+
+const BATCH_PUSH_YML = `
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'fsi-app/scripts/turns/theme-briefs/batches/theme-briefs-*.json'
+  workflow_dispatch:
+jobs:
+  x:
+    steps:
+      - run: |
+          node scripts/lib/chained-dry-guard.mjs --event x --requested-mode apply >> "$GITHUB_ENV"
+          mode="apply"
+          if [ "$CHAINED_FORCED_DRY" = "true" ]; then mode="dry"; fi
+`;
+
+test('ATTACK: a batch-path push-to-master workflow that calls the guard WITHOUT --ref is a violation', () => {
+  const out = checkChainedDryGuard('.github/workflows/fixture.yml', BATCH_PUSH_YML);
+  assert.equal(out.length, 1);
+  assert.match(out[0].message, /never passes --ref/);
+});
+
+test('CONTROL: the same workflow passing --ref to the guard is clean', () => {
+  const yml = BATCH_PUSH_YML.replace('--requested-mode apply >>', '--requested-mode apply --ref "${{ github.ref }}" >>');
+  assert.deepEqual(checkChainedDryGuard('.github/workflows/fixture.yml', yml), []);
+});
+
+test('ATTACK: a batch-path push-to-master workflow that never calls the guard at all is a violation', () => {
+  const yml = BATCH_PUSH_YML.replace(/node scripts\/lib\/chained-dry-guard\.mjs.*\n/, '').replace('if [ "$CHAINED_FORCED_DRY" = "true" ]; then mode="dry"; fi', '');
+  const out = checkChainedDryGuard('.github/workflows/fixture.yml', yml);
+  assert.equal(out.length, 2);
+});
+
+test('CONTROL: a push to master filtered on src/ (a build workflow), or a push to a turn/** branch, is not a batch apply path', () => {
+  const build = BATCH_PUSH_YML.replace("fsi-app/scripts/turns/theme-briefs/batches/theme-briefs-*.json", 'fsi-app/src/**').replace(/node scripts\/lib\/chained-dry-guard\.mjs.*\n/, '');
+  assert.deepEqual(checkChainedDryGuard('.github/workflows/fixture.yml', build), []);
+  const turn = BATCH_PUSH_YML.replace('branches: [master]', "branches:\n      - 'turn/**'").replace(/node scripts\/lib\/chained-dry-guard\.mjs.*\n/, '');
+  assert.deepEqual(checkChainedDryGuard('.github/workflows/fixture.yml', turn), []);
+});
+
+test('hasMasterBatchPush reads the block-list branches form too', () => {
+  const yml = "on:\n  push:\n    branches:\n      - master\n    paths:\n      - 'fsi-app/scripts/x/*.json'\n  workflow_dispatch:\n";
+  assert.equal(hasMasterBatchPush(yml), true);
+});
+
+// ---- Facet C, formerly F68 (REG-1, 2026-10-11): the former F68 test file, moved here with its function. ----
+
+function wf(stepYaml) {
+  return [
+    'name: Fixture',
+    'on: workflow_dispatch',
+    'jobs:',
+    '  fixture:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    stepYaml,
+  ].join('\n');
+}
+
+// ── pure helpers ───────────────────────────────────────────────────────────────────────────────────
+
+test('extractUploadArtifactSteps reads an inline path and an explicit retention-days', () => {
+  const text = wf(
+    [
+      '      - name: Upload',
+      '        uses: actions/upload-artifact@v4',
+      '        with:',
+      '          name: fixture',
+      '          path: fsi-app/dossiers/',
+      '          retention-days: 7',
+    ].join('\n'),
+  );
+  const steps = extractUploadArtifactSteps(text);
+  assert.equal(steps.length, 1);
+  assert.equal(steps[0].retentionDays, 7);
+  assert.equal(steps[0].pathValue, 'fsi-app/dossiers/');
+});
+
+test('extractUploadArtifactSteps reads a block-scalar path across multiple lines', () => {
+  const text = wf(
+    [
+      '      - name: Upload',
+      '        uses: actions/upload-artifact@v4',
+      '        with:',
+      '          name: fixture',
+      '          path: |',
+      '            fsi-app/scripts/harness-runs/fixture/',
+      '            /tmp/fixture.log',
+      '          retention-days: 7',
+    ].join('\n'),
+  );
+  const steps = extractUploadArtifactSteps(text);
+  assert.equal(steps.length, 1);
+  assert.match(steps[0].pathValue, /harness-runs\/fixture/);
+  assert.match(steps[0].pathValue, /tmp\/fixture\.log/);
+});
+
+test('extractUploadArtifactSteps returns retentionDays null when the step sets none', () => {
+  const text = wf(
+    [
+      '      - name: Upload',
+      '        uses: actions/upload-artifact@v4',
+      '        with:',
+      '          name: fixture',
+      '          path: /tmp/fixture.log',
+    ].join('\n'),
+  );
+  const steps = extractUploadArtifactSteps(text);
+  assert.equal(steps[0].retentionDays, null);
+});
+
+// ── attack: must fail ─────────────────────────────────────────────────────────────────────────────
+
+test('evaluateArtifactBudget FAILS a step with retention-days above 7', () => {
+  const text = wf(
+    [
+      '      - name: Upload',
+      '        uses: actions/upload-artifact@v4',
+      '        with:',
+      '          name: fixture',
+      '          path: fsi-app/scripts/harness-runs/fixture/',
+      '          retention-days: 90',
+    ].join('\n'),
+  );
+  const out = evaluateArtifactBudget('.github/workflows/fixture.yml', text);
+  assert.ok(out.some((m) => /retention-days: 90 exceeds/.test(m)), out.join('\n'));
+});
+
+test('evaluateArtifactBudget FAILS a step whose path contains _snapshots (inline)', () => {
+  const text = wf(
+    [
+      '      - name: Upload',
+      '        uses: actions/upload-artifact@v4',
+      '        with:',
+      '          name: fixture',
+      '          path: fsi-app/scripts/_snapshots/',
+      '          retention-days: 7',
+    ].join('\n'),
+  );
+  const out = evaluateArtifactBudget('.github/workflows/fixture.yml', text);
+  assert.ok(out.some((m) => /references '_snapshots'/.test(m)), out.join('\n'));
+});
+
+test('evaluateArtifactBudget FAILS a step whose path contains _snapshots (inside a block scalar)', () => {
+  const text = wf(
+    [
+      '      - name: Upload',
+      '        uses: actions/upload-artifact@v4',
+      '        with:',
+      '          name: fixture',
+      '          path: |',
+      '            fsi-app/scripts/harness-runs/fixture/',
+      '            fsi-app/scripts/_snapshots/turn-123/',
+      '          retention-days: 7',
+    ].join('\n'),
+  );
+  const out = evaluateArtifactBudget('.github/workflows/fixture.yml', text);
+  assert.ok(out.some((m) => /references '_snapshots'/.test(m)), out.join('\n'));
+});
+
+test('evaluateArtifactBudget FAILS a step whose path contains scripts/tmp', () => {
+  const text = wf(
+    [
+      '      - name: Upload',
+      '        uses: actions/upload-artifact@v4',
+      '        with:',
+      '          name: fixture',
+      '          path: fsi-app/scripts/tmp/select.log',
+      '          retention-days: 7',
+    ].join('\n'),
+  );
+  const out = evaluateArtifactBudget('.github/workflows/fixture.yml', text);
+  assert.ok(out.some((m) => /references 'scripts\/tmp'/.test(m)), out.join('\n'));
+});
+
+// ── the matching clean pair: must pass ────────────────────────────────────────────────────────────
+
+test('evaluateArtifactBudget PASSES a step with retention-days: 7 and a harness-runs-only path', () => {
+  const text = wf(
+    [
+      '      - name: Upload',
+      '        uses: actions/upload-artifact@v4',
+      '        with:',
+      '          name: fixture',
+      '          path: |',
+      '            fsi-app/scripts/harness-runs/fixture/',
+      '            /tmp/fixture.log',
+      '          retention-days: 7',
+    ].join('\n'),
+  );
+  assert.deepEqual(evaluateArtifactBudget('.github/workflows/fixture.yml', text), []);
+});
+
+test('evaluateArtifactBudget PASSES a step that sets no retention-days at all (no explicit value to judge)', () => {
+  const text = wf(
+    [
+      '      - name: Upload',
+      '        uses: actions/upload-artifact@v4',
+      '        with:',
+      '          name: fixture',
+      '          path: fsi-app/scripts/harness-runs/fixture/',
+    ].join('\n'),
+  );
+  assert.deepEqual(evaluateArtifactBudget('.github/workflows/fixture.yml', text), []);
+});
+
+test('evaluateArtifactBudget ignores a file with no upload-artifact step at all', () => {
+  const text = wf(['      - name: Build', '        run: echo hi'].join('\n'));
+  assert.deepEqual(evaluateArtifactBudget('.github/workflows/fixture.yml', text), []);
+});
+
+// ── live proof (rule 15: execution over existence) ────────────────────────────────────────────────
+
+test('listUploadWorkflowFiles finds the real .github/workflows directory', () => {
+  const files = listUploadWorkflowFiles(getRepoRoot());
+  assert.ok(files.length > 10, `expected >10 workflow files, got ${files.length}`);
+  assert.ok(files.includes('.github/workflows/discipline.yml'));
+});
+
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+
+test('checkActionsArtifactBudget() reports zero violations against the live tree (post-R22 remediation)', LIVE_TREE, () => {
+  const out = checkActionsArtifactBudget();
+  assert.deepEqual(out, [], JSON.stringify(out, null, 2));
 });

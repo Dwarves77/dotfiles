@@ -70,6 +70,7 @@ import { violation } from '../lib/result.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { readFile } from '../lib/file-content.mjs';
 import { extractWorkflowRunNames, extractWorkflowName } from '../lib/yml-read.mjs';
+import { join } from 'node:path';
 
 const JOB_ID_INDENT = 2;
 const JOB_PROP_INDENT = 4;
@@ -573,37 +574,278 @@ function runActionlintIfAvailable(repoRoot, out) {
   }
 }
 
-export const fitnessFunction = {
-  id: 'F52',
-  name: 'workflow-file-validity',
-  description:
-    'Every .github/workflows/*.yml and .github/actions/*/action.yml file is checked against five ' +
-    'structural rules GitHub itself would refuse or misinterpret: (a) parses, has on: and a runnable ' +
-    'job / an action has runs.using; (b) a workflow- or job-level env: value never references runner., ' +
-    'env., steps. or job. (the M9d class); (c) a job-level if: never references steps. or runner.; ' +
-    '(d) every needs: names a real job and every steps.<id>.outputs reference names a real step id in ' +
-    'the same job; (e) a workflow_run trigger names a real workflow; (f) a run: step piping into tee ' +
-    'has set -o pipefail earlier in the same step (a bash pipeline masks every command but the last); ' +
-    '(g) a job that runs git rebase has fetch-depth: 0 on its checkout step (a shallow checkout has no ' +
-    'history to rebase onto); (h) no run: step stages only a scripts/harness-runs path and pushes it as ' +
-    'a branch (the removed artifact-branch anti-pattern - land via deliver-artifact-branch.sh instead). ' +
-    'Also runs actionlint locally when it is on PATH (CI runs it as its own pinned step - see ' +
-    '.github/workflows/discipline.yml).',
-  source:
-    'brief-f52.md (lane F52, 2026-09-20), after lane M9d\'s ${{ runner.temp }} job-level env: broke ' +
-    '.github/workflows/producers.yml (GitHub run 35533637184) and every existing gate passed it anyway. ' +
-    'Check (f) added lane GATE-A-RESCAN-FIX (2026-09-26) after GitHub run 36217491293: gate-a-rescan.yml ' +
-    "piped gate-a-rescan.mjs's fatal failure into `tee` with no pipefail, so the step reported SUCCESS. " +
-    'Checks (g)/(h) added lane STATUTORY-WRITER (2026-09-29) after PR #824, propagation-drain run ' +
-    '36534640498: the artifact-commit step rebased on a shallow checkout and failed outright, the same ' +
-    'class #812/#819 each independently fixed in their own workflow only; coordinator ruling: fix the ' +
-    'class repo-wide and gate it so it cannot silently come back.',
 
-  enumerate() {
-    return ['fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.mjs'];
-  },
+// Facet B, formerly F61 (absorbed by REG-1, 2026-10-11): chained-dry-guard-wired (lane CHAINED-DRY-GUARD, 2026-09-29, coordinator-directed). Rule 16:
+// build mode (system_state.scrape_cadence='off') means every runtime fires by explicit dispatch; a
+// workflow_run-chained firing is not one. [CONFIRMED live, 2026-09-29]: a hand-dispatched Source sweep
+// chained into Ledger consume's own workflow_run branch, which was about to run its "chained apply"
+// pass; RUN_MODE hardcoded to "apply" on every workflow_run firing across ledger-consume/
+// population-turn/corpus-turn/downstream-chain/propagation-drain/gate-a-rescan/fetch-drain, with
+// nothing checking build mode first. The coordinator cancelled the run by hand. scripts/lib/
+// chained-dry-guard.mjs is the fix: the ONE shared gate every such workflow now calls, forcing dry
+// whenever build mode is live. THIS GATE makes sure a future edit cannot quietly remove that call
+// while leaving the hardcoded apply value in place.
+//
+// HEURISTIC, text-based (no YAML/shell parser is a direct dependency of this repository, same posture
+// F50/F52/F60 already state for themselves): a workflow file that (a) has a `workflow_run:` trigger and
+// (b) contains the literal string `"apply"` anywhere (a strong proxy for "this file can set some mode
+// variable to apply on a chained firing") MUST ALSO reference BOTH `chained-dry-guard.mjs` (the gate is
+// actually called) AND `CHAINED_FORCED_DRY` (the gate's own output is actually consulted somewhere, not
+// merely invoked and ignored) in the same file. Missing either is a violation. A workflow_run-triggered
+// file with no `"apply"` string at all (read-only, e.g. brief-export.yml) is not checked further, it
+// has no apply path to guard.
+const GATE_SCRIPT_MARKER = 'chained-dry-guard.mjs';
+const GATE_OUTPUT_MARKER = 'CHAINED_FORCED_DRY';
+// The guard prints both; a workflow that consults the resolved mode (CHAINED_MODE) consults the answer just as
+// well as one that reads the forced-dry flag (theme-briefs and question-answers resolve their mode that way).
+const GATE_OUTPUT_ALT_MARKER = 'CHAINED_MODE';
+// Lane G6-DRAIN (2026-10-06, coordinator ruling): a push to master that touches a committed data-batch path
+// (a path under fsi-app/scripts/) is the merge of a drain batch PR, a machine firing exactly like a
+// workflow_run hop. The judgement apply workflows fire on it with no human dispatch, so the SAME guard must
+// hold them dry while build mode is live, called with the push ref (the guard treats a push to master as
+// machine-triggered only when it is told the ref). The scope is deliberately narrow: only a `push:` trigger
+// whose branches include master/main AND whose `paths:` list names something under fsi-app/scripts/ (a build,
+// lint or discipline workflow that pushes on master and filters on src/ is not a batch apply path).
+const GATE_REF_MARKER = '--ref';
 
-  check() {
+/** True when the workflow has a `push:` trigger on master/main with a `paths:` entry under fsi-app/scripts/. */
+export function hasMasterBatchPush(text) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((l) => /^ {2}push:\s*$/.test(l));
+  if (start === -1) return false;
+  const block = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^ {2}\S/.test(lines[i]) || /^\S/.test(lines[i])) break; // the next trigger key or a top-level key
+    block.push(lines[i]);
+  }
+  const body = block.join('\n');
+  const onMaster = /^\s{4}branches:\s*(\[[^\]]*\b(?:master|main)\b[^\]]*\]|$)/m.test(body)
+    && (/^\s{4}branches:\s*\[[^\]]*\b(?:master|main)\b/m.test(body) || /^\s{4}branches:\s*\n(?:\s{6}-[^\n]*\n)*?\s{6}-\s*['"]?(?:master|main)['"]?\s*$/m.test(body));
+  if (!onMaster) return false;
+  return /^\s{4}paths:\s*\n(?:\s{6}[^\n]*\n)*?\s{6}-\s*['"]?fsi-app\/scripts\//m.test(body);
+}
+
+/** Facet B (formerly F61 chained-dry-guard-wired): per-workflow-file check. */
+export function checkChainedDryGuard(relPath, text) {
+    if (text === null || text === undefined) return [];
+    const workflowRunNames = extractWorkflowRunNames(text);
+    const batchPush = hasMasterBatchPush(text);
+    if (workflowRunNames === null && !batchPush) return []; // neither a workflow_run nor a master batch push, not this gate's concern
+    if (!text.includes('"apply"') && !text.includes("'apply'") && !text.includes('=apply')) {
+      return []; // no apply-equivalent literal anywhere -- nothing to guard (e.g. a read-only export)
+    }
+    const out = [];
+    if (batchPush && text.includes(GATE_SCRIPT_MARKER) && !text.includes(GATE_REF_MARKER)) {
+      out.push(
+        violation(
+          1,
+          `${relPath}: has a push-to-master trigger on a committed batch path and can set a mode to "apply", ` +
+            `but never passes ${GATE_REF_MARKER} to ${GATE_SCRIPT_MARKER}; without the ref the guard does not ` +
+            `treat the push as machine-triggered and a merge could reach apply while build mode is live.`,
+        ),
+      );
+    }
+    if (!text.includes(GATE_SCRIPT_MARKER)) {
+      out.push(
+        violation(
+          1,
+          `${relPath}: has a workflow_run or master batch-push trigger and can set a mode to "apply", but never calls ` +
+            `${GATE_SCRIPT_MARKER}, a chained firing could reach apply while build mode is live.`,
+        ),
+      );
+    }
+    if (!text.includes(GATE_OUTPUT_MARKER) && !text.includes(GATE_OUTPUT_ALT_MARKER)) {
+      out.push(
+        violation(
+          1,
+          `${relPath}: has a workflow_run or master batch-push trigger and can set a mode to "apply", but never reads ` +
+            `${GATE_OUTPUT_MARKER} (or ${GATE_OUTPUT_ALT_MARKER}), the gate may be called but its answer is never consulted.`,
+        ),
+      );
+    }
+    return out;
+}
+
+
+// Facet C, formerly F68 (absorbed by REG-1, 2026-10-11): actions-artifact-budget (lane R22, 2026-10-01, ACTIONS-STORAGE-AND-DOCS-ONLY-PUSH). Why: the
+// coordinator measured GitHub Actions storage at 90% of plan on 2026-10-01 -- 311 artifacts, 6.2 GB,
+// every one from September, every one of 13 workflows uploading its whole fsi-app/scripts/_snapshots/
+// tree (guarded-write row snapshots -- regenerable machine evidence, CLAUDE.md rule 5) at a 90-day
+// retention. The coordinator's own cleanup deleted 290 artifacts older than 3 days and got to 0.43 GB;
+// this gate makes the regression mechanically impossible to re-introduce, workflow by workflow.
+//
+// WHAT THIS CHECKS, per `uses: actions/upload-artifact@...` step found in any .github/workflows/*.yml:
+//   1. retention-days, if the step sets one, must be <= 7. (A step that sets none inherits the
+//      repository's own default; this gate does not reach outside the repo to that setting -- it
+//      enforces the explicit value every one of this lane's own edits now sets.)
+//   2. the step's `path:` value (inline or block-scalar) must not contain `_snapshots` or `scripts/tmp`
+//      anywhere, in any path entry. Both are this repo's own gitignored, regenerable scratch
+//      (root .gitignore; CLAUDE.md rule 5's "gitignored scratch ... if regenerable"), never a durable
+//      artifact's own content. A workflow that needs a full-trace file to survive past the runner (the
+//      forward-events class corpus-turn.yml's own header documents) moves that file under its family's
+//      own scripts/harness-runs/<family>/ directory instead -- never back under _snapshots/ or
+//      scripts/tmp/, which this gate would then catch again.
+//
+// PARSING. Line-based, indentation-based text scan, the same convention F52 (workflow-file-validity) and
+// F54 (push-gate-npm-parity) already use for this file family -- no YAML parser is a direct dependency of
+// this repository. HOLISTIC (enumerate() returns a single sentinel, the F23/F25/F27/F47/F50/F52 precedent)
+// so the runner's own file:line columns point at that sentinel, not at the real offending file; every
+// real violation message below names the actual file and line itself.
+//
+// Negative-tested (F68-actions-artifact-budget.test.mjs): a fixture workflow with retention-days: 90
+// fails; a fixture with a `_snapshots` path fails; a fixture with a `scripts/tmp` path fails; a fixture
+// with retention-days: 7 and a harness-runs-only path passes.
+
+const RETENTION_BUDGET_DAYS = 7;
+const FORBIDDEN_PATH_SUBSTRINGS = ['_snapshots', 'scripts/tmp'];
+
+function f68IndentOf(line) {
+  return line.match(/^( *)/)[1].length;
+}
+
+/**
+ * List every .github/workflows/*.yml file, repo-relative, sorted for determinism.
+ * @param {string} repoRoot
+ * @returns {string[]}
+ */
+export function listUploadWorkflowFiles(repoRoot) {
+  const dir = `${repoRoot}/.github/workflows`;
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return [];
+  }
+  return entries
+    .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
+    .map((f) => `.github/workflows/${f}`)
+    .sort();
+}
+
+/**
+ * Every `uses: actions/upload-artifact@...` step in a workflow file's text: for each, the step's own
+ * `retention-days:` value (number, or null when the step sets none) and `path:` value (raw string, inline
+ * or the joined body of a block scalar), plus the 1-based line each was found on (-1 when absent). PURE:
+ * takes text, returns plain data, never touches the filesystem.
+ * @param {string} text
+ * @returns {{usesLine: number, retentionDays: number|null, retentionDaysLine: number, pathValue: string, pathLine: number}[]}
+ */
+export function extractUploadArtifactSteps(text) {
+  const lines = String(text ?? '').split(/\r?\n/);
+  const steps = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*uses:\s*actions\/upload-artifact@/.test(lines[i])) continue;
+    const propIndent = f68IndentOf(lines[i]);
+
+    // `with:` is a sibling property of `uses:` at the same indent, somewhere later in this same step's
+    // property block (before the block dedents past propIndent, which ends the step).
+    let withLine = -1;
+    for (let j = i + 1; j < lines.length; j++) {
+      if (lines[j].trim() === '') continue;
+      const ind = f68IndentOf(lines[j]);
+      if (ind < propIndent) break;
+      if (ind === propIndent && /^\s*with:\s*$/.test(lines[j])) {
+        withLine = j;
+        break;
+      }
+    }
+
+    let retentionDays = null;
+    let retentionDaysLine = -1;
+    let pathValue = '';
+    let pathLine = -1;
+
+    if (withLine !== -1) {
+      const childIndent = propIndent + 2;
+      for (let j = withLine + 1; j < lines.length; j++) {
+        const line = lines[j];
+        if (line.trim() === '') continue;
+        const ind = f68IndentOf(line);
+        if (ind < childIndent) break;
+        if (ind !== childIndent) continue;
+
+        const rdMatch = line.match(/^\s*retention-days:\s*(\d+)\s*$/);
+        if (rdMatch) {
+          retentionDays = Number(rdMatch[1]);
+          retentionDaysLine = j;
+          continue;
+        }
+
+        const pathMatch = line.match(/^\s*path:\s*(.*)$/);
+        if (pathMatch) {
+          pathLine = j;
+          const inline = pathMatch[1].trim();
+          if (inline && !['|', '>', '|-', '>-', '|+', '>+'].includes(inline)) {
+            pathValue = inline;
+          } else {
+            // Block scalar: collect every more-indented line until the block dedents.
+            const bodyIndent = childIndent + 2;
+            const collected = [];
+            for (let k = j + 1; k < lines.length; k++) {
+              if (lines[k].trim() === '') {
+                collected.push('');
+                continue;
+              }
+              if (f68IndentOf(lines[k]) < bodyIndent) break;
+              collected.push(lines[k].trim());
+            }
+            pathValue = collected.join('\n');
+          }
+        }
+      }
+    }
+
+    steps.push({ usesLine: i, retentionDays, retentionDaysLine, pathValue, pathLine });
+  }
+  return steps;
+}
+
+/**
+ * Pure comparison core: evaluate every upload-artifact step extracted from one file's text against the
+ * budget. Returns plain-string violation messages (never throws, never touches the filesystem).
+ * @param {string} file
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function evaluateArtifactBudget(file, text) {
+  const out = [];
+  for (const step of extractUploadArtifactSteps(text)) {
+    if (step.retentionDays !== null && step.retentionDays > RETENTION_BUDGET_DAYS) {
+      out.push(
+        `${file}:${step.retentionDaysLine + 1}: F68 retention-days: ${step.retentionDays} exceeds the ` +
+          `${RETENTION_BUDGET_DAYS}-day Actions-storage budget (docs/runbooks/fleet-budget-control.md).`,
+      );
+    }
+    for (const bad of FORBIDDEN_PATH_SUBSTRINGS) {
+      if (step.pathValue.includes(bad)) {
+        out.push(
+          `${file}:${step.pathLine + 1}: F68 upload-artifact path references '${bad}' -- regenerable ` +
+            `scratch (CLAUDE.md rule 5) must not ride the Actions artifact store; narrow to the run's own ` +
+            `harness artifact (scripts/harness-runs/<family>/) and any log the step writes.`,
+        );
+      }
+    }
+  }
+  return out;
+}
+
+/** Facet C (formerly F68 actions-artifact-budget): tree-wide, reported once against the anchor. */
+export function checkActionsArtifactBudget() {
+    const out = [];
+    const repoRoot = getRepoRoot();
+    for (const file of listUploadWorkflowFiles(repoRoot)) {
+      const text = readFile(file);
+      if (text === null) {
+        out.push(violation(1, `${file}: F68 could not be read (missing?).`));
+        continue;
+      }
+      for (const message of evaluateArtifactBudget(file, text)) out.push(violation(1, message));
+    }
+    return out;
+}
+
+/** Facet A (the original F52): structural validity of every workflow and action file. */
+export function checkWorkflowFileValidity() {
     const out = [];
     const repoRoot = getRepoRoot();
     const files = listWorkflowAndActionFiles(repoRoot);
@@ -638,5 +880,50 @@ export const fitnessFunction = {
     runActionlintIfAvailable(repoRoot, out);
 
     return out;
+}
+
+const ANCHOR = 'fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.mjs';
+
+export const fitnessFunction = {
+  id: 'F52',
+  name: 'workflow-file-class',
+  description:
+    'Workflow-file class. Facet B (formerly F61): every workflow_run-triggered workflow that can set a mode to apply must call chained-dry-guard.mjs and consult its CHAINED_FORCED_DRY output. Facet C (formerly F68): every actions/upload-artifact step keeps retention-days at 7 or less and never uploads _snapshots or scripts/tmp. Facet A (the original F52): every .github/workflows/*.yml and .github/actions/*/action.yml file is checked against five ' +
+    'structural rules GitHub itself would refuse or misinterpret: (a) parses, has on: and a runnable ' +
+    'job / an action has runs.using; (b) a workflow- or job-level env: value never references runner., ' +
+    'env., steps. or job. (the M9d class); (c) a job-level if: never references steps. or runner.; ' +
+    '(d) every needs: names a real job and every steps.<id>.outputs reference names a real step id in ' +
+    'the same job; (e) a workflow_run trigger names a real workflow; (f) a run: step piping into tee ' +
+    'has set -o pipefail earlier in the same step (a bash pipeline masks every command but the last); ' +
+    '(g) a job that runs git rebase has fetch-depth: 0 on its checkout step (a shallow checkout has no ' +
+    'history to rebase onto); (h) no run: step stages only a scripts/harness-runs path and pushes it as ' +
+    'a branch (the removed artifact-branch anti-pattern - land via deliver-artifact-branch.sh instead). ' +
+    'Also runs actionlint locally when it is on PATH (CI runs it as its own pinned step - see ' +
+    '.github/workflows/discipline.yml).',
+  source:
+    'brief-f52.md (lane F52, 2026-09-20), after lane M9d\'s ${{ runner.temp }} job-level env: broke ' +
+    '.github/workflows/producers.yml (GitHub run 35533637184) and every existing gate passed it anyway. ' +
+    'Check (f) added lane GATE-A-RESCAN-FIX (2026-09-26) after GitHub run 36217491293: gate-a-rescan.yml ' +
+    "piped gate-a-rescan.mjs's fatal failure into `tee` with no pipefail, so the step reported SUCCESS. " +
+    'Checks (g)/(h) added lane STATUTORY-WRITER (2026-09-29) after PR #824, propagation-drain run ' +
+    '36534640498: the artifact-commit step rebased on a shallow checkout and failed outright, the same ' +
+    'class #812/#819 each independently fixed in their own workflow only; coordinator ruling: fix the ' +
+    'class repo-wide and gate it so it cannot silently come back.',
+
+  enumerate() {
+    // The anchor entry runs the tree-wide facets A and C once; every workflow file is also enumerated for facet B.
+    const dir = join(getRepoRoot(), '.github', 'workflows');
+    let entries = [];
+    try {
+      entries = readdirSync(dir).filter((f) => f.endsWith('.yml'));
+    } catch {
+      entries = [];
+    }
+    return [ANCHOR, ...entries.map((f) => '.github/workflows/' + f)];
+  },
+
+  check(filepath, content) {
+    if (filepath === ANCHOR) return [...checkWorkflowFileValidity(), ...checkActionsArtifactBudget()];
+    return checkChainedDryGuard(filepath, content);
   },
 };

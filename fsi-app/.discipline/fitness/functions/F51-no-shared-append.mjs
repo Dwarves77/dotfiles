@@ -170,7 +170,7 @@ export const ZERO_CEILING_ALLOWLIST = {
       reason: 'lane L35h: eur-lex.europa.eu homed onto identifier-variants.mjs, the one multi-home host dropped to zero. A zero ceiling here is a strict rule (no host may have two homes), not a measurement.',
     },
   },
-  'fsi-app/.discipline/fitness/functions/F47-db-object-reference.mjs': {
+  'fsi-app/.discipline/fitness/functions/F14-producer-consumer-orphan.mjs': {
     UNREFERENCED_TABLES_CEILING: {
       decidedOn: '2026-09-17',
       reason: 'lane L32: migration 324 dropped drain_worklist, the one unreferenced table. A zero ceiling here is a strict rule, not a measurement.',
