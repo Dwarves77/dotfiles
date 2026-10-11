@@ -202,13 +202,13 @@ export function loadExpectedOpen(path = EXPECTED_OPEN_PATH) {
 }
 
 /** Staleness of the expected-open list against the register. PURE. Returns messages. */
-export function expectedOpenProblems(entries, rows) {
+export function expectedOpenProblems(entries, rows, pageRows = []) {
   const out = [];
   for (const e of entries) {
     for (const k of ["path", "method", "persona", "reason", "register"]) {
       if (typeof e?.[k] !== "string" || !e[k].trim()) out.push(`expected-open entry ${JSON.stringify(e)} lacks "${k}"`);
     }
-    const hit = rows.find((r) => r.id === e?.register && r.path === e?.path && r.method === e?.method);
+    const hit = [...rows, ...pageRows].find((r) => r.id === e?.register && r.path === e?.path && r.method === e?.method);
     if (!hit) out.push(`expected-open entry ${e?.method} ${e?.path} (${e?.register}) names no register row: stale`);
   }
   return out;
@@ -250,7 +250,8 @@ export function evaluate({ results, probes, expectedOpen = [] }) {
   // stopped redirecting (every page 200) or an app that answered nothing cannot pass as "no page served".
   const pageAnon = results.filter((r) => r.cls === "page" && r.persona === "P1" && r.pageAnon === "proxy-gated" && r.status !== null);
   if (pageAnon.length > 0) {
-    for (const r of pageAnon) if (is2xx(r.status)) violations.push(`PAGE: ${r.id} GET ${r.path} as P1 -> ${r.status} (a proxy-gated page was served to an anonymous request)`);
+    // A page the route policy lists in PUBLIC_ROUTES is public by design; its expected-open entry cites the policy line.
+    for (const r of pageAnon) if (is2xx(r.status) && !open.has(`${r.method} ${r.path} ${r.persona}`)) violations.push(`PAGE: ${r.id} GET ${r.path} as P1 -> ${r.status} (a proxy-gated page was served to an anonymous request)`);
     if (pageAnon.filter((r) => r.status >= 300 && r.status < 400).length < 10) violations.push("PAGE: fewer than ten proxy-gated pages answered an anonymous request with a redirect, so the proxy gate is not shown to hold");
   }
   const counts = {};
@@ -290,7 +291,7 @@ export async function cliMain({
     expectedOpen = JSON.parse(readText(EXPECTED_OPEN_PATH));
   } catch (e) { log(`routes-attacked: cannot read the register or the expected-open list (${e.message}). Exit 2.`); return 2; }
   if (rows.length < 100) { log(`routes-attacked: the register parsed to ${rows.length} route rows (a register has 150 or more). Exit 2.`); return 2; }
-  const stale = expectedOpenProblems(expectedOpen, rows);
+  const stale = expectedOpenProblems(expectedOpen, rows, parsePageRegister(registerText));
   if (stale.length) { stale.forEach((m) => log(`VIOLATION ${m}`)); return 1; }
   const client = await connect();
   if (!client) { log("routes-attacked: no database connection to the local stack. Cannot verify, exit 2."); return 2; }

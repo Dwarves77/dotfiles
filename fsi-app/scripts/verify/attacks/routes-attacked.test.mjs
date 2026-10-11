@@ -84,6 +84,33 @@ test("PAGE: an anonymous request served a proxy-gated page turns the run red; re
   assert.ok(silent.violations.some((v) => v.includes("fewer than ten")), silent.violations.join("; "));
 });
 
+test("PAGE: a page the route policy lists in PUBLIC_ROUTES is public by design, so the register cannot call it proxy-gated without an expected-open entry citing the policy", async () => {
+  const policy = readFileSync(new URL("../../../src/lib/auth/route-policy.ts", import.meta.url), "utf8");
+  const publicRoutes = JSON.parse(/const PUBLIC_ROUTES = (\[[^\]]*\]);/.exec(policy)[1]);
+  assert.ok(publicRoutes.includes("/auth/reset-password"));
+  const pages = parsePageRegister(readFileSync(REGISTER_PATH, "utf8"));
+  const expectedOpen = JSON.parse(readFileSync(EXPECTED_OPEN_PATH, "utf8"));
+  assert.deepEqual(expectedOpenProblems(expectedOpen, [], pages).filter((m) => /P18/.test(m)), [], "the P18 entry names a real page row");
+  for (const row of pages.filter((r) => r.anon === "proxy-gated")) {
+    const url = pageUrlPath(row.path);
+    if (!publicRoutes.some((r) => url.startsWith(r))) continue;
+    const entry = expectedOpen.find((e) => e.register === row.id && e.path === row.path && e.method === "GET" && e.persona === "P1");
+    assert.ok(entry, `${row.id} ${url} is in PUBLIC_ROUTES but the register calls it proxy-gated and no expected-open entry says so`);
+    assert.match(entry.reason, /route-policy\.ts/);
+  }
+  // behaviour: the entry quiets only that page; another served proxy-gated page still fails
+  const probes = planPageProbes(pages);
+  const p18 = pages.find((r) => r.id === "P18");
+  const other = pages.find((r) => r.anon === "proxy-gated" && r.id !== "P18");
+  const mk = (row) => ({ ...probes.find((q) => q.row.id === row.id), status: 200, id: row.id, path: row.path, method: "GET", persona: "P1", cls: "page", pageAnon: "proxy-gated" });
+  const base = probes.map((q) => ({ id: q.row.id, path: q.row.path, method: "GET", persona: "P1", cls: "page", pageAnon: q.row.anon, status: q.row.anon === "proxy-gated" ? 307 : 200 }));
+  const withLeak = (rows) => base.map((r) => rows.find((x) => x.id === r.id) ?? r);
+  const quiet = evaluate({ results: withLeak([mk(p18)]), probes, expectedOpen });
+  assert.deepEqual(quiet.violations.filter((v) => v.startsWith("PAGE:")), []);
+  const loud = evaluate({ results: withLeak([mk(p18), mk(other)]), probes, expectedOpen });
+  assert.ok(loud.violations.some((v) => v.startsWith("PAGE:") && v.includes(other.id)));
+});
+
 test("routeUrlPath: dynamic segments get a placeholder id, groups vanish, catch-alls become x", () => {
   assert.equal(routeUrlPath("api/things/[id]/route.ts"), `/api/things/${PLACEHOLDER_ID}`);
   assert.equal(routeUrlPath("api/(grp)/a/[...rest]/route.ts"), "/api/a/x");
@@ -230,7 +257,7 @@ test("a 429 is retried and counted as limited, never taken as a refusal that sat
 test("the expected-open list on disk is not stale against the real register", () => {
   const rows = parseRegister(readFileSync(REGISTER_PATH, "utf8"));
   const entries = JSON.parse(readFileSync(EXPECTED_OPEN_PATH, "utf8"));
-  assert.deepEqual(expectedOpenProblems(entries, rows), []);
+  assert.deepEqual(expectedOpenProblems(entries, rows, parsePageRegister(readFileSync(REGISTER_PATH, "utf8"))), []);
 });
 
 test("route personas: the creation statements make a platform admin, a viewer and a member of org A, a member of org B", () => {
