@@ -4,7 +4,7 @@
 // card-shell confirmation box. CLAUDE.md rule 15: a guard is proven by attack, not by presence.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fitnessFunction, literalHits, isMarked, WINDOW, cardShellLines, isCardShellMarked, checkCardShell } from "./F49-parts-not-pages.mjs";
+import { fitnessFunction, literalHits, isMarked, WINDOW, cardShellLines, isCardShellMarked } from "./F49-parts-not-pages.mjs";
 
 const FILE = "fsi-app/src/app/regulations/page.tsx";
 

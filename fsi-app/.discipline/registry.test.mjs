@@ -40,7 +40,7 @@ const audit = (row) => auditRegistry([row], fakeEnv).problems;
 
 // ---------------------------------------------------------------- RED: the registry's own catching behaviour
 test('RED: a row with neither evidence kind fails', () => {
-  const { evidence, ...noEvidence } = goodRow;
+  const { evidence: _evidence, ...noEvidence } = goodRow;
   assert.ok(audit(noEvidence).some((p) => /NO EVIDENCE/.test(p)));
   assert.ok(audit({ ...goodRow, evidence: {} }).some((p) => /NO EVIDENCE/.test(p)));
 });
