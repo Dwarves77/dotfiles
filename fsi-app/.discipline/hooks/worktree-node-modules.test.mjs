@@ -77,7 +77,7 @@ function makeFixture() {
   git(main, "config", "user.email", "fixture@example.invalid");
   git(main, "config", "user.name", "fixture");
   git(main, "config", "core.autocrlf", "false");
-  for (const f of ["post-checkout", "pre-push", "lib/worktree-node-modules.sh"]) {
+  for (const f of ["post-checkout", "pre-push", "lib/worktree-node-modules.sh", "lib/final-push-tier.sh", "lib/prepush-logdir.sh"]) {
     copyFileSync(join(HERE, f), join(main, HOOK_REL, f));
   }
   copyFileSync(join(REPO_ROOT, ".gitignore"), join(main, ".gitignore"));
@@ -245,13 +245,16 @@ test("main checkout: never touched; without an install --check names npm ci and 
   });
 });
 
-test("pre-push step 0b self-heals a worktree without the link, and fails fast naming the fix when it cannot", () => {
+test("pre-push step B (dependency link, on a CI-triggering push) self-heals a worktree without the link, and fails fast naming the fix when it cannot", () => {
   withFixture((fx) => {
     const { wt } = addWorktree(fx, "lane-f", fx.noHooks);
-    const prePush = () => run("sh", [`${HOOK_REL}/pre-push`, "origin", "unused"], wt, { env: { DISCIPLINE_HOOK_TRAMPOLINE: "1" } });
+    // the hook reads git's ref lines from stdin: a tip commit with no skip token is a CI-triggering push, the only one that runs step B
+    const refs = `refs/heads/lane-f ${git(wt, "rev-parse", "HEAD")} refs/heads/lane-f ${"0".repeat(40)}
+`;
+    const prePush = () => run("sh", [`${HOOK_REL}/pre-push`, "origin", "unused"], wt, { env: { DISCIPLINE_HOOK_TRAMPOLINE: "1" }, input: refs });
 
     const healed = prePush();
-    assert.doesNotMatch(healed.stderr, /STEP 0b FAIL/, "a missing link is repaired, not reported");
+    assert.doesNotMatch(healed.stderr, /STEP B FAIL/, "a missing link is repaired, not reported");
     assert.ok(resolveNext(wt), "and the worktree now resolves");
 
     rmSync(fx.shared, { recursive: true, force: true });
@@ -259,19 +262,19 @@ test("pre-push step 0b self-heals a worktree without the link, and fails fast na
     const r = prePush();
     assert.equal(r.status, 1, `expected fail-fast exit 1, got ${r.status}: ${r.stderr}`);
     assert.ok(r.stderr.includes(FIX_LINK), `stderr must carry the fix line; got: ${r.stderr}`);
-    assert.match(r.stderr, /STEP 0b FAIL/);
-    assert.doesNotMatch(r.stdout + r.stderr, /step 1|STEP 1|F9|running 4-step/);
+    assert.match(r.stderr, /STEP B FAIL/);
+    assert.doesNotMatch(r.stdout + r.stderr, /STEP C|step C|step B \(/, "nothing past the dependency check ran");
   });
 });
 
-test("WIRING: post-checkout repairs before exec'ing the isolation runner; pre-push self-heals then checks before step 1", () => {
+test("WIRING: post-checkout repairs before exec'ing the isolation runner; pre-push self-heals then checks before any step B work", () => {
   const post = readFileSync(join(HERE, "post-checkout"), "utf8");
   const ensure = post.indexOf("wt_nm_ensure_link");
   assert.ok(ensure > 0 && ensure < post.indexOf("exec node"), "repair must run before exec replaces the shell");
   const pre = readFileSync(join(HERE, "pre-push"), "utf8");
   const heal = pre.indexOf("wt_nm_ensure_link || true");
   const req = pre.indexOf("if ! wt_nm_require");
-  assert.ok(heal > 0 && heal < req && req < pre.indexOf("# Step 1:"), "step 0b must heal, then check, before every CI-parity step");
+  assert.ok(heal > 0 && heal < req && req < pre.indexOf("# B1:"), "the dependency check must heal, then check, before ESLint and the tests");
 });
 
 test("IGNORE RULES: the repo's own gitignores cover the shared link and an in-tree link", () => {

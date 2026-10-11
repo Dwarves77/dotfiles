@@ -22,13 +22,13 @@ function hookRepo() {
   git(['config', 'user.email', 't@example.com']);
   git(['config', 'commit.gpgsign', 'false']);
   git(['config', 'core.autocrlf', 'false']);
-  for (const rel of [`${HOOKS}/pre-push`, `${HOOKS}/lib/prepush-logdir.sh`, `${HOOKS}/lib/worktree-node-modules.sh`]) {
+  for (const rel of [`${HOOKS}/pre-push`, `${HOOKS}/lib/prepush-logdir.sh`, `${HOOKS}/lib/final-push-tier.sh`, `${HOOKS}/lib/worktree-node-modules.sh`]) {
     mkdirSync(dirname(join(dir, rel)), { recursive: true });
     copyFileSync(join(REPO, rel), join(dir, rel));
   }
   // The dependency-link helper is stubbed: the real one repairs links beside the checkout, which a throwaway
-  // repository must never trigger. The stub stops the hook at step 0b with a known message.
-  writeFileSync(join(dir, `${HOOKS}/lib/worktree-node-modules.sh`), ['wt_nm_ensure_link() { return 0; }', 'wt_nm_require() { echo "stub: stop at 0b" >&2; return 1; }', ''].join('\n'));
+  // repository must never trigger.
+  writeFileSync(join(dir, `${HOOKS}/lib/worktree-node-modules.sh`), ['wt_nm_ensure_link() { return 0; }', 'wt_nm_require() { return 0; }', ''].join('\n'));
   git(['add', '-A']);
   git(['commit', '-q', '-m', 'base']);
   return { dir, git };
@@ -41,33 +41,34 @@ function runHook(dir) {
   return { code: r.status, out: `${r.stdout}${r.stderr}` };
 }
 
-test('A-P0-3: a tracked hook edited and not committed refuses the push at step 0d, naming the file and the diff', () => {
+test('A-P0-3: a tracked hook edited and not committed refuses the push at step A (0d), naming the file and the diff', () => {
   const { dir } = hookRepo();
   try {
     appendFileSync(join(dir, HOOKS, 'pre-push'), '\n# exit 0 injected\n');
     const r = runHook(dir);
     assert.equal(r.code, 1, r.out);
-    assert.match(r.out, /STEP 0d FAIL/);
+    assert.match(r.out, /STEP A FAIL/);
     assert.match(r.out, /fsi-app\/\.discipline\/hooks\/pre-push/);
     assert.match(r.out, /exit 0 injected/, 'the diff is printed');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('control: the same hook committed is not refused at step 0d', () => {
+test('control: the same hook committed is not refused at step A', () => {
   const { dir, git } = hookRepo();
   try {
     appendFileSync(join(dir, HOOKS, 'pre-push'), '\n# committed change\n');
     git(['commit', '-q', '-am', 'hook change']);
     const r = runHook(dir);
-    assert.doesNotMatch(r.out, /STEP 0d FAIL/, r.out);
-    assert.match(r.out, /STEP 0b FAIL/, 'the hook went on to step 0b');
+    assert.doesNotMatch(r.out, /STEP A FAIL/, r.out);
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /step A \(hook unchanged, no untracked critical files\): OK/, 'the hook went on past step A');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('the hook source lists hooks/ and lib/ in the untracked-critical step and runs step 0d before step 0b', () => {
+test('the hook source lists hooks/ and lib/ in the untracked-critical step and checks the tracked hook files before it', () => {
   const src = readFileSync(join(REPO, HOOKS, 'pre-push'), 'utf8');
   assert.match(src, /'fsi-app\/\.discipline\/hooks\/' \\/);
   assert.match(src, /'fsi-app\/\.discipline\/lib\/' \\/);
-  assert.ok(src.indexOf('Step 0d:') < src.indexOf('Step 0b:'), '0d is checked first');
+  assert.ok(src.indexOf('git diff HEAD --name-only -- fsi-app/.discipline/hooks/') < src.indexOf('git ls-files --others'), 'the tracked hook files are checked first');
   assert.ok(readdirSync(join(REPO, HOOKS)).includes('pre-push'));
 });
