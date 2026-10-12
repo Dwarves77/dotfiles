@@ -42,3 +42,8 @@ Backlog: 38 row lines matched the 36 in-scope ids (B-0005 and B-0006 are duplica
 - `git log -S` on the `auth.userClient` line of search/route.ts (3216b0db3, SEC-10, PR 1122 per its session log) and `git log --diff-filter=D` on the three deleted test files (f906b2102, CLEAN-3, PR 1131).
 - Migration headers read for 159 (SECURITY INVOKER, LIMIT clamp 1..30), 315 (SECURITY DEFINER, limit clamp), 148 and 361 (count rpcs), 232 and 319 (feed), 233, 236, 270 (watch CHECKs), 370 (`user_can_write_in_org`), 362 (portfolio caps, `name_key`), 061, 068, 088.
 - The register's text checked for em or en dash glyphs, the section-sign glyph and user-home paths: none.
+
+## Landing
+
+- PR 1158, https://github.com/Dwarves77/dotfiles/pull/1158, branch coord/part1-dash-search, head 9193ef97f (the register commit 10268223d plus the merge of origin/master cad0a5dc2). CI run 38204326877 in progress at the time of writing; watched by this session.
+- Delivery to the coordinator session: `ListAgents` from this cloud container lists no reachable session ("No reachable agents - no other Claude session is running on this machine right now"); `SendMessage` to "Continue previous session [d70cf3]" returned `No agent named 'Continue previous session [d70cf3]' is reachable.` The coordinator runs on the operator's machine, which this container cannot address. The PR body carries the 10-line report; this file carries the same report; the relaying session (session_017roa4G2MvGYnw8ejDsgHpu, lane P1-02) was not messaged either, for the same reason.
