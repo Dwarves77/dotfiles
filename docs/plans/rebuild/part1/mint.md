@@ -242,14 +242,14 @@ Chain hand-off today: none inside the module. The flywheel ran as a later step o
 
 ### Invariants this code enforces
 
-Already in data-invariants.md: INV-003 (a found figure attaches only with url and verbatim quote), INV-008 (a would_mint census row is on-vertical), INV-025 (a verified record has more than its title as a FACT), INV-028 (a held census row reopens only for a stated reason), INV-050 (one JS canonical-key mirror), INV-094 and INV-125 (stored provenance_status agrees with the function), INV-129 (mint hold reason), INV-132 (one verified item per canonical key), INV-156 (verbatim span in the attributed capture), INV-160 (required slots covered by FACT or GAP). Appended by this lane, same commit, INV-201 to INV-206:
+Already in data-invariants.md: INV-003 (a found figure attaches only with url and verbatim quote), INV-008 (a would_mint census row is on-vertical), INV-025 (a verified record has more than its title as a FACT), INV-028 (a held census row reopens only for a stated reason), INV-050 (one JS canonical-key mirror), INV-094 and INV-125 (stored provenance_status agrees with the function), INV-129 (mint hold reason), INV-132 (one verified item per canonical key), INV-156 (verbatim span in the attributed capture), INV-160 (required slots covered by FACT or GAP). Appended by this lane, same commit, INV-213 to INV-218:
 
-- INV-201: a mint never inserts an item whose canonical key, or whose source URL with the same instrument identity, is already held by any intelligence_items row (archived included); two labelled, different identifiers at one URL are siblings.
-- INV-202: a record item mints only with an on_vertical screen verdict carried on its own payload; an ambiguous verdict never mints and never parks without a resolver and a maximum age.
-- INV-203: a mint's grounding write completes item, searches, sections, Gate A, claims and citations in that order, or leaves no item row.
-- INV-204: a stored capture is the whole fetched document: its length equals the fetched length within 50 characters and is never under 98 percent of it.
-- INV-205: every exported or held census row ends the run with its disposition recorded on census_worklist (reconciled only for a verified mint; a hold with a reason otherwise), never only in a file.
-- INV-206: a tolerant span search may fold a separator only when the figure's value is unchanged; a span whose value differs from the claimed figure never grounds it, and a heal never replaces a claim's text with a different sentence.
+- INV-213: a mint never inserts an item whose canonical key, or whose source URL with the same instrument identity, is already held by any intelligence_items row (archived included); two labelled, different identifiers at one URL are siblings.
+- INV-214: a record item mints only with an on_vertical screen verdict carried on its own payload; an ambiguous verdict never mints and never parks without a resolver and a maximum age.
+- INV-215: a mint's grounding write completes item, searches, sections, Gate A, claims and citations in that order, or leaves no item row.
+- INV-216: a stored capture is the whole fetched document: its length equals the fetched length within 50 characters and is never under 98 percent of it.
+- INV-217: every exported or held census row ends the run with its disposition recorded on census_worklist (reconciled only for a verified mint; a hold with a reason otherwise), never only in a file.
+- INV-218: a tolerant span search may fold a separator only when the figure's value is unchanged; a span whose value differs from the claimed figure never grounds it, and a heal never replaces a claim's text with a different sentence.
 
 Properties the new tree must also carry as tests: markers never persist (GATES-2); the authority floor rates and never refuses (migration 302); the screen's first-match order (ON before OFF) is load-bearing.
 
@@ -275,7 +275,7 @@ Properties the new tree must also carry as tests: markers never persist (GATES-2
 1. The ambiguous verdict (256 reviewed entries plus every rule-ambiguous row) waits for a human ruling with no consumer and no age limit (screen-reconcile-records.mjs:56, export-census-rows.mjs:1490-1494). RD-20 forbids a human resting state in intake. A ruling is needed on the resolver: route to the flag channel with a maximum age, or a rule-extension pass.
 2. Drop the JavaScript C1-C7 replica and keep the SQL function as the one gate (this plan assumes yes).
 3. Migration 299 is never applied; the kit requires four slots the table does not. P1-11 should either apply 299 in the new schema with a re-mint, or drop the kit-only slots.
-4. Heal claim-text rewriting and the numeric-tolerant tier. This plan keeps re-kinding but not rewriting (INV-206), and folds separators only when the value is unchanged.
+4. Heal claim-text rewriting and the numeric-tolerant tier. This plan keeps re-kinding but not rewriting (INV-218), and folds separators only when the value is unchanged.
 5. There are two mint paths: this batch path, which uses raw guarded writes, and `src/lib/intake/mint-item.ts`. This plan makes `features/mint` own one mint function that intake calls. Ownership is shared with P1-03/04.
 6. The brief listed `staged_updates` as a mint write. This is [REFUTED] for this module; staged updates are mint-item.ts's (P1-03/04).
 
