@@ -46,3 +46,8 @@ Prior registers, per the brief's "(admin rows)" qualifier: A2-part1-admin read w
 - No database read: every row-count claim (the 1000-row cap on pending candidates, scan's title set, the member list) stays [HYPOTHESIS].
 - No page rendered: the 375 px notes on the admin pages and galleries are from the CSS read, labelled [HYPOTHESIS] in the register; no .tsx or .css was changed, so no UX compliance block is owed.
 - The callers' body shapes in src/components/sources (whether any still sends the legacy `tier` field) were not read; that register is another lane's.
+
+## Landing
+
+- PR 1159 (https://github.com/Dwarves77/dotfiles/pull/1159), branch coord/part1-admin-b, one register commit f21f8e2b6 plus the merge of origin/master (master had moved to INV-226 and other lanes' backlog cells; both conflicts resolved by keeping master's lines, renumbering this lane's invariants to INV-227 to INV-232 and re-applying the 57 cells).
+- Coordinator delivery: the brief asked for the PR URL and the 10-line report to be sent to the session "Continue previous session [d70cf3]" by SendMessage. `ListAgents` in this cloud container returned "No reachable agents", and `SendMessage` returned the exact error `No agent named 'Continue previous session [d70cf3]' is reachable.` The PR body carries the same 10-line report; the relaying session (lane P1-02) or the coordinator reads it there.
