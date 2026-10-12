@@ -5,7 +5,7 @@ Branch coord/part1-market from origin/master c831e82b5, fast-forwarded to cc4088
 ## Accomplished
 
 - `docs/plans/rebuild/part1/market.md`: module verdict REFACTOR AND PORT; 4,617 code lines today (6,916 raw read for scope) to an estimated 3,310 (about 2,560 in features/market, 415 moved to P1-15 producers, 245 to the shared figures model, 90 to core/vocabulary for P1-09).
-- `docs/plans/rebuild/data-invariants.md`: INV-252 to INV-262 appended after master's INV-216; the Count line updated to 227.
+- `docs/plans/rebuild/data-invariants.md`: INV-252 to INV-262 (written as INV-217 to INV-227 after master's INV-216, renumbered by the later merge 1892bfadd after master's INV-251); the Count line reads 262.
 - `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md`: the STATUS cell of all 39 in-scope lines (38 unique row ids; B-0046 appears in two sections) written: 34 CONFIRMED-P1, 3 REFUTED (B-0152, B-0157, B-0161: positive UX notes, not defects), 1 TRASH (B-0659 StatutoryFigure); B-0046 counted once.
 - Not touched: `docs/INDEX.md` (coordinator-only under the lane contract); no code.
 
