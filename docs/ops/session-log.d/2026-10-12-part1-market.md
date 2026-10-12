@@ -1,11 +1,11 @@
 # 2026-10-12, lane P1-20 (part1-market): the market Keep/Refactor/Trash register
 
-Branch coord/part1-market from origin/master c831e82b5, fast-forwarded to cc4088c27 before committing (four register commits in between, docs only, no in-scope file changed; the invariant lines were renumbered after master's INV-212). Cloud session (no database, no operator machine, no sub-agents). Brief: docs/plans/rebuild/part1/BRIEF.md plus the coordinator's SCOPE block for P1-20, relayed through the P1-04 lane session. Worked in the git worktree .claude/worktrees/part1-market.
+Branch coord/part1-market from origin/master c831e82b5, fast-forwarded to cc4088c27 before committing (four register commits in between, docs only, no in-scope file changed; the invariant lines were renumbered after master's INV-216 in the merge with d4d89d5a7). Cloud session (no database, no operator machine, no sub-agents). Brief: docs/plans/rebuild/part1/BRIEF.md plus the coordinator's SCOPE block for P1-20, relayed through the P1-04 lane session. Worked in the git worktree .claude/worktrees/part1-market.
 
 ## Accomplished
 
 - `docs/plans/rebuild/part1/market.md`: module verdict REFACTOR AND PORT; 4,617 code lines today (6,916 raw read for scope) to an estimated 3,310 (about 2,560 in features/market, 415 moved to P1-15 producers, 245 to the shared figures model, 90 to core/vocabulary for P1-09).
-- `docs/plans/rebuild/data-invariants.md`: INV-213 to INV-223 appended after master's INV-212; the Count line updated to 223.
+- `docs/plans/rebuild/data-invariants.md`: INV-217 to INV-227 appended after master's INV-216; the Count line updated to 227.
 - `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md`: the STATUS cell of all 39 in-scope lines (38 unique row ids; B-0046 appears in two sections) written: 34 CONFIRMED-P1, 3 REFUTED (B-0152, B-0157, B-0161: positive UX notes, not defects), 1 TRASH (B-0659 StatutoryFigure); B-0046 counted once.
 - Not touched: `docs/INDEX.md` (coordinator-only under the lane contract); no code.
 
@@ -19,10 +19,10 @@ Prior registers: A2-part5 read whole (167 lines, two Read runs); A2-part6 read b
 
 ## Findings for the coordinator
 
-1. [CONFIRMED] Rule 18 gap: no market_series figure on any market surface shows its source's rating (SeriesProvenance.tsx:31-46 never sets sourceTier), and the published-price refresher writes source_tier null on every row (refresh-published-price-statistics.mjs:112). Recorded as INV-223, the defect not to repeat.
+1. [CONFIRMED] Rule 18 gap: no market_series figure on any market surface shows its source's rating (SeriesProvenance.tsx:31-46 never sets sourceTier), and the published-price refresher writes source_tier null on every row (refresh-published-price-statistics.mjs:112). Recorded as INV-227, the defect not to repeat.
 2. [CONFIRMED] The detail page's convergence read drops its error (app/market/[slug]/page.tsx:139, `.then(({ data: srcRow })`), the agent/run post-mortem shape.
 3. [CONFIRMED] write-market-series.mjs:62 back-fills entity_id on update only if the caller selected entity_id; the four producers that pass existing rows select `id, series_key, reference_period`, so the branch never fires; backfill-market-series-entity.mjs (INV-113) is the path that does the work.
-4. [CONFIRMED] series-freshness.mjs:23 falls back to the shortest named period not shorter than an off-grid cadence, which reads fresher than the source, the opposite of its own comment; no live producer reaches it today. Written into INV-219 as the corrected rule.
+4. [CONFIRMED] series-freshness.mjs:23 falls back to the shortest named period not shorter than an off-grid cadence, which reads fresher than the source, the opposite of its own comment; no live producer reaches it today. Written into INV-223 as the corrected rule.
 5. [CONFIRMED] The index page computes carbon cost per FEU from a committed DESNZ fixture (page.tsx:37, INV-183) while the detail page reads emission_factors; four factor selectors exist.
 6. [HYPOTHESIS] fetchMarketSeriesBoard caps the whole table at 1,000 rows by period, not per series; with four daily ECB series the YoY window and one-year sparkline will fall out of the read as history grows.
 7. [HYPOTHESIS] IndexationPanel's resolveOrgIdFromCookies makes /market a per-viewer render, against the page's PERF-10 comments; not built here.
