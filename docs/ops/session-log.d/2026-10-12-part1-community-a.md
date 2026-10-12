@@ -5,7 +5,7 @@ Branch coord/part1-community-a from origin/master 0ad87a940, fast-forwarded to 9
 ## Accomplished
 
 - `docs/plans/rebuild/part1/community-a.md`: module verdict REFACTOR AND PORT into src/features/community (ui, lib) with the notifications inbox moving to the P1-18 shell; 10,275 code lines today (11,653 raw, 33 files), about 5,450 estimated (53 percent); bloat ranked (10 rows, led by CommunityRooms.tsx at 1,597 code lines and the four wiring defects); dead code (15 rows); duplicates (15 rows); file register (33 rows: 3 KEEP AS-IS, 27 REFACTOR AND PORT, 3 TRASH); build plan (34 planned file rows with source line ranges, data model, interface by lane id, rulings, proof, port order, 45 features each with a new home or a stated reason).
-- `docs/plans/rebuild/data-invariants.md`: INV-213 to INV-216 appended after master's INV-212; the Count line updated to 216.
+- `docs/plans/rebuild/data-invariants.md`: INV-223 to INV-226 appended after master's INV-212; the Count line updated to 216.
 - `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md`: the STATUS cell of all 42 in-scope rows written: 25 CONFIRMED-P1, 9 REFUTED, 7 TRASH, 1 CLOSED (PR 1131).
 - Not touched: `docs/INDEX.md` (coordinator-only under the lane contract).
 

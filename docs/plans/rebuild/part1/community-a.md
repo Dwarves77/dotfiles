@@ -258,7 +258,7 @@ Columns: path | lines a-b (total) | responsibility | verdict | clean estimate (c
 
 ### Invariants this code enforces
 
-Already in data-invariants.md: INV-137 (privilege columns not self-writable, includes community member verification), INV-150 (Community counters by definer triggers). Appended by this lane, same commit: INV-213 (every Community post binds 1 to 10 well-formed spine entity ids, refused before the network and by the route with the same validator), INV-214 (an anonymous author renders as "Anonymous member" with the verified mark kept; name, company and headshot never render; the author id reaches only the author and a platform admin), INV-215 (no module outside /community imports the Community components and no Community copy claims reach into other surfaces; ADR-041), INV-216 (no UI addresses one member privately: no direct messaging, people results and member rows carry no contact action).
+Already in data-invariants.md: INV-137 (privilege columns not self-writable, includes community member verification), INV-150 (Community counters by definer triggers). Appended by this lane, same commit: INV-223 (every Community post binds 1 to 10 well-formed spine entity ids, refused before the network and by the route with the same validator), INV-224 (an anonymous author renders as "Anonymous member" with the verified mark kept; name, company and headshot never render; the author id reaches only the author and a platform admin), INV-225 (no module outside /community imports the Community components and no Community copy claims reach into other surfaces; ADR-041), INV-226 (no UI addresses one member privately: no direct messaging, people results and member rows carry no contact action).
 
 ### Rulings the code embodies (cite)
 
@@ -287,8 +287,8 @@ Already in data-invariants.md: INV-137 (privilege columns not self-writable, inc
 ### The proof
 
 1. Route persona matrix for every action the UI calls, run by P1-23 (anon, non-member, member, moderator, group admin, platform admin).
-2. Component tests, each red against a broken copy first: Rooms composer sends entity_ids; invitation Accept/Decline reachable from /community; toast shown on a failed star, mute and moderation action; EntityDiscovery shows an error, not "Loading", on a 500; MembersRail shows an error, not the privacy line, on a read error; NotificationsList rolls back items with the count; anonymous author renders "Anonymous member" with the verified mark and no name, company or headshot (INV-214).
-3. Grep checks as lint rules: no import of features/community outside app/community (INV-215); no `fetch(` in features/community/ui (the client owns it); no raw hex; no `window.confirm`.
+2. Component tests, each red against a broken copy first: Rooms composer sends entity_ids; invitation Accept/Decline reachable from /community; toast shown on a failed star, mute and moderation action; EntityDiscovery shows an error, not "Loading", on a 500; MembersRail shows an error, not the privacy line, on a read error; NotificationsList rolls back items with the count; anonymous author renders "Anonymous member" with the verified mark and no name, company or headshot (INV-224).
+3. Grep checks as lint rules: no import of features/community outside app/community (INV-225); no `fetch(` in features/community/ui (the client owns it); no raw hex; no `window.confirm`.
 4. Playwright at 375 px on /community, /community/browse, /community/[slug], /community/moderation: no horizontal overflow, every target at the law-2 floor.
 5. `npm run typecheck`, `lint`, `next build` (the one CI job).
 
