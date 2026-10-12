@@ -35,3 +35,8 @@ Prior registers: B2-part4 (162 lines) read whole in three Read calls. B1-scripts
 - `git show --stat f906b2102` over the scope: 11 test files and 4 fixtures deleted, 489 header lines cut from the extractor; the awk code-line count of every scope file is identical before and after the cut (for example extract-forward-events 854 to 854, derive-obligations 203 to 203) and the cut added no non-comment line, so the 2026-10-11 findings carry over unchanged.
 - Glyph check (no em dash, en dash or section sign) and user-home path check over the register and the invariants file: clean.
 - Not run: any test (none exist beside the scope), any database query (no credentials in this lane).
+
+## Landing
+
+- PR https://github.com/Dwarves77/dotfiles/pull/1149 opened 04:13 UTC against master; the one CI run (ci job 114660057080, run 38202927782) completed success at 04:15:49 UTC on head 3567fd6c8; recorded in the PR body line 7; not re-fired, not merged.
+- Coordinator notification: `ListAgents` listed no reachable session on this machine, and `SendMessage` to "Continue previous session [d70cf3]" returned `No agent named 'Continue previous session [d70cf3]' is reachable.` The PR URL and the ten-line report are in the PR body and in this lane's final session message for the coordinator to read there.
