@@ -42,3 +42,7 @@ None. Push and PR follow this entry; if either fails, the exact error is appende
 
 - INDEX line for `docs/plans/rebuild/part1/regulations.md`.
 - Rulings owed: strike one of the two parser rows (this register's core/detail rows or intake-a.md's core/brief/regulation-sections row); whether /api/detail/relevance stays public for anonymous detail readers; the ids of the Market and Research surface lanes; a design change for the five unrendered fact-document sections (rule 20).
+
+## Addendum, 2026-10-12: second merge and the report
+
+Master gained P1-22 (INV-223 to INV-226) between the first merge and the PR, so the PR conflicted and CI did not start; merged again (fb5965a0b) and renumbered this lane to INV-227 to INV-230. SendMessage to the coordinator failed ("No agent named 'Continue previous session [d70cf3]' is reachable"; ListAgents lists no peers), so the 10-line report is the PR body of #1155.
