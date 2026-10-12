@@ -5,7 +5,7 @@ Branch coord/part1-runtimes-b from origin/master a0749713, fast-forwarded to 5e2
 ## Accomplished
 
 - `docs/plans/rebuild/part1/runtimes-b.md`: module verdict REFACTOR AND PORT into ONE turn runtime (`src/core/turn/run-turn.ts`, entered by `scripts/turn.mjs`, stages sweep, change, capture, intake, connect, propagate, briefs, each run through P1-08's `runFamily`); 5,341 code lines today (7,896 raw), about 3,010 estimated (56 percent) plus about 70 moved to P1-07 and 50 to the test tree; bloat ranked (ten rows, led by run-ledger-consume.mjs at 1,212 code lines); dead code (23 rows); duplicates (17 rows); file register (12 rows: 1 KEEP AS-IS, 9 REFACTOR AND PORT, 2 TRASH); build plan (the one runtime and what folds into it, every LLM and network call site with its free replacement, 12 planned files with source line ranges, the data model with unused columns, the interface by lane id, invariants, rulings cited and owed, proof, port order, 44 features each with a new home).
-- `docs/plans/rebuild/data-invariants.md`: INV-187 to INV-192 appended after master's INV-186; the Count line updated to 192.
+- `docs/plans/rebuild/data-invariants.md`: INV-195 to INV-200 appended after master's INV-194; the Count line updated to 200.
 - `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md`: the STATUS cell of all 11 in-scope rows written: 10 CONFIRMED-P1, 1 REFUTED (B-1619: fetch-drain.yml no longer exists).
 - Not touched: `docs/INDEX.md` (coordinator-only under the lane contract).
 
@@ -19,7 +19,7 @@ Prior registers: B1a-part1 and B1a-part2 read whole. B1-scripts-runtimes (529 li
 
 ## Findings for the coordinator
 
-1. [CONFIRMED] Every resume and gate mechanism in scope reads a local family directory that CLEAN-1 emptied and gitignored: the flywheel slice gate and backlog, the sitemap cursor, the ledger export cursor, the propagation replay. On any checkout the gate passes vacuously and the others restart or read nothing. Recorded as INV-188 (violated today).
+1. [CONFIRMED] Every resume and gate mechanism in scope reads a local family directory that CLEAN-1 emptied and gitignored: the flywheel slice gate and backlog, the sitemap cursor, the ledger export cursor, the propagation replay. On any checkout the gate passes vacuously and the others restart or read nothing. Recorded as INV-196 (violated today).
 2. [CONFIRMED] Six of the seven runtimes have no invoker since CLEAN-3; the seventh (run-ledger-consume) is reached only as the judgement drain's export. Rule 17's chain was the workflow graph.
 3. [CONFIRMED] ledger-verdicts holds no batch file since CLEAN-1, so ledger-consume apply is always disarmed.
 4. Metered paths not ported: `--allow-api` (Haiku), `--record-only false` (paid grounding, [HYPOTHESIS] on the branch inside runIntakeCycle), and change detection's HTTP call to check-sources (Browserless).
