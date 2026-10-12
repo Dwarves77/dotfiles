@@ -5,7 +5,7 @@ Branch coord/part1-research-ops from origin/master 0ad87a940, fast-forwarded to 
 ## Accomplished
 
 - `docs/plans/rebuild/part1/research-ops.md`: module verdict REFACTOR AND PORT; 6,069 code lines today (9,033 raw) to about 4,300 clean (features/research 1,645, features/operations 2,455, core/themes 190). Sections 1 to 8 in the exemplar's shape; every feature has a row in section 8.
-- `docs/plans/rebuild/data-invariants.md`: INV-213 to INV-219 appended after master's INV-212; the Count line updated to 219 and the lane named in it.
+- `docs/plans/rebuild/data-invariants.md`: INV-227 to INV-233 appended after master's INV-212; the Count line updated to 219 and the lane named in it.
 - `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md`: the STATUS cell of all 31 in-scope rows written: 27 CONFIRMED-P1 (B-1932 among them, its ask half REFUTED: /api/ask does read the Operations tables), 1 REFUTED (B-0171: overflowWrap is the 375 px protection, not a defect), 3 CLOSED: PR 1131 (B-0282, B-1039, B-1040: deleted or stripped by CLEAN-3).
 - Not touched: `docs/INDEX.md` (coordinator-only under the lane contract), any code.
 
