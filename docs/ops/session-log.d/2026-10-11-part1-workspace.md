@@ -5,7 +5,7 @@ Branch coord/part1-workspace from origin/master 904680db (P1-01 merged; 195a7c07
 ## Accomplished
 
 - `docs/plans/rebuild/part1/workspace.md` (408 lines): module verdict REFACTOR AND PORT; 8,071 code lines today (10,174 raw), about 4,900 estimated for the workspace module plus about 510 for the three files that leave it (sourceStore and types/source to P1-05/06, types/resource to core/types); TRASH as code: SavedSearchesSection, DataSummary, navigationStore and the nav types, with their features recorded in section 8. Sections 1 to 8 match the P1-01 exemplar's shape.
-- `docs/plans/rebuild/data-invariants.md`: INV-156 (team archive gated, attributed, org-scoped fan-out; personal archive ungated; personal layer wins), INV-157 (attribution columns from the session, first applier kept), INV-158 (owner or assignee is a member and never a viewer, fail closed), INV-159 (jsonb settings patched key-wise; the settingsStore writer violates it and is unreachable). Count line updated to 159.
+- `docs/plans/rebuild/data-invariants.md`: INV-165 (team archive gated, attributed, org-scoped fan-out; personal archive ungated; personal layer wins), INV-166 (attribution columns from the session, first applier kept), INV-167 (owner or assignee is a member and never a viewer, fail closed), INV-168 (jsonb settings patched key-wise; the settingsStore writer violates it and is unreachable). Count line updated to 159.
 - `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md`: the STATUS cell of all 42 in-scope row occurrences written (39 ids; B-0043, B-0044 and B-0045 appear twice in that file): 33 CONFIRMED-P1, 2 CLOSED (B-0086 by CLEAN-3 f906b210, B-0290 by DATA-3a 580d8ff6), 1 REFUTED (B-0174 describes correct behaviour), 3 TRASH (B-0187 and B-0550 SavedSearchesSection, B-1588 navigationStore).
 - Not touched: `docs/INDEX.md` (coordinator-only under the lane contract, as P1-01 recorded; the new register needs its INDEX line from the coordinator). No code changed. No live database read.
 
@@ -36,3 +36,7 @@ None. Push and PR follow this entry; if either fails, the exact error is appende
 
 - INDEX line for `docs/plans/rebuild/part1/workspace.md`.
 - Rulings owed: the owner of components/pages/SettingsPage.tsx, src/lib/tags, src/lib/portfolio and src/lib/hooks (gaps 1 to 3 in section 8); the single sector source (`workspace_settings.sector_profile` versus `profiles.sector_overrides`, gap 4); whether saved views and the data summary return.
+
+## Addendum, 2026-10-12 01:58 UTC: renumbering after the coordinator's merge
+
+The coordinator merged origin/master (P1-03 intake-a, P1-06 sources-b) into this branch as 1fe50694 and renumbered this lane's four invariants to INV-165 to INV-168 (P1-03 took INV-156 to INV-161, P1-06 INV-162 to INV-164). This second commit updates every citation in the register and in this log to the new numbers, and corrects the count line in data-invariants.md, which named auth-db.md as this lane's register. The 42 backlog cells survived the union unchanged [CONFIRMED: grep count 42]. CI on 1fe50694 was in progress at this write; the push of this commit starts the run that counts.
