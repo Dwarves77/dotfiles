@@ -40,3 +40,8 @@ Branch coord/part1-admin-a from origin/master 0ad87a94. Cloud session (no databa
 ## UX compliance
 
 No .tsx or .css was written or changed by this lane. ux-laws.md and design-principles.md were read whole before the register's UX claims; every target-size and overflow claim is labelled as a CSS read, not a measurement, and the register's proof section names the rendering guard's UX smoke as the measurement.
+
+## Landing
+
+- PR 1157 opened against master (https://github.com/Dwarves77/dotfiles/pull/1157), head cdf8b896a; the merge of origin/master (cad0a5dc2) conflicted in data-invariants.md and the backlog file; both resolved by taking master's file and re-applying this lane's lines (INV-201..206 renumbered to INV-227..232; the 33 cells re-applied with zero clashes).
+- The brief asked for the PR URL and the 10-line summary to be sent to the coordinator session "Continue previous session [d70cf3]" by SendMessage. ListAgents listed no reachable agent, and SendMessage answered: `No agent named 'Continue previous session [d70cf3]' is reachable. Use ListAgents to see everyone you can message.` The bare name was tried too. The PR body carries the report.
