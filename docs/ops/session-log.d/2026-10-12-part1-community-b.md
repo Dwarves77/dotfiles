@@ -5,7 +5,7 @@ Branch coord/part1-community-b from origin/master 0ad87a94 in a worktree under .
 ## Accomplished
 
 - `docs/plans/rebuild/part1/community-b.md` (429 lines): module verdict REFACTOR AND PORT; 5,294 code lines today (7,053 raw in 55 files), about 2,680 estimated (plus 40 counted by P1-07 for dispatch and the seed-fallback flag). Community proper (api, pages, lib) 4,872 to 2,520. TRASH: app/api/listings/cursor (zero callers), lib/community/index.mjs (barrel for deleted tests), the three uncalled GET handlers (posts/[id], moderation/reports/[id], notifications/[id]) and the antitrust aggregate branch (unreachable since migration 349). Zero metered model calls, zero Browserless, zero third-party HTTP in scope.
-- `docs/plans/rebuild/data-invariants.md`: INV-207 (identity and anonymity at the row), INV-208 (verification and the organisation key), INV-209 (thread entity binding), INV-210 (antitrust refusal), INV-211 (a group keeps an admin), INV-212 (moderation reviewer gate, closed reports), INV-213 (group entry), INV-214 (sign-off), INV-215 (notification privacy and fan-out, preference gap named). Count line updated to 215, and its per-range attributions corrected: master credited INV-169 to INV-194 and INV-201 to INV-206 to "lane Merge ... auth-db.md"; each range now names the lane its rows' own last column cites (P1-04, P1-05, P1-08, P1-07, P1-09, P1-10). P1-10's log says it made the same correction; master did not carry it.
+- `docs/plans/rebuild/data-invariants.md`: INV-213 (identity and anonymity at the row), INV-214 (verification and the organisation key), INV-215 (thread entity binding), INV-216 (antitrust refusal), INV-217 (a group keeps an admin), INV-218 (moderation reviewer gate, closed reports), INV-219 (group entry), INV-220 (sign-off), INV-221 (notification privacy and fan-out, preference gap named). Count line updated, and its per-range attributions corrected: master credited several ranges to "lane Merge ... auth-db.md"; each range now names the lane its rows' own last column cites (P1-09 flywheel-a, P1-10 flywheel-b, P1-12 runtimes-a after the merge below).
 - `docs/audits/2026-10-11-complete-audit/BACKLOG-2026-10-11.md`: the STATUS cell of 31 in-scope ids (47 row occurrences; B-0023 to B-0037 and B-0048 appear in both tables): 27 CONFIRMED-P1, 2 REFUTED (B-0048 and B-0222: shell-context.ts now checks every read error), 2 TRASH (B-0649, B-0650, the cursor route). B-0277 and B-0878 already carried P1-07's cells and were left as they are.
 - Not touched: `docs/INDEX.md` (coordinator-only under the lane contract); no code changed; no live database read.
 
@@ -29,6 +29,10 @@ Branch coord/part1-community-b from origin/master 0ad87a94 in a worktree under .
 ## Blockers
 
 None. Push and PR follow this entry; if either fails, the exact error is appended here.
+
+## Addendum, 2026-10-12: merge before push
+
+`git fetch origin && git merge origin/master` brought in P1-12 runtimes-a (944f4cef, INV-207 to INV-212) and P1-07's citation follow-up (cc4088c2). data-invariants.md conflicted as the brief predicted: master's file was taken, this lane's nine invariants re-applied after master's last line as INV-213 to INV-221 (they were INV-207 to INV-215 in the first commit), every citation in the register and this log updated, the Count line set to 221 with the P1-09, P1-10 and P1-12 ranges attributed to their own registers. The BACKLOG merged without conflict and the 47 STATUS cells survived.
 
 ## Next steps (for the coordinator)
 
