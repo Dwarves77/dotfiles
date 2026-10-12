@@ -93,6 +93,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [complete-build-plan-2026-10-11](./plans/complete-build-plan-2026-10-11.md) - the W0..W6 plan from the complete audit; done = P1..P6 observed by the operator
 - [data-invariants](./plans/rebuild/data-invariants.md) - CLEAN-3 extraction: one line per invariant the old maintenance, remediation, verify and proof scripts enforced or repaired (INV-NNN, resolver behaviour, old file, register line)
 - [protected-properties](./plans/rebuild/protected-properties.md) - CLEAN-3 extraction: one line per property the old discipline layer protected and how the new tree checks it (PROP-NNN, lint rule / type / test / CI step / NOT CARRIED)
+- [part1 registers](./plans/rebuild/part1/auth-db.md) - Part 1 Keep/Refactor/Trash registers by module, 2026-10-11; one file per module under docs/plans/rebuild/part1/ (auth-db, intake-a so far); build-plan section 8 in each
 
 ## audits
 
