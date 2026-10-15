@@ -176,3 +176,22 @@ index, a bounded read) are built in and reported, not held.
 
 After each wave: merged slices with LOC against budget, the running src/core and src totals, proofs passed, parity
 state, rulings taken, anything not ported with the reason. The operator opens each proof when its wave lands.
+
+## Amendments (coordinator, 2026-10-15, after P2-01 merged)
+
+1. Wave 2 runs in three sub-waves because the registers' import graph (ASSEMBLY D.1) is not flat: 2a P2-02, P2-03, P2-04, P2-S1
+   in parallel (import P2-01 only; cross-slice runtime calls go through `deps` objects the briefs name, wired by P2-08); 2b P2-05
+   and P2-06 (import 2a's merged exports); 2c P2-07 (imports 2b). Briefs for all seven are written at once
+   (docs/plans/rebuild/briefs/, with WAVE-2-COMMON.md holding the shared rules).
+2. P2-02's UI (ArchiveDialog, ArchiveViewer, account, onboarding and settings components, the pages) is slice P2-02b, wave 3, after
+   the ui kit; budget 3,000. P2-02 ports the workspace model, API, state and the one settings writer (2,500).
+3. Rule tables and vocabularies land as JSON data validated at load; loc.mjs counts code only. Budgets stay the ceilings; a feature
+   is never dropped to fit; an overage is reported per file. P2-03 carries 300 lines of platform plumbing from capture.md (perf,
+   cache tags, notifications dispatch, surface health, version, telemetry ingest): budget 4,900.
+4. Parity baseline: 18 of 19 routes captured (run 38819128509, old-repo commit 5746eeccc); `community-group` not captured (no
+   group link for the smoke account) and owed before P2-16. In the public tree PNGs are kept only for the signed-out routes; JSON
+   for all. A dedicated smoke account is owed by the operator before the `parity` job captures previews (IMP-016).
+5. P2-S1 proves its forward migrations on the empty Postgres in CI; none is applied to production before the cutover window (the
+   old tree serves production until then). The P2-S1 `_data_` re-tier file runs at cutover with its consumer.
+6. On a red CI run a lane does not push a fix: it reports the failure and the proposed fix and stops; the coordinator approves the
+   one fix commit (the PR's second and last run).
