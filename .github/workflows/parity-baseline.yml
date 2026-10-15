@@ -62,6 +62,7 @@ jobs:
           cache-dependency-path: fsi-app/package-lock.json
 
       - name: Preflight (target and secrets, fails fast, nothing installed yet)
+        shell: bash
         run: |
           test -n "$APP_URL" || { echo "neither the base_url input nor the APP_URL secret is set"; exit 1; }
           [[ "$LABEL" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "label must be letters, digits, dot, underscore or hyphen"; exit 1; }
