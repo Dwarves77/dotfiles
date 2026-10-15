@@ -88,7 +88,7 @@ Each item names the duplicates the registers found across modules and the ONE ho
 
 ```
 new-repo/
-  schema/schema.sql            the production dump, minus dead objects, plus the lanes' additions (section 5)
+  supabase/schema.sql            the production dump, minus dead objects, plus the lanes' additions (section 5)
   src/core/                    SUBSTRATE, <= 25,000 lines (CI gate)
     http/      guard, parse, errors, rate-limit                          (P1-01)
     db/        clients, query kit, pagination, cache rules               (P1-01, P1-24)
@@ -118,7 +118,7 @@ new-repo/
 
 ## 5. Data: schema and invariants
 
-- The database is not migrated. The new tree points at the same Supabase project; schema/schema.sql is the dump
+- The database is not migrated. The new tree points at the same Supabase project; supabase/schema.sql is the dump
   (122 tables all with RLS, 214 policies, 134 functions, 69 triggers, 6 views, 320 indexes) minus the dead objects
   P1-11 confirms, plus the additions the lanes handed over: the Community RPCs (create_group_for_self,
   accept_group_invitation, create_thread, decide_signoff, moderate_report, community_directory_counts,
@@ -149,7 +149,7 @@ new-repo/
 ## 7. The discipline layer (one workflow)
 
 ci.yml, job `ci`: checkout, npm ci, lint (no unused vars or imports), typecheck (strict, null checks), build, domain
-tests, migration proof (apply schema/schema.sql to an empty Postgres service container; fail on error), property
+tests, migration proof (apply supabase/schema.sql to an empty Postgres service container; fail on error), property
 checks (RLS enabled on every table; no anon write policy; every FK indexed; no identifier or home path in the tree; no
 metered SDK in package.json; no committed run artifacts), LOC gates (src/core <= 25,000; src <= 60,000, code lines).
 A red run is fixed at the root cause before any re-trigger. Nothing else: no fitness engine, no governance tree.
@@ -190,7 +190,7 @@ Community's proof (groups, threads, moderation, notifications end to end) follow
 
 ## 10. Part 2 sequence (after approval)
 
-1. New repo, CI first (section 7) green on an empty tree; schema/schema.sql applied in CI; anonymity checks on.
+1. New repo, CI first (section 7) green on an empty tree; supabase/schema.sql applied in CI; anonymity checks on.
 2. Substrate slices in order: core/http + db + auth (P1); workspace; sources + capture; intake + brief + mint (P2's
    pipeline); connect + propagate + obligations; producers + turn + harness (P5). Each slice: port from the register's
    section 8, domain tests, LOC check, proof step.

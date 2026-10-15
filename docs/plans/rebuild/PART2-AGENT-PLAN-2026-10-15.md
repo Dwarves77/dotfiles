@@ -31,7 +31,7 @@ the schema register, data-invariants.md, protected-properties.md, the old code i
 ci.yml, job `ci`, on pull_request and push to main: checkout; node 24; npm ci; lint (eslint strict: no unused vars or
 imports, no explicit any, import order); typecheck (strict, noUncheckedIndexedAccess); build (placeholder Supabase
 env); domain tests (node --test or vitest, tests/ only); schema proof (postgres:15 service container; `psql -f
-schema/schema.sql` must succeed on an empty database); property checks (scripts/ci/properties.mjs: RLS enabled on
+supabase/schema.sql` must succeed on an empty database); property checks (scripts/ci/properties.mjs: RLS enabled on
 every table in schema.sql; no policy grants anon INSERT/UPDATE/DELETE; every FK has an index; no file in src/
 without a Ported-from header except files listed in scripts/ci/new-files.txt with a reason; no personal identifier
 or home path in the tree; no metered SDK in package.json; no file under src/ over 400 lines without an allow line);
@@ -44,12 +44,12 @@ workflow_dispatch; it is not required for merge until the UI wave.
 Wave 0 (now)
 - P2-00 bootstrap (Sonnet): the repo skeleton: package.json (next, react, @supabase/supabase-js, zod only; "budget"
   block), tsconfig strict, eslint, next.config, src/app/layout.tsx + one page, tests/ scaffold, scripts/ci/{loc,
-  properties,new-files}.mjs, ci.yml as section 2, schema/schema.sql (H-1's output), README (what the tree is, the
+  properties,new-files}.mjs, ci.yml as section 2, supabase/schema.sql (H-1's output), README (what the tree is, the
   rules, the proofs), docs/ with BUILD-PLAN and this plan copied in. Proof: `ci` green on the empty tree including
   the schema proof against a fresh Postgres. LOC budget 600.
 - H-1 schema file (Haiku): docs/plans/rebuild/schema-2026-10-12.sql minus the dead objects named in
   docs/plans/rebuild/part1/schema.md section 8 (by exact object name), plus the additions schema.md lists as SQL
-  verbatim; counts before and after; the diff as the PR body. Lands as schema/schema.sql in P2-00's branch.
+  verbatim; counts before and after; the diff as the PR body. Lands as supabase/schema.sql in P2-00's branch.
 - H-2 parity baseline (Haiku, in the OLD repo): .github/workflows/parity-baseline.yml, workflow_dispatch, Playwright
   v1.61.1 image, signs in with LIVE_SMOKE_EMAIL/PASSWORD, captures every route in tests/parity/routes.json at 1280
   and 375 px: a full-page PNG and the accessibility tree (roles, names, headings, landmarks, text of each row) as
