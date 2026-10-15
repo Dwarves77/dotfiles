@@ -4,7 +4,13 @@ name: Parity baseline
 # every route in fsi-app/tests/parity/routes.json at 1280x900 and 375x812, a full-page PNG and an accessibility JSON per
 # route and viewport, uploaded as one artifact. Dispatched by hand only, once per baseline. Not a required check.
 #
-# Required repository secrets (same names as live-smoke.yml, never printed):
+# Inputs
+#   base_url  optional. Origin to capture. When non-empty it overrides the APP_URL secret. This is how the same job
+#             captures the NEW tree's preview deployments later, so the smoke credentials never leave this repo.
+#   label     optional, default "baseline". The artifact is named parity-<label>-<sha>. Letters, digits, dot, underscore
+#             and hyphen only (checked in preflight; anything else would fail at upload, after the capture ran).
+#
+# Required repository secrets, unless base_url is given (same names as live-smoke.yml, never printed):
 #   APP_URL              origin of the deployment to capture, for example https://carosledge.com
 #   LIVE_SMOKE_EMAIL     the dedicated read-only smoke account
 #   LIVE_SMOKE_PASSWORD  that account's password
@@ -12,6 +18,17 @@ name: Parity baseline
 
 on:
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Origin to capture (https://...). Empty uses the APP_URL secret.'
+        required: false
+        default: ''
+        type: string
+      label:
+        description: 'Artifact label: parity-<label>-<sha>. Letters, digits, dot, underscore, hyphen only.'
+        required: false
+        default: 'baseline'
+        type: string
 
 permissions:
   contents: read
@@ -26,7 +43,8 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.61.1-noble
     timeout-minutes: 30
     env:
-      APP_URL: ${{ secrets.APP_URL }}
+      APP_URL: ${{ inputs.base_url || secrets.APP_URL }}
+      LABEL: ${{ inputs.label || 'baseline' }}
       LIVE_SMOKE_EMAIL: ${{ secrets.LIVE_SMOKE_EMAIL }}
       LIVE_SMOKE_PASSWORD: ${{ secrets.LIVE_SMOKE_PASSWORD }}
     steps:
@@ -45,7 +63,8 @@ jobs:
 
       - name: Preflight (target and secrets, fails fast, nothing installed yet)
         run: |
-          test -n "$APP_URL" || { echo "APP_URL secret is not set"; exit 1; }
+          test -n "$APP_URL" || { echo "neither the base_url input nor the APP_URL secret is set"; exit 1; }
+          [[ "$LABEL" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "label must be letters, digits, dot, underscore or hyphen"; exit 1; }
           test -n "$LIVE_SMOKE_EMAIL" || { echo "LIVE_SMOKE_EMAIL secret is not set"; exit 1; }
           test -n "$LIVE_SMOKE_PASSWORD" || { echo "LIVE_SMOKE_PASSWORD secret is not set"; exit 1; }
 
@@ -64,7 +83,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: parity-baseline-${{ github.sha }}
+          name: parity-${{ inputs.label || 'baseline' }}-${{ github.sha }}
           path: parity-out
           if-no-files-found: warn
           retention-days: 30
