@@ -46,6 +46,13 @@ emits the read-path from outside the file to break that circularity.
 
 Load narrowly. Reference material constrains you; working artifacts are input. Do not bulk-load docs/.
 
+## Part 2 (the rebuild) sessions
+
+A coordinator session of the clean-room rebuild starts with the `coordinator` skill (`.claude/skills/coordinator/SKILL.md`):
+it loads the operating contract and the latest `docs/plans/rebuild/coordinator/RESUME-*.md` and acts; the operator does not
+restate the process or the expectations. The build plan, agent plan, rulings, briefs and improvements live under
+`docs/plans/rebuild/`; `WHY-2026-10-16.md` there is the operator's rationale and decision procedure.
+
 ## Standing rules
 
 1. **Facts live in Supabase.** Regulatory facts, spans, tiers, and their integrity are owned by the database, validators, and quarantine lanes. Docs cite record IDs and migration numbers; they never restate published facts. Never hand-edit published rows; changes go through migrations and lanes.
