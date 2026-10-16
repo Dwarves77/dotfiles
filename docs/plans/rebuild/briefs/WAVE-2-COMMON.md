@@ -53,3 +53,10 @@ self-maintenance at a cost smaller than its gain, keeps the design, every ruling
 step, and changes neither the design nor how modules connect, is BUILT inside your budget and REPORTED; anything else goes on the
 IMPROVEMENTS block with your recommendation. Section 6 names the failures and what prevents each; your report says which of them
 your slice met and how.
+
+ADDENDUM 2026-10-16 (operator: one system, not independent systems). Every slice from here on: (1) names in its report, for each
+runtime it ships, WHO calls it (the turn stage, a route, another runtime) and WHAT it calls next; a runtime with no caller or no
+downstream is not done; (2) a surface slice (P2-10 onward) proves its page from the output of a fixture turn (P2-08's
+tests/integration/one-turn.test.ts extended with the surface's reader), never from rows it seeds itself; (3) no slice adds a
+second way to do what a merged slice already does: the connection check in CI (scripts/ci/connections.mjs, P2-08) fails a
+page-local engine or an uncalled runtime.
