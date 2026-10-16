@@ -50,7 +50,7 @@ ADDENDUM 2026-10-16 (wave 4 launch; main after P2-08 ac27656f and P2-02b):
   slice moves its detail route out of "skipped" by landing. Pixel waivers cite look rulings only (44 px, rule 2). A route
   that navigates more than three times fails the capture (loop ceiling). The member account has a workspace; the admin
   routes capture only on the deployed preview (P2-15).
-- ASSIGNED IMPROVEMENTS: P2-10 builds IMP-064 (workspace saved views: personal per user unless the operator rules shared;
+- ASSIGNED IMPROVEMENTS: P2-10 builds IMP-064 (saved views: PERSONAL PER USER, operator ruling 2026-10-16;
   table with RLS, one route, list url-state) and IMP-068 (PageFailure into the shell, every server page offers Retry);
   P2-14 builds IMP-060 (fixtures page into the admin parts gallery behind the admin guard) and IMP-069 (community profile
   policy imports core/workspace/vocabulary.ts). nav_counts: P2-08 wired the shell's counts through the turn's deps; a
