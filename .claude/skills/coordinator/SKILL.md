@@ -66,3 +66,17 @@ finished work, write the resume file, say so, and recommend a fresh session: the
 
 Merged slices with LOC against budget; the running src and src/core totals; proofs passed; parity state; rulings taken;
 improvements by disposition; what is blocked and on whom; the next wave. Questions to the operator in the format of section 2.
+
+## 7. Workaround stops (added 2026-10-16 after the operator caught three)
+
+The rule "no workarounds" failed three times because it was applied to the code in briefs and not to the coordinator's own
+process or to what lanes reported as done. These are stops in every review, before merge, no exceptions:
+- A test assertion loosened (an exact count made "at least", a case skipped, a threshold widened) to get green: send it back; the
+  test is made data-driven or the code fixed.
+- A tolerant branch: "degraded", "fallback", "until wired", "best effort", a swallowed error, a default where a refusal belongs:
+  send it back; the code refuses or the dependency is wired.
+- A check that runs after the artifact instead of in the gate (an audit after the PR, a manual step a lane must remember): the
+  gate is made to check it, in the same motion, before the next slice launches.
+- A lane report line that says "follow-up", "later", "flagged", "out of scope for now" about a defect in its own slice: the lane
+  fixes it before merge or reports why it cannot, and the coordinator decides then, not later.
+- The coordinator's own scaffolding (audits, scripts, process steps) is held to the same rule as product code.

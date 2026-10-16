@@ -60,3 +60,8 @@ downstream is not done; (2) a surface slice (P2-10 onward) proves its page from 
 tests/integration/one-turn.test.ts extended with the surface's reader), never from rows it seeds itself; (3) no slice adds a
 second way to do what a merged slice already does: the connection check in CI (scripts/ci/connections.mjs, P2-08) fails a
 page-local engine or an uncalled runtime.
+
+ADDENDUM 2026-10-16 (operator: no workarounds, build it right the first time). A lane never: loosens an assertion to get green;
+adds a "degraded", "fallback", "until wired" or "best effort" path where a refusal belongs; swallows an error; or writes
+"follow-up" or "later" about a defect in its own slice. When something cannot be built right inside the brief, the lane stops and
+reports what and why, and the coordinator decides. A review finds any of these and the PR goes back.
