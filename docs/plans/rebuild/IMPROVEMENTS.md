@@ -65,3 +65,7 @@ the design nor how modules connect: built inside the assigned slice's budget and
 module connection: the operator's word), DECLINED. Assignments: P2-08 takes 021, 026, 028, 030, 031, 033, 034, 035, 036, 038, 041,
 043, 044, 046, 048, 049, 050, 051; P2-S3 takes 008, 011, 018, 019, 023, 024, 037, 045, 047 (table), 032 at cutover; 029 at P2-15;
 042 with P2-08.
+| IMP-052 | P2-07 | Add source_id to reroute_events | a reroute's citation is rated today but not stored | one forward migration | BUILD (WHY section 7): P2-S3 or P2-S4 | BUILD (WHY section 7, 2026-10-16) |
+| IMP-053 | P2-07 | One core lookup for regions and entities by kind | three producers read them separately | small, core + 3 producers | BUILD (WHY section 7): P2-08 | BUILD (WHY section 7, 2026-10-16) |
+| IMP-054 | P2-07 | Host verdicts as a table instead of files | the walker and the drain read them without a file loader | one table + loader | BUILD (WHY section 7): P2-S4 + P2-08 wiring | BUILD (WHY section 7, 2026-10-16) |
+| IMP-055 | P2-07 | Re-score research assessments when an item changes (the first pass scores only items with no current row) | learning: the assessment improves as the world changes | a change trigger through the outbox; touches how research and propagation connect | DISCUSS: a module connection; recommend yes, the outbox already carries item events | DISCUSS |
