@@ -406,3 +406,17 @@ Lists only. Written by lane DOCS-5b (branch coord/docs5b-coordinator-files) from
 - Windows: tests/_support/hooks.mjs used URL.pathname and broke `npm test` on this host for three lanes; fixed in P2-S1's second commit (fileURLToPath); suites now 443/443 locally.
 - IMPROVEMENTS.md: IMP-008 to IMP-038 collected with recommendations; none applied beyond the BUILT-IN rows.
 - Wave 2b (P2-05 mint, P2-06 connect + propagate + obligations) launched as local Sonnet lanes against main 9c613f8b; P2-07 follows; wave-3 briefs P2-09 and P2-02b drafted.
+
+## Addendum 2026-10-16 (evening), coordinator (Fable): wave 3 closed, wave 4 launched
+
+- Merged: P2-CI2 + P2-02c (24bf3060), P2-08 (ac27656f), P2-08b (ad3de296), P2-08b-ii (f095102), P2-02b (d2061012). Main green after each.
+- The parity run the operator saw red (12m49s) had three causes, each named from code and corroborated by a run: an unconditional
+  serviceClient() in the bootstrap route; unbounded identity/bootstrap retries; and a document reload on SIGNED_IN that auth-js
+  2.118.0 emits before INITIAL_SESSION on every load with a stored session (the loop the old build also had). All fixed at cause
+  with red-first tests and a capture-side loop ceiling. Then the first real compare exposed frame landmarks from old list bodies
+  (frame scoping extended to landmarks) and real settings/profile differences (built, not waived).
+- Rulings: see rulings-2026-10-11.md 2026-10-16 entries; operator: saved views personal per user.
+- IMPROVEMENTS 064-076 recorded with dispositions; IMP-069 flywheel half refuted; IMP-074 declined.
+- Process edits: lane order merge main, then gates on the merged tree, then push (one red traced to the old order); stop own
+  processes by PID only; P2-CI2 pushed a diagnostics commit without skip-ci on my instruction (one red, mine).
+- Wave 4 launched: P2-10, P2-11, P2-12, P2-13, P2-14 against d2061012.
