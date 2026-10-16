@@ -46,3 +46,10 @@ list diff against the brief); 3 invariants and attacks tested (ids, mutation cou
 6 headers audited (count, all resolving); 7 beyond the brief (each with its reason); 8 proof result; 9 CI run id; 10 decisions
 for the coordinator. Then an IMPROVEMENTS block (`what | why better | cost | what it touches`), none applied unless inside budget
 with no design and no interface change (then reported as built). Do not spawn agents. Do not ask the operator anything.
+
+ADDENDUM 2026-10-16: READ FIRST, before the register: docs/plans/rebuild/WHY-2026-10-16.md (operator-authored). Its section 7 is the
+decision procedure for every file you write and every improvement you weigh: an improvement that improves capability, learning or
+self-maintenance at a cost smaller than its gain, keeps the design, every ruling, the free path and integrity, triggers the next
+step, and changes neither the design nor how modules connect, is BUILT inside your budget and REPORTED; anything else goes on the
+IMPROVEMENTS block with your recommendation. Section 6 names the failures and what prevents each; your report says which of them
+your slice met and how.
