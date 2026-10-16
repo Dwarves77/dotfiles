@@ -195,7 +195,7 @@ state, rulings taken, anything not ported with the reason. The operator opens ea
    old tree serves production until then). The P2-S1 `_data_` re-tier file runs at cutover with its consumer.
 6. On a red CI run a lane does not push a fix: it reports the failure and the proposed fix and stops; the coordinator approves the
    one fix commit (the PR's second and last run).
-7. Budget trend after wave 2b (coordinator, 2026-10-15, for the operator): slices land at 100 to 163 percent of their plan budgets
+7. RESOLVED 2026-10-16: the operator raised the src gate to 75,000 (core stays 25,000). Budget trend after wave 2b (coordinator, 2026-10-15, for the operator): slices land at 100 to 163 percent of their plan budgets
    with nothing dropped (P2-02 92%, P2-03 126%, P2-04 118%, P2-05 82%, P2-06 163%). src after wave 2b: about 24,200 lines; src/core
    12,089 of the 25,000 gate. Projection with the remaining budgets at the same ratio: src about 68,000 to 72,000 against the 60,000
    gate. The plan's 52,000 estimate assumed the whole-system cut would compound on the registers' clean estimates; the lanes report the
