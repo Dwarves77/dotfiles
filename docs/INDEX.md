@@ -4,6 +4,8 @@ One line per living doc. docs/archive/ holds only the 41 audit registers of 2026
 
 ## board
 
+- [Coordinator skill](../.claude/skills/coordinator/SKILL.md)  -  the Part 2 operating contract: roles, the per-slice loop, standing rules, cost discipline, report format; a session loads it and the latest RESUME file and acts without re-explanation.
+- [WHY the rebuild](./plans/rebuild/WHY-2026-10-16.md)  -  operator-authored 2026-10-16: what the product is, what went wrong, what "better" means and where it stops, the decision procedure (section 7) every lane applies before any build or improvement.
 - [PROGRAM-BOARD](./PROGRAM-BOARD.md)  -  the resume state: full T/C/Unit thread table (state · evidence · deferrals) reconstructed from the repo; standing rule = every session that opens/closes a thread updates it in the same PR. Records the T/C taxonomy-collision finding (numbering is a chat overlay; only T7/T8 have verbatim repo tags) and the T9-not-closed gap.
 
 ## decisions

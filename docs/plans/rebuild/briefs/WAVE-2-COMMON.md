@@ -46,3 +46,22 @@ list diff against the brief); 3 invariants and attacks tested (ids, mutation cou
 6 headers audited (count, all resolving); 7 beyond the brief (each with its reason); 8 proof result; 9 CI run id; 10 decisions
 for the coordinator. Then an IMPROVEMENTS block (`what | why better | cost | what it touches`), none applied unless inside budget
 with no design and no interface change (then reported as built). Do not spawn agents. Do not ask the operator anything.
+
+ADDENDUM 2026-10-16: READ FIRST, before the register: docs/plans/rebuild/WHY-2026-10-16.md (operator-authored). Its section 7 is the
+decision procedure for every file you write and every improvement you weigh: an improvement that improves capability, learning or
+self-maintenance at a cost smaller than its gain, keeps the design, every ruling, the free path and integrity, triggers the next
+step, and changes neither the design nor how modules connect, is BUILT inside your budget and REPORTED; anything else goes on the
+IMPROVEMENTS block with your recommendation. Section 6 names the failures and what prevents each; your report says which of them
+your slice met and how.
+
+ADDENDUM 2026-10-16 (operator: one system, not independent systems). Every slice from here on: (1) names in its report, for each
+runtime it ships, WHO calls it (the turn stage, a route, another runtime) and WHAT it calls next; a runtime with no caller or no
+downstream is not done; (2) a surface slice (P2-10 onward) proves its page from the output of a fixture turn (P2-08's
+tests/integration/one-turn.test.ts extended with the surface's reader), never from rows it seeds itself; (3) no slice adds a
+second way to do what a merged slice already does: the connection check in CI (scripts/ci/connections.mjs, P2-08) fails a
+page-local engine or an uncalled runtime.
+
+ADDENDUM 2026-10-16 (operator: no workarounds, build it right the first time; and no rules on rules). When you cannot build
+something right inside the brief, stop and report what and why; do not loosen a test, add a tolerant path or write "later". The
+checks that enforce this are mechanical (CI header ranges, the data-driven structure test, startup refusal on unwired deps,
+eslint no-empty catch, the connection check), not this paragraph.
