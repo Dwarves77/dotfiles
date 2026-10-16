@@ -8,8 +8,8 @@ for the operator), BUILT-IN (inside a slice's budget, no design or interface cha
 | id | from | what | why better | cost | recommendation | status |
 |---|---|---|---|---|---|---|
 | IMP-001 | P2-00 | Pin Node 24 in .nvmrc | local Node 22 differs from CI and already broke the test script once | 1 line | BUILT-IN by P2-01 | BUILT-IN |
-| IMP-002 | P2-00 | Seeded-violation fixtures run in CI (each property check proven to fail on a planted violation in every run) | rule 15: a guard is proven by attack, not once by hand | ~60 lines | ACCEPT: assign to the schema forward-migration slice (P2-S1) | PROPOSED |
-| IMP-003 | P2-00 | The remaining schema.md property checks (SET NULL onto NOT NULL, missing-relation bodies, initplan wraps, default privileges) | pins four known baseline defects the registers confirmed | ~80 lines plus waivers | ACCEPT: P2-S1, waived at baseline then turned strict by its migrations | PROPOSED |
+| IMP-002 | P2-00 | Seeded-violation fixtures run in CI (each property check proven to fail on a planted violation in every run) | rule 15: a guard is proven by attack, not once by hand | ~60 lines | BUILT-IN by P2-S1 (13 checks, 24 planted violations every run) | BUILT-IN |
+| IMP-003 | P2-00 | The remaining schema.md property checks (SET NULL onto NOT NULL, missing-relation bodies, initplan wraps, default privileges) | pins four known baseline defects the registers confirmed | ~80 lines plus waivers | BUILT-IN by P2-S1 (waivers 2 -> 0) | BUILT-IN |
 | IMP-004 | P2-00 | Slice id on each waiver | waivers are ownerless today | 2 lines | BUILT-IN by P2-S1 | BUILT-IN |
 | IMP-005 | P2-00 | Pin postgres:15.14 in ci.yml | the service image floats across minors | 1 line | BUILT-IN by P2-01 | BUILT-IN |
 | IMP-006 | P2-00 | Name ban from a hashed token list (several variants), not one token | one hashed token misses variants | trivial | BUILT-IN by P2-01 (Fable supplies the hashes, never the names) | BUILT-IN |
@@ -46,7 +46,7 @@ for the operator), BUILT-IN (inside a slice's budget, no design or interface cha
 | IMP-037 | P2-04 | Pin the four SQL generator outputs in the schema job, not only in unit tests | catches drift in the applied constraints | a short property check | ACCEPT: P2-S2 | PROPOSED |
 | IMP-038 | P2-04 | A `halted()` member on deps so a hard stop binds the brief workflow | the global pause and the spend cap were not ported (nothing spends); a kill switch still needs a home | one dep member read from system_state | ACCEPT: P2-08 (the dispatcher's kill-switch read, rule 11) | PROPOSED |
 | IMP-039 | P2-05 | A judgement-drain kind that applies a screen_verdicts session batch and re-screens expired ambiguous holds | closes the ambiguous loop that ruling 1 opens (14-day age) | one drain kind + the screen_verdicts migration | ACCEPT: P2-07 (kind) + P2-S2 (table and the 1,746 reviewed verdicts as a data migration) | ACCEPTED |
-| IMP-040 | P2-05 | A partial index on census_worklist (dryrun_disposition, is_archived, enumeration_status) for would_mint | the selection read pages the whole pool each run | one migration | ACCEPT: P2-S2 | PROPOSED |
+| IMP-040 | P2-05 | A partial index on census_worklist (dryrun_disposition, is_archived, enumeration_status) for would_mint | the selection read pages the whole pool each run | one migration | BUILT-IN by P2-S2 (migration 0017) | BUILT-IN |
 | IMP-041 | P2-05 | Move insideLongerNumber and the value-preserving numeric fold into core/contracts beside isVerbatim | Gate A, the grounding gate and the healer share one number rule | ~60 lines moved | ACCEPT: P2-08 | PROPOSED |
 | IMP-042 | P2-05 | A read-only "would register" mode on registerAndRate | a dry heal or dry mint reports the tier a source would get | ~30 lines in core/sources | ACCEPT: P2-S2 lane or P2-08 | PROPOSED |
 | IMP-043 | P2-S2 | schema-apply asserts the migrations README table lists every file | the table has drifted before | ~8 lines in scripts/ci | ACCEPT: P2-08 | PROPOSED |
