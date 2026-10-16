@@ -72,3 +72,8 @@ module connection: the operator's word), DECLINED. Assignments: P2-08 takes 021,
 | IMP-056 | P2-S3 | accept_invitation_by_id rpc for the invitee list | in-app Accept works without the raw token | one rpc + P2-02b UI | DECIDED by the coordinator 2026-10-16: build, P2-02b | ACCEPTED |
 | IMP-057 | P2-S3 | Per-route limits on rate_limit_hit | workers and users get different budgets | the parameters exist | BUILD: P2-08 wiring passes the route's limit | BUILD (WHY section 7, 2026-10-16) |
 | IMP-058 | P2-S3 | Unique lower(email) index once live data is checked for duplicates | one account per address enforced in the database | one migration after a duplicate query | P2-15 cutover checklist (query first; the operator rules if duplicates exist) | ACCEPTED |
+| IMP-059 | P2-09 | Admin attention through the bootstrap refresh instead of a second poll | one request path | built | BUILT-IN (P2-09) | BUILT-IN |
+| IMP-060 | P2-09 | Promote the UI fixtures page into the admin parts gallery behind the admin guard | one place to see every part, by hand and in CI | small | BUILD: P2-14 | BUILD (WHY section 7, 2026-10-16) |
+| IMP-061 | P2-09 | Export SOURCE_TIER_MAX, LOWER_CONFIDENCE_WORDS, BIAS_DIMENSION_LABELS, hasBiasTags and the bias types from the sources barrel | removes four deep imports | five export lines | BUILD: P2-08 (touches everything already) | BUILD (WHY section 7, 2026-10-16) |
+| IMP-062 | P2-09 | Upload the pixel-diff image as a CI artifact | reviewers see the diff, not a number | small, parity job | BUILD: P2-08 | BUILD (WHY section 7, 2026-10-16) |
+| IMP-063 | P2-09 | Vendor the two fonts with next/font/local | drops two npm dependencies | an afternoon | BUILD: P2-15 (asset handling at cutover) | BUILD (WHY section 7, 2026-10-16) |
