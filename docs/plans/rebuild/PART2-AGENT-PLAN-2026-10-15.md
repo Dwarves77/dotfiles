@@ -205,3 +205,8 @@ state, rulings taken, anything not ported with the reason. The operator opens ea
    is that every feature is kept.
 8. INV-189 amended in place (P2-06 read the old intersection code whole: no surface filter; cross_surface is recorded, not required).
 9. Operator ruling owed: licence posture of the five UN/LOCODE place names shipped as data (B-0258); no more are added until ruled.
+10. Coordinator miss, caught 2026-10-15 while writing P2-08: runtimes-a.md's session-batch kit (the free authoring path: record
+    briefs, question answers, need URLs, theme briefs, forward-event batches, ledger and screen verdicts) was in no wave slice. It
+    is slice P2-08b (wave 3, after P2-08; budget 3,000; brief written). The injected-brief seam has its caller through it.
+11. P2-08's budget is 2,800 (turn 1,500, harness 500, wiring and CLI 800); it builds IMP-026, IMP-036 and IMP-038 as the
+    mechanisms binding rules need (unwired deps refuse, one RunResult, the kill switch exposed), not as improvements.
