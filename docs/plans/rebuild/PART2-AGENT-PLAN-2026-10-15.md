@@ -195,3 +195,18 @@ state, rulings taken, anything not ported with the reason. The operator opens ea
    old tree serves production until then). The P2-S1 `_data_` re-tier file runs at cutover with its consumer.
 6. On a red CI run a lane does not push a fix: it reports the failure and the proposed fix and stops; the coordinator approves the
    one fix commit (the PR's second and last run).
+7. Budget trend after wave 2b (coordinator, 2026-10-15, for the operator): slices land at 100 to 163 percent of their plan budgets
+   with nothing dropped (P2-02 92%, P2-03 126%, P2-04 118%, P2-05 82%, P2-06 163%). src after wave 2b: about 24,200 lines; src/core
+   12,089 of the 25,000 gate. Projection with the remaining budgets at the same ratio: src about 68,000 to 72,000 against the 60,000
+   gate. The plan's 52,000 estimate assumed the whole-system cut would compound on the registers' clean estimates; the lanes report the
+   growth comes from checked errors on every read and write, the deps shapes, and the register features ported whole. Decision owed to
+   the operator (rule 13, decision-ready): (a) raise the src gate to 75,000 and keep core at 25,000, or (b) hold 60,000 and name the
+   features that leave. The coordinator recommends (a): the gates were set before any file existed and the operator's governing rule
+   is that every feature is kept.
+8. INV-189 amended in place (P2-06 read the old intersection code whole: no surface filter; cross_surface is recorded, not required).
+9. Operator ruling owed: licence posture of the five UN/LOCODE place names shipped as data (B-0258); no more are added until ruled.
+10. Coordinator miss, caught 2026-10-15 while writing P2-08: runtimes-a.md's session-batch kit (the free authoring path: record
+    briefs, question answers, need URLs, theme briefs, forward-event batches, ledger and screen verdicts) was in no wave slice. It
+    is slice P2-08b (wave 3, after P2-08; budget 3,000; brief written). The injected-brief seam has its caller through it.
+11. P2-08's budget is 2,800 (turn 1,500, harness 500, wiring and CLI 800); it builds IMP-026, IMP-036 and IMP-038 as the
+    mechanisms binding rules need (unwired deps refuse, one RunResult, the kill switch exposed), not as improvements.
