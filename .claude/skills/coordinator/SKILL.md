@@ -57,10 +57,15 @@ downstream; surfaces prove their page from the fixture turn); budgets are ceilin
 account is the admin and the test account; the src gate is 75,000 and core 25,000; no cadence during build; no human gate in
 the data machine; a finding is a hypothesis until verified and labelled; a flag is a commitment (fix it or make it decision-ready).
 
-## 5. Cost discipline
+## 5. Cost discipline (tokens are the budget; operator 2026-10-16)
 
-Lanes end when green. Diff reads are targeted. One docs PR per wave. When the session's context passes roughly 200k tokens of
-finished work, write the resume file, say so, and recommend a fresh session: the next one starts from this skill in one turn.
+Every check runs in CI on the public repo's free minutes, never by an agent: no audit lanes, no agent re-reading what CI already
+proves. Agent tokens go only to building and to the coordinator's targeted review. Measured 2026-10-15/16: a build lane costs
+0.4 to 0.85 million tokens (dominated by reading its register and old files whole, which the operator requires); an audit lane
+cost 0.07 to 0.1 million and is retired. Rules that follow from this: lanes never echo file contents into reports; reports are
+the ten lines plus blocks; mutation proofs cover the brief's INV list and nothing more; the coordinator reads the invariant-
+bearing files of a diff, not tests, data or UI wholesale; one docs PR per wave; Haiku for copies and one-line edits only; when
+the session's context passes roughly 200k tokens of finished work, write the resume file and start fresh from this skill.
 
 ## 6. Report format (after each wave)
 
