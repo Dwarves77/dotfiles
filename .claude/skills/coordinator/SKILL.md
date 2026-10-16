@@ -67,12 +67,17 @@ the ten lines plus blocks; mutation proofs cover the brief's INV list and nothin
 bearing files of a diff, not tests, data or UI wholesale; one docs PR per wave; Haiku for copies and one-line edits only; when
 the session's context passes roughly 200k tokens of finished work, write the resume file and start fresh from this skill.
 
-## 6. Report format (after each wave)
+## 6. Parity waivers
+
+A pixel waiver in tests/parity/approved-changes.json cites only a look ruling (an approved artboard change or a ratified UX
+law); a behaviour defect is fixed without touching the look. The operator decides look; the artboards are its record.
+
+## 7. Report format (after each wave)
 
 Merged slices with LOC against budget; the running src and src/core totals; proofs passed; parity state; rulings taken;
 improvements by disposition; what is blocked and on whom; the next wave. Questions to the operator in the format of section 2.
 
-## 7. Workarounds are caught by mechanisms, not by rules (2026-10-16)
+## 8. Workarounds are caught by mechanisms, not by rules (2026-10-16)
 
 The old tree died of rules nobody ran. So the review asks one question of any defect or tolerance it finds: WHICH MECHANISM WOULD
 HAVE CAUGHT THIS, and if none exists, that mechanism is built before the next slice launches. The mechanisms that exist: header
