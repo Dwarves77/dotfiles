@@ -35,13 +35,15 @@ Then say in five lines: main's head, what is merged, what is in flight, the next
    common rules are `briefs/WAVE-2-COMMON.md` (and `WAVE-4-COMMON.md` for surfaces). Every brief: scope, interface, deps,
    invariants to prove red-first, defects not to repeat, proof, landing. Append an ADDENDUM (dated) rather than rewriting.
 2. Launch: the lane prompt names the two files to read in full, main's head, the clone path under the scratchpad, "do not spawn
-   agents, do not ask the operator, merge origin/main FIRST, then run every local gate on that exact merged tree, then push with no further commit (a gate run before the merge proves nothing: P2-02b run 38969488361 went red on a typecheck the merge introduced), one CI run, stop when green or report the red".
+   agents, do not ask the operator, merge origin/main FIRST, then push: the versioned pre-push hook (P2-CI4) runs `npm run gates`, the same script the ci job runs, plus schema:local when supabase/ changed, and refuses the push on any failure or a [skip ci] head; a lane never bypasses the hook and never pushes a second time on a red without the coordinator (a gate run before the merge proves nothing: P2-02b run 38969488361 went red on a typecheck the merge introduced), one CI run, stop when green or report the red".
 3. Review before merge (every slice): read the invariant-bearing files of the diff (extract them with awk into the scratchpad;
    do not read tests, data or UI wholesale); check exports against the brief; every INV in the brief has a red-first test; no new
    dependency without a budget line; no metered SDK; no identifier; LOC against budget (overage reported, never a feature dropped).
    Header ranges are checked by CI (P2-CI1) once merged; before that, a Haiku audit resolves them against the old tree.
 4. Merge: `gh pr merge <n> -R Dwarves77/caros-ledge --squash --subject "<id> <name> (<LOC> lines)"` with a body naming what was
-   read and tested. Then the lane's IMPROVEMENTS rows go into `docs/plans/rebuild/IMPROVEMENTS.md` with a disposition: BUILD
+   read and tested. The subject and body never contain the bracketed skip token (write "skip-ci" when referring to it):
+   GitHub skips the push run of any commit whose message contains it, which is how main 79bdb05a got no run (coordinator miss,
+   2026-10-17); the PR run on the identical merge ref is the proof in that case, and the next merge re-proves main. Then the lane's IMPROVEMENTS rows go into `docs/plans/rebuild/IMPROVEMENTS.md` with a disposition: BUILD
    (WHY section 7: no design, connection or ruling change: assign to a slice), DISCUSS (operator), BUILT-IN, DECLINED.
 5. Record: rulings taken go to `coordinator/rulings-2026-10-11.md` the moment they are made; plan changes as numbered
    amendments at the end of `PART2-AGENT-PLAN-2026-10-15.md`; a dated session-log addendum and the resume file at wave end.
@@ -69,8 +71,11 @@ the session's context passes roughly 200k tokens of finished work, write the res
 
 ## 6. Parity waivers
 
-A pixel waiver in tests/parity/approved-changes.json cites only a look ruling (an approved artboard change or a ratified UX
-law); a behaviour defect is fixed without touching the look. The operator decides look; the artboards are its record.
+A waiver in tests/parity/approved-changes.json cites a look ruling (an approved artboard change or a ratified UX law), a
+security or privacy ruling by id (SEC-n), or is an `until-migration` entry naming the migration production lacks before
+cutover (self-retiring once APPLIED.json lists it), or an `order` entry where the old tree left an order unspecified
+(file:line of the read with no secondary key) and the new tree is deterministic. Counts are normalised, never waived. A behaviour defect is fixed, never
+waived. The operator decides look; the artboards are its record.
 
 ## 7. Report format (after each wave)
 

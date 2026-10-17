@@ -57,3 +57,10 @@ ADDENDUM 2026-10-16 (wave 4 launch; main after P2-08 ac27656f and P2-02b):
   surface that owns a count registers it there, never a second poll.
 - The identity route is limited per user (never per IP) and answers anonymous requests without a database call; the shell
   never reloads the document on an auth event (auth-events.ts). Do not add a reload, a poll, or a second identity fetch.
+
+ADDENDUM 2026-10-17 (from P2-10's parity red): production carries NO new migration until the cutover window (ruling: the
+database untouched), and the parity job reads production. Therefore every surface renders a STATED degraded state when an
+object its own migration adds (table, view, policy, rpc) is absent: the read fails closed into its named block with Retry
+(INV-263 class), every control and link still exists (a count beside it is the Absence token), and the page never throws.
+Parity proves exactly that path on production; the new-object path is proven on the fixture turn and `schema:local`. A
+red-first test with a fake client refusing the new object's read is part of every slice that ships a migration.
