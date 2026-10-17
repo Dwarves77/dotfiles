@@ -3,7 +3,8 @@
 Repo github.com/Dwarves77/caros-ledge, default branch main (P2-00 and P2-01 merged: 7ecd1af3). Branch slice/<id> from main.
 Git author exactly `Claude <noreply@anthropic.com>` (`git -c user.name=Claude -c user.email=noreply@anthropic.com commit`). No personal
 name, e-mail or home path anywhere in the tree (scripts/ci/tree-checks.mjs fails the run). Work in your own fresh clone under the
-session scratchpad (`gh repo clone Dwarves77/caros-ledge <dir>`; `npm ci`; never a junction, never a shared node_modules).
+session scratchpad (`gh repo clone Dwarves77/caros-ledge <dir>`; `npm ci`; never a junction, never a shared node_modules). Stop only
+processes you started, by PID; never kill by image name (other lanes run servers and tests on this machine).
 The old repo is C:\Users\jason\dotfiles, branch master at 646fb098c; headers cite it as `old_repo/<path>` with the `fsi-app/`
 prefix dropped: `// Ported from old_repo/src/lib/x.ts (lines a-b)` (several lines per file allowed). A file with no old source
 gets a line in scripts/ci/new-files.txt (`path | reason`).

@@ -35,7 +35,7 @@ Then say in five lines: main's head, what is merged, what is in flight, the next
    common rules are `briefs/WAVE-2-COMMON.md` (and `WAVE-4-COMMON.md` for surfaces). Every brief: scope, interface, deps,
    invariants to prove red-first, defects not to repeat, proof, landing. Append an ADDENDUM (dated) rather than rewriting.
 2. Launch: the lane prompt names the two files to read in full, main's head, the clone path under the scratchpad, "do not spawn
-   agents, do not ask the operator, merge origin/main before pushing, one CI run, stop when green or report the red".
+   agents, do not ask the operator, merge origin/main FIRST, then run every local gate on that exact merged tree, then push with no further commit (a gate run before the merge proves nothing: P2-02b run 38969488361 went red on a typecheck the merge introduced), one CI run, stop when green or report the red".
 3. Review before merge (every slice): read the invariant-bearing files of the diff (extract them with awk into the scratchpad;
    do not read tests, data or UI wholesale); check exports against the brief; every INV in the brief has a red-first test; no new
    dependency without a budget line; no metered SDK; no identifier; LOC against budget (overage reported, never a feature dropped).

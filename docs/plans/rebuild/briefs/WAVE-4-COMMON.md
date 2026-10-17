@@ -28,3 +28,32 @@ except the documented public ones. Persona matrix for every handler.
 
 LANDING: as WAVE-2-COMMON.md, plus: the parity result per route in the report, the DESIGN CHANGES OWED list, the connection check
 green, and the integration-proof extension named (test file and the assertions added).
+
+ADDENDUM 2026-10-16 (wave 4 launch; main after P2-08 ac27656f and P2-02b):
+- THE KIT AS IT EXISTS (import from "@/ui" and "@/ui/shell"; read src/ui/index.ts, src/ui/shell/index.ts and
+  src/ui/list-surface/ before writing a part; a part that exists is reused, never redrawn): Absence, ActionCard, ActionRow,
+  ActionButton, ErrorState, InlineErrorBanner, SystemErrorBanner, BandTile, BandTileRow, BandGroupHeader, BandGradientRule,
+  BiasChips, BiasLegend, Button, BandChip, FilterChip, FilterChipGroup, GradeChip, TagChip, TierChip, WorkspaceTagPill,
+  FactCard, ClaimTierProvider, CoverageState, Dialog, GfmSection, ImpactMeter, ItemGroup, DetailSubSection,
+  MoreBelowDisclosure, ListRow, ListRowHeader, Masthead, Menu, MilestoneTimeline, RelativeTime, RowTable, RowTableAction,
+  SectionCard, SectionHead, SectionIndex, SummaryDepthSwitch, SectionLabel, Skeleton*, RailCard, CardFoot, SourceLink,
+  FilePickRow, StatBlock, StateNote, EmptyState, BandProvider, TabRow, Timeline, Toast, WatchToggle; forms from P2-02b:
+  FormField, Input, Textarea, Select, Switch, Segmented, ChoiceChip, FormCard (src/ui/FormField.tsx); shell: AppShell,
+  PageFrame, Providers, CommandBar, Sheet, BackToTop, ScrollContainer, useBootstrap, useUnreadCount, useAdminAttention,
+  UserMenu. Every control is at least 44 px on its short axis (operator standard 2026-10-16); an artboard drawing less is
+  built at 44 and recorded on DESIGN CHANGES OWED.
+- PARITY, how a surface lands: the capture (P2-CI2) signs in as the member account and captures every route; a route in
+  approved-changes.json `gates.frame` proves only the shell (controls, headings and `frameLandmarks` scoped); when your
+  slice builds a route you MOVE it from gates.frame to gates.full in the same PR, and the compare then checks the full
+  structure (controls, headings, landmarks, row heights at 375) against tests/parity/baseline. A detail route is discovered
+  from the first matching link on its list page; the discovery runs as soon as the list route is in gates.full, so the list
+  slice moves its detail route out of "skipped" by landing. Pixel waivers cite look rulings only (44 px, rule 2). A route
+  that navigates more than three times fails the capture (loop ceiling). The member account has a workspace; the admin
+  routes capture only on the deployed preview (P2-15).
+- ASSIGNED IMPROVEMENTS: P2-10 builds IMP-064 (saved views: PERSONAL PER USER, operator ruling 2026-10-16;
+  table with RLS, one route, list url-state) and IMP-068 (PageFailure into the shell, every server page offers Retry);
+  P2-14 builds IMP-060 (fixtures page into the admin parts gallery behind the admin guard) and IMP-069 (community profile
+  policy imports core/workspace/vocabulary.ts). nav_counts: P2-08 wired the shell's counts through the turn's deps; a
+  surface that owns a count registers it there, never a second poll.
+- The identity route is limited per user (never per IP) and answers anonymous requests without a database call; the shell
+  never reloads the document on an auth event (auth-events.ts). Do not add a reload, a poll, or a second identity fetch.
