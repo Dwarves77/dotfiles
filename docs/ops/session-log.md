@@ -420,3 +420,23 @@ Lists only. Written by lane DOCS-5b (branch coord/docs5b-coordinator-files) from
 - Process edits: lane order merge main, then gates on the merged tree, then push (one red traced to the old order); stop own
   processes by PID only; P2-CI2 pushed a diagnostics commit without skip-ci on my instruction (one red, mine).
 - Wave 4 launched: P2-10, P2-11, P2-12, P2-13, P2-14 against d2061012.
+
+## Addendum 2026-10-17, coordinator (Fable): wave 4 closed
+
+- Merged (in order): P2-13, P2-CI3, P2-CI4 (push gate + schema:local), P2-CI5, P2-10, P2-14, P2-CI6a, P2-CI6b (baseline
+  recaptured on current data), P2-CI7, P2-12, P2-11. Main cc2bd246, zero open PRs, src 55,167 / core 16,419 of 75k / 25k,
+  1,120 tests. Every customer surface compared against the old site: 14 routes PASS (market-detail and regulation-detail
+  carry until-migration 0031 waivers that retire at cutover), 2 reported, admin and community-group skipped by policy.
+- Operator rulings: "Get this fixed so it doesn't happen again" (migration reds never run locally) became the push gate:
+  versioned pre-push hook installed by npm ci, one gates script shared with the ci job, schema chain on an embedded Postgres
+  whenever supabase/ changed, skip-ci heads refused, tree-checks fails if the hook is removed. Proven by refusal of a planted
+  lint error and a wrong catalog header before it merged.
+- Defects found by the gate once drift was removed (all fixed at cause, file:line in rulings-2026-10-11.md): readers
+  passing a null org to get_surface_counts (facets fell back to loaded rows); the Workspace tags facet group not mounted;
+  DenominatorLine reading a refused census read as zero; AuthProvider reload on SIGNED_IN (yesterday); pg-run exiting
+  before a piped stdout drained (CI-only catalog truncation); a dispatch that would have run the turn against production.
+- New waiver classes with mechanisms: until-migration (self-retiring via APPLIED.json), SEC-n, order (old order unspecified
+  by file:line). Counts normalised in names and row keys; never waived.
+- Coordinator misses recorded: the bracketed skip token in a merge body (no main run for 79bdb05a); P2-CI2's diagnostics
+  push without skip-ci; launching wave 4 lanes in parallel on P2-10's unmerged barrel (P2-12 copied another lane's clone).
+- Next: P2-S4 and P2-16 briefs; then P2-15 cutover (APPLIED.json, until-migration retirement, admin parity on the preview).
