@@ -71,8 +71,10 @@ the session's context passes roughly 200k tokens of finished work, write the res
 
 ## 6. Parity waivers
 
-A pixel waiver in tests/parity/approved-changes.json cites only a look ruling (an approved artboard change or a ratified UX
-law); a behaviour defect is fixed without touching the look. The operator decides look; the artboards are its record.
+A waiver in tests/parity/approved-changes.json cites a look ruling (an approved artboard change or a ratified UX law), a
+security or privacy ruling by id (SEC-n), or is an `until-migration` entry naming the migration production lacks before
+cutover (self-retiring once APPLIED.json lists it). Counts are normalised, never waived. A behaviour defect is fixed, never
+waived. The operator decides look; the artboards are its record.
 
 ## 7. Report format (after each wave)
 
