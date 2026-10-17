@@ -41,7 +41,9 @@ Then say in five lines: main's head, what is merged, what is in flight, the next
    dependency without a budget line; no metered SDK; no identifier; LOC against budget (overage reported, never a feature dropped).
    Header ranges are checked by CI (P2-CI1) once merged; before that, a Haiku audit resolves them against the old tree.
 4. Merge: `gh pr merge <n> -R Dwarves77/caros-ledge --squash --subject "<id> <name> (<LOC> lines)"` with a body naming what was
-   read and tested. Then the lane's IMPROVEMENTS rows go into `docs/plans/rebuild/IMPROVEMENTS.md` with a disposition: BUILD
+   read and tested. The subject and body never contain the bracketed skip token (write "skip-ci" when referring to it):
+   GitHub skips the push run of any commit whose message contains it, which is how main 79bdb05a got no run (coordinator miss,
+   2026-10-17); the PR run on the identical merge ref is the proof in that case, and the next merge re-proves main. Then the lane's IMPROVEMENTS rows go into `docs/plans/rebuild/IMPROVEMENTS.md` with a disposition: BUILD
    (WHY section 7: no design, connection or ruling change: assign to a slice), DISCUSS (operator), BUILT-IN, DECLINED.
 5. Record: rulings taken go to `coordinator/rulings-2026-10-11.md` the moment they are made; plan changes as numbered
    amendments at the end of `PART2-AGENT-PLAN-2026-10-15.md`; a dated session-log addendum and the resume file at wave end.
